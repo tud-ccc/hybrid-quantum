@@ -77,4 +77,29 @@ class UPMEMDialect;
 
 //===----------------------------------------------------------------------===//
 
+} // namespace mlir/// Declaration of conversion passes for the UPMEM dialect.
+///
+/// @file
+
+#pragma once
+
+#include "mlir/Pass/Pass.h"
+#include "mlir/IR/BuiltinOps.h"
+
+namespace mlir {
+
+// Forward declaration from Dialect.h
+template<typename ConcreteDialect>
+void registerDialect(DialectRegistry &registry);
+
+namespace quantum {
+class QuantumDialect;
+} // namespace quantum
+
+//===- Generated passes ---------------------------------------------------===//
+
+#define GEN_PASS_CLASSES
+#include "cinm-mlir/Conversion/QuantumPasses.h.inc"
+
+//===----------------------------------------------------------------------===//
 } // namespace mlir

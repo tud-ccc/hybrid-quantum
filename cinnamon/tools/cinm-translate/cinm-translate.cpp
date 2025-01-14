@@ -5,7 +5,7 @@
 /// @author      Clément Fournier (clement.fournier@tu-dresden.de)
 /// @author      Hamid Farzaneh (hamid.farzaneh@tu-dresden.de)
 #include "cinm-mlir/Target/UPMEMCpp/UPMEMCppEmitter.h"
-
+#include "cinm-mlir/Conversion/QuantumToLLVM/QuantumToLLVM.h"
 #include "mlir/InitAllTranslations.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Tools/mlir-translate/MlirTranslateMain.h"

@@ -20,4 +20,8 @@ add_public_tablegen_target(UPMEMConversionPassIncGen)
 
 add_mlir_doc(UPMEMPasses UPMEMConversionPasses ./ -gen-pass-doc)
 
+set(LLVM_TARGET_DEFINITIONS QuantumPasses.td)
+mlir_tablegen(QuantumPasses.h.inc -gen-pass-decls -name QuantumConversion ${TBLGEN_EXTRA})
+add_public_tablegen_target(QuantumConversionPassIncGen)
 
+add_mlir_doc(QuantumPasses QuantumConversionPasses ./ -gen-pass-doc)
