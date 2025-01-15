@@ -13,14 +13,6 @@ project(cinm-mlir
     LANGUAGES   C CXX
 )
 
-option(CINM_BUILD_GPU_SUPPORT "Enable vulkan runner and GPU libs" OFF)
-option(UPMEM_DIR "Directory of the UPMEM installation" "")
-
-if (CINM_BUILD_GPU_SUPPORT)
-    add_compile_definitions(CINM_GPU_SUPPORT)
-endif()
-
-
 # Set global language standard to C++20.
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to conform to")
 
@@ -83,13 +75,3 @@ add_subdirectory(include)
 add_subdirectory(lib)
 add_subdirectory(test)
 add_subdirectory(tools)
-
-if (UPMEM_DIR)
-    add_library(Upmem::dpu SHARED IMPORTED GLOBAL)
-    set_property(TARGET Upmem::dpu PROPERTY
-                 IMPORTED_LOCATION ${UPMEM_DIR}/lib/libdpu.so)
-    target_include_directories(Upmem::dpu INTERFACE ${UPMEM_DIR}/include/dpu)
-    add_subdirectory(runtime)
-else()
-    message(WARNING "UPMEM_DIR not set, runtime lib will not be compiled.")
-endif()

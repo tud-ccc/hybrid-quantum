@@ -186,8 +186,6 @@ struct qGateOp : public OpConversionPattern<OpType> {
             qirName = "__quantum__qis__u"; 
         } else if constexpr (std::is_same_v<OpType, ExpectationOp>) {
         qirName = "__quantum__qis__exp"; 
-        } else if constexpr (std::is_same_v<OpType, NamedObsOp>) {
-        qirName = "__quantum__qis__namedobs"; 
         } else if constexpr (std::is_same_v<OpType, HamiltonianOp>) {
         qirName = "__quantum__qis__hamiltonian"; 
         } else {
@@ -233,9 +231,7 @@ struct qObsOp : public OpConversionPattern<OpType> {
         StringRef qirName;
         if constexpr (std::is_same_v<OpType, ExpectationOp>) {
             qirName = "__quantum__qis__exp";
-        } else if constexpr (std::is_same_v<OpType, NamedObsOp>) {
-        qirName = "__quantum__qis__namedobs"; 
-        } else if constexpr (std::is_same_v<OpType, HamiltonianOp>) {
+        }  else if constexpr (std::is_same_v<OpType, HamiltonianOp>) {
         qirName = "__quantum__qis__hamiltonian"; 
         } else {
             return rewriter.notifyMatchFailure(op, "Unsupported operation type.");
@@ -253,7 +249,7 @@ struct qObsOp : public OpConversionPattern<OpType> {
         }
 
         // Create a call to the QIR function
-        ValueRange qubit = adaptor.getResults(); // Ensure this method exists
+        ValueRange qubit = adaptor.getObs(); // Ensure this method exists
         rewriter.create<LLVM::CallOp>(loc, TypeRange(), fnDecl.getSymName(), qubit);
         rewriter.eraseOp(op);
         return success();
@@ -276,7 +272,6 @@ struct qUOp    : public qGateOp<UOp>    { using qGateOp<UOp>::qGateOp; };
 
 //Specify patterns for the observable ops
 struct qExpOp    : public qObsOp<ExpectationOp>    { using qObsOp<ExpectationOp>::qObsOp; };
-struct qNamedObsOp    : public qObsOp<NamedObsOp>    { using qObsOp<NamedObsOp>::qObsOp; };
 struct qHamiltonianOp    : public qObsOp<HamiltonianOp>    { using qObsOp<HamiltonianOp>::qObsOp; };
 } // namespace
 
@@ -317,7 +312,7 @@ struct QIRTypeConverter : public LLVMTypeConverter {
 void populateQuantumToLLVMConversionPatterns(QIRTypeConverter &typeConverter,
                                              RewritePatternSet &patterns) {
     // Use insert to add all conversion patterns at once
-    patterns.insert <qAllocOp, qDeallocOp, qExtractOp, qInsertOp, qCNOTOp, qHOp, qXOp, qYOp, qZOp, qROp, qUOp,qExpOp,qHamiltonianOp, qNamedObsOp> (typeConverter, patterns.getContext());
+    patterns.insert <qAllocOp, qDeallocOp, qExtractOp, qInsertOp, qCNOTOp, qHOp, qXOp, qYOp, qZOp, qROp, qUOp,qExpOp,qHamiltonianOp> (typeConverter, patterns.getContext());
 }
   struct ConvertQuantumToLLVMPass
       : public impl::ConvertQuantumToLLVMPassBase<ConvertQuantumToLLVMPass>

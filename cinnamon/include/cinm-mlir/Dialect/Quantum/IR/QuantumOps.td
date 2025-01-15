@@ -515,46 +515,6 @@ def Quantum_ExpectationOp : Measurement_Op<"expectation"> {
     }];
 }
 
-// Observation operation
-// def Quantum_ObservationOp : Measurement_Op<"observe"> {
-//     let summary = "Compute the observation value of the given observable for the current state";
-//     let description = [{
-//     }];
-
-//     let arguments = (ins
-//         Quantum_QubitArray:$qcirc,       // Ensure this is correct
-//         Quantum_ObservableType:$obs, 
-//         AnyRankedTensor:$theta
-//     );
-
-//     let results = (outs
-//         Quantum_ObservableType:$obsval
-//     );
-
-//     let assemblyFormat = [{
-//         $qcirc `,` $obs attr-dict `,` $theta `:` type($qcirc) `,`  type($theta) `->` type($obsval)
-//     }];
-// }
-
-def Quantum_NamedObsOp : Observable_Op<"namedobs"> {
-    let summary = "Define a Named observable for use in measurements";
-    let description = [{
-    }];
-
-    let arguments = (ins
-        Quantum_Qubit:$qubit,
-        I32:$ntype
-    );
-
-    let results = (outs
-        Quantum_ObservableType:$obs
-    );
-
-    let assemblyFormat = [{
-        $qubit `[`$ntype`]` attr-dict  `:` type(results)
-    }];
-}
-
 def Quantum_HamiltonianOp : Observable_Op<"hamiltonian"> {
     let summary = "Define a Hamiltonian observable for use in measurements";
     let description = [{
@@ -572,15 +532,17 @@ def Quantum_HamiltonianOp : Observable_Op<"hamiltonian"> {
         AnyTypeOf<[
             1DTensorOf<[F32]>, MemRefRankOf<[F32], [1]>
         ]>:$coeffs,
-        Variadic<Quantum_ObservableType>:$obs
+        Variadic<Quantum_ObservableType>:$obs,
+        Quantum_Qubit:$input,
+        I32:$ntype
     );
 
     let results = (outs
-        Quantum_ObservableType:$obsval
+        Quantum_ObservableType:$out
     );
 
     let assemblyFormat = [{
-        `(` $coeffs `:` type($coeffs) `)` $obs attr-dict `:` type(results)
+         $input `,` $coeffs `,` $ntype `,` $obs attr-dict `:` type($input)  `,` type($coeffs) `,`  type($ntype)  `,` type($obs)  `->` type(results)
     }];
 }
 
