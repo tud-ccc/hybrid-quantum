@@ -38,7 +38,7 @@ run_test() {
 #run_test "Quantum Gates Operations" "$CINM /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Quantum/circuit.mlir"
 
 # Testing conversion of quantum dialect to LLVM IR
-run_test "Quantum Parsing" "$CINM /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Quantum/quantum_ops.mlir"
+run_test "Quantum Parsing" "$CINM /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Quantum/all_operations.mlir"
 
 
 run_test "Quantum to LLVM Conversion" "$CINM \
@@ -47,8 +47,7 @@ run_test "Quantum to LLVM Conversion" "$CINM \
   --convert-arith-to-llvm \
   --convert-func-to-llvm \
   --reconcile-unrealized-casts \
-  --convert-quantum-to-llvm\
-  /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Quantum/quantum_ops.mlir"
+  /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Quantum/all_operations.mlir"
 
 
 #   run_test "Quantum to LLVM Conversion" "$CINM \

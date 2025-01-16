@@ -249,7 +249,7 @@ struct qObsOp : public OpConversionPattern<OpType> {
         }
 
         // Create a call to the QIR function
-        ValueRange qubit = adaptor.getObs(); // Ensure this method exists
+        ValueRange qubit = adaptor.getInput(); // Ensure this method exists
         rewriter.create<LLVM::CallOp>(loc, TypeRange(), fnDecl.getSymName(), qubit);
         rewriter.eraseOp(op);
         return success();

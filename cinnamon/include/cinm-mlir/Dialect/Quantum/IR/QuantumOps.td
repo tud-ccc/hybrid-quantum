@@ -503,7 +503,7 @@ def Quantum_ExpectationOp : Measurement_Op<"expectation"> {
     }];
 
     let arguments = (ins
-        Quantum_ObservableType:$obs
+        Quantum_ObservableType:$input
     );
 
     let results = (outs
@@ -511,7 +511,7 @@ def Quantum_ExpectationOp : Measurement_Op<"expectation"> {
     );
 
     let assemblyFormat = [{
-        $obs attr-dict `:` type(results)
+        $input attr-dict `:` type(results)
     }];
 }
 
@@ -532,7 +532,6 @@ def Quantum_HamiltonianOp : Observable_Op<"hamiltonian"> {
         AnyTypeOf<[
             1DTensorOf<[F32]>, MemRefRankOf<[F32], [1]>
         ]>:$coeffs,
-        Variadic<Quantum_ObservableType>:$obs,
         Quantum_Qubit:$input,
         I32:$ntype
     );
@@ -542,7 +541,7 @@ def Quantum_HamiltonianOp : Observable_Op<"hamiltonian"> {
     );
 
     let assemblyFormat = [{
-         $input `,` $coeffs `,` $ntype `,` $obs attr-dict `:` type($input)  `,` type($coeffs) `,`  type($ntype)  `,` type($obs)  `->` type(results)
+         $input `,` $coeffs `,` $ntype attr-dict `:` type($input)  `,` type($coeffs) `,`  type($ntype)  `->` type(results)
     }];
 }
 
