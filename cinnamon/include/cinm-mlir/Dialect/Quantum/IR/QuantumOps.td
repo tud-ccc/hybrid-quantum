@@ -45,7 +45,7 @@ def NamedObservableAttr : EnumAttr<Quantum_Dialect, NamedObservable, "named_obse
 //===----------------------------------------------------------------------===//
 // Quantum memory operations.
 //===----------------------------------------------------------------------===//
-def Quantum_AllocateOp : Memory_Op<"allocate", [NoMemoryEffect]> {
+def Quantum_InitArrayOp : Memory_Op<"init_array", [NoMemoryEffect]> {
     let summary = "Allocate n qubits into a quantum register.";
     let description = [{
     }];
@@ -64,6 +64,20 @@ def Quantum_AllocateOp : Memory_Op<"allocate", [NoMemoryEffect]> {
     }];
 }
 
+def Quantum_AllocateOp : Memory_Op<"allocate", [NoMemoryEffect]>{
+    let summary = "Allocate n qubits into a quantum register.";
+    let description = [{
+    }];
+
+    let results = (outs
+        Quantum_Qubit:$qubit
+    );
+
+    let assemblyFormat = [{
+          attr-dict `:` type($qubit)
+    }];
+
+}
 
 def Quantum_DeallocateOp : Memory_Op<"deallocate"> {
     let summary = "Deallocate a quantum register.";
@@ -394,16 +408,24 @@ def Quantum_TDaggerOp : PrimitiveGate_Op<"Tdagger", [Pure, SameOperandsAndResult
   let assemblyFormat = [{ $input attr-dict }];
 }
 
-def Quantum_MeasureOp : PrimitiveGate_Op<"measure", [Pure]> {
-    let summary = "Measure a single qubit.";
+def Quantum_MeasureOp : Quantum_Op<"measure"> {
+    let summary = "A single-qubit projective measurement in the computational basis.";
     let description = [{
-        This operation takes a single qubit of type `qubit<1>`
-        and returns the measurement outcome in the standard basis
-        as a bit (`i1`)        ```
     }];
-    let arguments = (ins Quantum_Qubit:$qinp);
-    let results = (outs I1:$res, Quantum_Qubit:$qout);
-    let assemblyFormat = [{ $qinp attr-dict }];
+
+    let arguments = (ins
+        Quantum_Qubit:$in_qubit,
+        OptionalAttr<ConfinedAttr<I32Attr, [IntMinValue<0>, IntMaxValue<1>]>>:$postselect
+    );
+
+    let results = (outs
+        I1:$mres,
+        Quantum_Qubit:$out_qubit
+    );
+
+    let assemblyFormat = [{
+        $in_qubit attr-dict `:` type(results)
+    }];
 }
 
 // 2-qubit gates

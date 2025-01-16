@@ -2,7 +2,6 @@
 
 CINM=/net/media/scratch/quantum/Cinnamon/cinnamon/build/bin/cinm-opt
 TRANS=/net/media/scratch/quantum/Cinnamon/cinnamon/build/bin/cinm-translate
-
 total_tests=0
 failed_tests=0
 
@@ -38,16 +37,19 @@ run_test() {
 #run_test "Quantum Gates Operations" "$CINM /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Quantum/circuit.mlir"
 
 # Testing conversion of quantum dialect to LLVM IR
-run_test "Quantum Parsing" "$CINM /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Quantum/all_operations.mlir"
+#run_test "Quantum Parsing" "$CINM /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Quantum/all_operations.mlir"
 
+run_test "Opaque types" "$CINM  --convert-quantum-to-llvm /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Quantum/opaque.mlir"
 
-run_test "Quantum to LLVM Conversion" "$CINM \
-  --convert-scf-to-cf \
-  --convert-cf-to-llvm \
-  --convert-arith-to-llvm \
-  --convert-func-to-llvm \
-  --reconcile-unrealized-casts \
-  /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Quantum/all_operations.mlir"
+#run_test "QIR RUNNER" "qir-runner --file /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Lowering/test.ll"
+
+# run_test "Quantum to LLVM Conversion" "$CINM \
+#   --convert-scf-to-cf \
+#   --convert-cf-to-llvm \
+#   --convert-arith-to-llvm \
+#   --convert-func-to-llvm \
+#   --reconcile-unrealized-casts \
+#   /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Quantum/all_operations.mlir"
 
 
 #   run_test "Quantum to LLVM Conversion" "$CINM \

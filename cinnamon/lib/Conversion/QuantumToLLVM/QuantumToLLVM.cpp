@@ -15,6 +15,8 @@ namespace mlir
 namespace mlir::quantum
 {
 namespace {
+constexpr int32_t NO_POSTSELECT = -1;
+
 LLVM::LLVMFuncOp ensureFunctionDeclaration(PatternRewriter &rewriter, Operation *op,
                                            StringRef fnSymbol, Type fnType)
   {
@@ -34,10 +36,29 @@ LLVM::LLVMFuncOp ensureFunctionDeclaration(PatternRewriter &rewriter, Operation 
     return cast<LLVM::LLVMFuncOp>(fnDecl);
   }
 
-struct qAllocOp : public OpConversionPattern<AllocateOp> {
+// struct qAllocateOp : public OpConversionPattern<AllocateOp> {
+//     using OpConversionPattern::OpConversionPattern;
+
+//     LogicalResult matchAndRewrite(AllocateOp op, AllocateOpAdaptor adaptor,
+//                                   ConversionPatternRewriter &rewriter) const override
+//     {
+//         Location loc = op.getLoc();
+//         MLIRContext *ctx = getContext();
+//         const TypeConverter *conv = getTypeConverter();
+//         StringRef qirName = "__qir__rt__qubit_allocate";
+        
+//         Type qirSignature = LLVM::LLVMFunctionType::get(conv->convertType(qubitType::get(ctx)));
+
+//         LLVM::LLVMFuncOp fnDecl = ensureFunctionDeclaration(rewriter, op, qirName, qirSignature);
+//         rewriter.replaceOpWithNewOp<LLVM::CallOp>(op, fnDecl);
+//         return success();
+//     }
+// };
+
+struct qInitArrayOp : public OpConversionPattern<InitArrayOp> {
     using OpConversionPattern::OpConversionPattern;
 
-    LogicalResult matchAndRewrite(AllocateOp op, AllocateOpAdaptor adaptor,
+    LogicalResult matchAndRewrite(InitArrayOp op, InitArrayOpAdaptor adaptor,
                                   ConversionPatternRewriter &rewriter) const override
     {
         Location loc = op.getLoc();
@@ -46,7 +67,7 @@ struct qAllocOp : public OpConversionPattern<AllocateOp> {
 
         StringRef qirName = "__quantum__rt__qubit_allocate_array";
         Type qirSignature = LLVM::LLVMFunctionType::get(conv->convertType(nqubitType::get(ctx)),
-                                                        IntegerType::get(ctx, 64));
+                                                        IntegerType::get(ctx, 32));
 
         LLVM::LLVMFuncOp fnDecl = ensureFunctionDeclaration(rewriter, op, qirName, qirSignature);
 
@@ -65,10 +86,47 @@ struct qAllocOp : public OpConversionPattern<AllocateOp> {
         }
 
         rewriter.replaceOpWithNewOp<LLVM::CallOp>(op, fnDecl, nQubits);
+        return success();
+    }
+};
+
+struct qMeasureOp : public OpConversionPattern<MeasureOp> {
+    using OpConversionPattern::OpConversionPattern;
+
+    LogicalResult matchAndRewrite(MeasureOp op, MeasureOpAdaptor adaptor,
+                                  ConversionPatternRewriter &rewriter) const override
+    {
+        Location loc = op.getLoc();
+        MLIRContext *ctx = getContext();
+        const TypeConverter *conv = getTypeConverter();
+
+        // Add postselect and qubit types to the function signature
+        Type qubitTy = conv->convertType(qubitType::get(ctx));
+        Type postselectTy = IntegerType::get(ctx, 32);
+        SmallVector<Type> argSignatures = {qubitTy, postselectTy};
+
+        StringRef qirName = "__quantum__qis__mz__body";
+        Type qirSignature =
+            LLVM::LLVMFunctionType::get(conv->convertType(resultType::get(ctx)), argSignatures);
+
+        LLVM::LLVMFuncOp fnDecl = ensureFunctionDeclaration(rewriter, op, qirName, qirSignature);
+
+        // Create the postselect value. If not given, it defaults to NO_POSTSELECT
+        LLVM::ConstantOp postselect = rewriter.create<LLVM::ConstantOp>(
+            loc, op.getPostselect() ? op.getPostselectAttr()
+                                    : rewriter.getI32IntegerAttr(NO_POSTSELECT));
+
+        // Add qubit and postselect values as arguments of the CallOp
+        SmallVector<Value> args = {adaptor.getInQubit(), postselect};
+
+        Value resultPtr = rewriter.create<LLVM::CallOp>(loc, fnDecl, args).getResult();
+        Value mres = rewriter.create<LLVM::LoadOp>(loc, IntegerType::get(ctx, 1), resultPtr);
+        rewriter.replaceOp(op, {mres, adaptor.getInQubit()});
 
         return success();
     }
 };
+
 
 struct qDeallocOp : public OpConversionPattern<DeallocateOp> {
     using OpConversionPattern::OpConversionPattern;
@@ -104,7 +162,7 @@ struct qExtractOp : public OpConversionPattern<ExtractOp> {
         StringRef qirName = "__quantum__rt__array_get_element_ptr_1d";
         Type qirSignature = LLVM::LLVMFunctionType::get(
             LLVM::LLVMPointerType::get(rewriter.getContext()),
-            {conv->convertType(nqubitType::get(ctx)), IntegerType::get(ctx, 64)});
+            {conv->convertType(nqubitType::get(ctx)), IntegerType::get(ctx, 32)});
 
         LLVM::LLVMFuncOp fnDecl = ensureFunctionDeclaration(rewriter, op, qirName, qirSignature);
 
@@ -164,8 +222,6 @@ struct qGateOp : public OpConversionPattern<OpType> {
             qirName = "__quantum__qis__sdg";
         } else if constexpr (std::is_same_v<OpType, TDaggerOp>) {
             qirName = "__quantum__qis__tdg";
-        } else if constexpr (std::is_same_v<OpType, MeasureOp>) {
-            qirName = "__quantum__qis__measure";
         } else if constexpr (std::is_same_v<OpType, CNOTOp>) {
             qirName = "__quantum__qis__cnot";
         } else if constexpr (std::is_same_v<OpType, ROp>) {
@@ -184,10 +240,6 @@ struct qGateOp : public OpConversionPattern<OpType> {
             qirName = "__quantum__qis__cswap";
         } else if constexpr (std::is_same_v<OpType, UOp>) {
             qirName = "__quantum__qis__u"; 
-        } else if constexpr (std::is_same_v<OpType, ExpectationOp>) {
-        qirName = "__quantum__qis__exp"; 
-        } else if constexpr (std::is_same_v<OpType, HamiltonianOp>) {
-        qirName = "__quantum__qis__hamiltonian"; 
         } else {
             return rewriter.notifyMatchFailure(op, "Unsupported operation type.");
         }
@@ -195,7 +247,7 @@ struct qGateOp : public OpConversionPattern<OpType> {
 
         // Define the QIR function signature
         Type qirSignature = LLVM::LLVMFunctionType::get(LLVM::LLVMVoidType::get(ctx),
-                                                        conv->convertType(nqubitType::get(ctx)));
+                                                        conv->convertType(qubitType::get(ctx)));
 
         // Ensure function declaration exists
         LLVM::LLVMFuncOp fnDecl = ensureFunctionDeclaration(rewriter, op, qirName, qirSignature);
@@ -266,13 +318,9 @@ struct qTOp : public qGateOp<TOp> { using qGateOp<TOp>::qGateOp; };
 struct qROp : public qGateOp<ROp> { using qGateOp<ROp>::qGateOp; };
 struct qSDaggerOp : public qGateOp<SDaggerOp> { using qGateOp<SDaggerOp>::qGateOp; };
 struct qTDaggerOp : public qGateOp<TDaggerOp> { using qGateOp<TDaggerOp>::qGateOp; };
-struct qMeasureOp : public qGateOp<MeasureOp> { using qGateOp<MeasureOp>::qGateOp; };
 struct qCNOTOp    : public qGateOp<CNOTOp>    { using qGateOp<CNOTOp>::qGateOp; };
 struct qUOp    : public qGateOp<UOp>    { using qGateOp<UOp>::qGateOp; };
 
-//Specify patterns for the observable ops
-struct qExpOp    : public qObsOp<ExpectationOp>    { using qObsOp<ExpectationOp>::qObsOp; };
-struct qHamiltonianOp    : public qObsOp<HamiltonianOp>    { using qObsOp<HamiltonianOp>::qObsOp; };
 } // namespace
 
 struct QIRTypeConverter : public LLVMTypeConverter {
@@ -300,7 +348,7 @@ struct QIRTypeConverter : public LLVMTypeConverter {
 
     Type convertObservableType([[maybe_unused]] Type mlirType) 
     {
-        return this->convertType(IntegerType::get(&getContext(), 64));
+        return this->convertType(IntegerType::get(&getContext(), 32));
     }
 
     Type convertResultType([[maybe_unused]] Type mlirType) 
@@ -312,9 +360,10 @@ struct QIRTypeConverter : public LLVMTypeConverter {
 void populateQuantumToLLVMConversionPatterns(QIRTypeConverter &typeConverter,
                                              RewritePatternSet &patterns) {
     // Use insert to add all conversion patterns at once
-    patterns.insert <qAllocOp, qDeallocOp, qExtractOp, qInsertOp, qCNOTOp, qHOp, qXOp, qYOp, qZOp, qROp, qUOp,qExpOp,qHamiltonianOp> (typeConverter, patterns.getContext());
+    patterns.insert <qInitArrayOp, qDeallocOp, qExtractOp, qMeasureOp, qInsertOp, qCNOTOp, qHOp, qXOp, qYOp, qZOp, qROp, qUOp> (typeConverter, patterns.getContext());
 }
-  struct ConvertQuantumToLLVMPass
+
+struct ConvertQuantumToLLVMPass
       : public impl::ConvertQuantumToLLVMPassBase<ConvertQuantumToLLVMPass>
   {
     void runOnOperation() final
@@ -323,7 +372,6 @@ void populateQuantumToLLVMConversionPatterns(QIRTypeConverter &typeConverter,
         // Insert opaque type definitions
         auto module = getOperation();
         insertOpaqueTypeDefinitions(module);
-        
         QIRTypeConverter typeConverter(context);
 
         RewritePatternSet patterns(context);
@@ -361,7 +409,7 @@ void populateQuantumToLLVMConversionPatterns(QIRTypeConverter &typeConverter,
   }
   };
 
-  std::unique_ptr<Pass> createConvertQuantumToLLVMPass()
+ std::unique_ptr<Pass> createConvertQuantumToLLVMPass()
   {
     return std::make_unique<ConvertQuantumToLLVMPass>();
   }
