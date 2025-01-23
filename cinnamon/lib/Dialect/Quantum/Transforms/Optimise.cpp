@@ -54,20 +54,11 @@ struct AdjointCancel : public OpRewritePattern<quantum::HOp> {
   }
 };
 
-struct CircuitInverseCancel : public OpRewritePattern<quantum::CircuitOp> {
-  using OpRewritePattern::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(quantum::CircuitOp op,
-                                PatternRewriter &rewriter) const final {
-    // Implement circuit inverse cancellation logic here
-    return success();
-  }
-};
 
 struct QuantumOptimisePass : public quantum::impl::QuantumOptimisePassBase<QuantumOptimisePass> {
   void runOnOperation() override {
     RewritePatternSet patterns(&getContext());
-    patterns.add<HermitianCancel, AdjointCancel, CircuitInverseCancel>(&getContext());
+    patterns.add<HermitianCancel, AdjointCancel>(&getContext());
 
     if (failed(applyPatternsAndFoldGreedily(getOperation(), std::move(patterns)))) {
       signalPassFailure();

@@ -45,38 +45,17 @@ def NamedObservableAttr : EnumAttr<Quantum_Dialect, NamedObservable, "named_obse
 //===----------------------------------------------------------------------===//
 // Quantum memory operations.
 //===----------------------------------------------------------------------===//
-def Quantum_InitArrayOp : Memory_Op<"init_array", [NoMemoryEffect]> {
-    let summary = "Allocate n qubits into a quantum register.";
-    let description = [{
-    }];
+def Quantum_AllocOp : Quantum_Op<"alloc", [NoMemoryEffect]> {
+  let summary = "Allocate n qubits into a quantum register.";
+  let description = [{
+    Allocates a fixed number of qubits into a quantum register.
+  }];
 
-    let arguments = (ins
-        Optional<I32>:$nqubits,
-        OptionalAttr<ConfinedAttr<I32Attr, [IntNonNegative]>>:$nqubits_attr
-    );
+  let results = (outs Quantum_Qubit:$result);
 
-    let results = (outs
-        Quantum_QubitArray:$qreg
-    );
-
-    let assemblyFormat = [{
-        `(` ($nqubits^):($nqubits_attr)? `)` attr-dict `:` type(results)
-    }];
-}
-
-def Quantum_AllocateOp : Memory_Op<"allocate", [NoMemoryEffect]>{
-    let summary = "Allocate n qubits into a quantum register.";
-    let description = [{
-    }];
-
-    let results = (outs
-        Quantum_Qubit:$qubit
-    );
-
-    let assemblyFormat = [{
-          attr-dict `:` type($qubit)
-    }];
-
+  let assemblyFormat = [{
+    attr-dict `:` type($result)
+  }];
 }
 
 def Quantum_DeallocateOp : Memory_Op<"deallocate"> {
@@ -85,33 +64,30 @@ def Quantum_DeallocateOp : Memory_Op<"deallocate"> {
     }];
 
     let arguments = (ins
-        Quantum_QubitArray:$qreg
+        Quantum_Qubit:$qreg
     );
 
     let assemblyFormat = [{
         $qreg attr-dict `:` type(operands)
     }];
-
 }
 
-def Quantum_ExtractOp : Memory_Op<"extract", [NoMemoryEffect, Kernel]> {
-    let summary = "Extract a qubit value from a register.";
+def Quantum_ExtractOp : Quantum_Op<"extract", [NoMemoryEffect]> {
+    let summary = "Extract a qubit value or a range of qubits from a register.";
     let description = [{
     }];
 
     let arguments = (ins
-        Quantum_QubitArray:$qreg,
-        Optional<I32>:$idx,
-        OptionalAttr<ConfinedAttr<I32Attr, [IntNonNegative]>>:$idx_attr
+        Quantum_Qubit:$qreg,
+        Variadic<Index>:$idx
     );
 
     let results = (outs
-        Quantum_Qubit:$qubit
+        Quantum_Qubit:$out
     );
 
     let assemblyFormat = [{
-        $qreg `[` ($idx^):($idx_attr)? `]` attr-dict `:` type($qreg) `->` type(results)
-    }];
+        $qreg (`[` $idx^ `]`)? attr-dict `:` type($qreg) `->` type($out) }];
 
     let hasVerifier = 1;
 }
@@ -122,18 +98,18 @@ def Quantum_InsertOp : Memory_Op<"insert", [NoMemoryEffect]> {
     }];
 
     let arguments = (ins
-        Quantum_QubitArray:$in_qreg,
+        Quantum_Qubit:$qreg,
         Optional<I32>:$idx,
         OptionalAttr<ConfinedAttr<I32Attr, [IntNonNegative]>>:$idx_attr,
         Quantum_Qubit:$qubit
     );
 
     let results = (outs
-        Quantum_QubitArray:$out_qreg
+        Quantum_Qubit:$out
     );
 
     let assemblyFormat = [{
-        $in_qreg `[` ($idx^):($idx_attr)? `]` `,` $qubit attr-dict `:` type($in_qreg) `,` type($qubit)
+        $qreg `[` ($idx^):($idx_attr)? `]` `,` $qubit attr-dict `:` type($qreg) `,` type($qubit) `->` type(results)
     }];
 
     let hasVerifier = 1;
@@ -180,7 +156,7 @@ def Quantum_DimOp : Memory_Op<"dim", [NoMemoryEffect]> {
     ```
   }];
 
-  let arguments = (ins Quantum_QubitArray:$source,
+  let arguments = (ins Quantum_Qubit:$source,
                        I32:$index);
   let results = (outs I32:$result);
 
@@ -216,8 +192,8 @@ def Quantum_HOp : PrimitiveGate_Op<"H", [Pure, SameOperandsAndResultType, Hermit
     ```
   }];
 
-  let arguments = (ins AnyTypeOf<[Quantum_Qubit, Quantum_QubitArray]>:$input);
-  let results = (outs AnyTypeOf<[Quantum_Qubit, Quantum_QubitArray]>:$result);
+  let arguments = (ins AnyTypeOf<[Quantum_Qubit, Quantum_Qubit]>:$input);
+  let results = (outs AnyTypeOf<[Quantum_Qubit, Quantum_Qubit]>:$result);
 
   let assemblyFormat = [{
     $input attr-dict `:` type($input)
@@ -246,7 +222,7 @@ def Quantum_CNOTOp : PrimitiveGate_Op<"CNOT", [Pure]> {
     Quantum_Qubit:$target_out
   );
 
-  let assemblyFormat = [{ $input `,` $target attr-dict }];
+  let assemblyFormat = [{ $input `,` $target attr-dict `:`  type($input) `,` type($target)  `->` type($control_out) `,` type($target_out)}];
   let hasVerifier = 1;
 }
 
@@ -271,8 +247,8 @@ def Quantum_XOp : PrimitiveGate_Op<"X", [Pure, SameOperandsAndResultType, Hermit
     ```
   }];
 
-  let arguments = (ins AnyTypeOf<[Quantum_Qubit, Quantum_QubitArray]>:$input);
-  let results = (outs AnyTypeOf<[Quantum_Qubit, Quantum_QubitArray]>:$result);
+  let arguments = (ins AnyTypeOf<[Quantum_Qubit, Quantum_Qubit]>:$input);
+  let results = (outs AnyTypeOf<[Quantum_Qubit, Quantum_Qubit]>:$result);
 
   let assemblyFormat = [{
     $input attr-dict `:` type($input)
@@ -302,8 +278,8 @@ def Quantum_YOp : PrimitiveGate_Op<"Y", [Pure, SameOperandsAndResultType, Hermit
     ```
   }];
 
-  let arguments = (ins AnyTypeOf<[Quantum_Qubit, Quantum_QubitArray]>:$input);
-  let results = (outs AnyTypeOf<[Quantum_Qubit, Quantum_QubitArray]>:$result);
+  let arguments = (ins AnyTypeOf<[Quantum_Qubit, Quantum_Qubit]>:$input);
+  let results = (outs AnyTypeOf<[Quantum_Qubit, Quantum_Qubit]>:$result);
 
   let assemblyFormat = [{
     $input attr-dict `:` type($input)
@@ -331,8 +307,8 @@ def Quantum_ZOp : PrimitiveGate_Op<"Z", [Pure, SameOperandsAndResultType, Hermit
     ```
   }];
 
-  let arguments = (ins AnyTypeOf<[Quantum_Qubit, Quantum_QubitArray]>:$input);
-  let results = (outs AnyTypeOf<[Quantum_Qubit, Quantum_QubitArray]>:$result);
+  let arguments = (ins AnyTypeOf<[Quantum_Qubit, Quantum_Qubit]>:$input);
+  let results = (outs AnyTypeOf<[Quantum_Qubit, Quantum_Qubit]>:$result);
 
   let assemblyFormat = [{
     $input attr-dict `:` type($input)
@@ -359,7 +335,7 @@ def Quantum_ROp : PrimitiveGate_Op<"R", [Pure]> {
 
   // Define the assembly format
   let assemblyFormat = [{
-    `(` $input attr-dict `,` $axis `,` $theta `)`
+    `(`$input `,` $axis `,` $theta`)` attr-dict `:` type($input) `->` type($result)
   }];
 }
 
@@ -372,7 +348,7 @@ def Quantum_SOp : PrimitiveGate_Op<"S", [Pure, SameOperandsAndResultType]> {
   }];
   let arguments = (ins Quantum_Qubit:$input);
   let results = (outs Quantum_Qubit:$result);
-  let assemblyFormat = [{ $input attr-dict }];
+  let assemblyFormat = [{ $input attr-dict `:` type($input) `->` type($result)}];
 }
 
 def Quantum_TOp : PrimitiveGate_Op<"T", [Pure, SameOperandsAndResultType]> {
@@ -383,7 +359,7 @@ def Quantum_TOp : PrimitiveGate_Op<"T", [Pure, SameOperandsAndResultType]> {
   }];
   let arguments = (ins Quantum_Qubit:$input);
   let results = (outs Quantum_Qubit:$result);
-  let assemblyFormat = [{ $input attr-dict }];
+  let assemblyFormat = [{ $input attr-dict `:` type($input) `->` type($result) }];
 }
 
 def Quantum_SDaggerOp : PrimitiveGate_Op<"Sdagger", [Pure, SameOperandsAndResultType]> {
@@ -394,7 +370,7 @@ def Quantum_SDaggerOp : PrimitiveGate_Op<"Sdagger", [Pure, SameOperandsAndResult
   }];
   let arguments = (ins Quantum_Qubit:$input);
   let results = (outs Quantum_Qubit:$result);
-  let assemblyFormat = [{ $input attr-dict }];
+  let assemblyFormat = [{ $input attr-dict `:` type($input) `->` type($result)}];
 }
 
 def Quantum_TDaggerOp : PrimitiveGate_Op<"Tdagger", [Pure, SameOperandsAndResultType]> {
@@ -405,27 +381,16 @@ def Quantum_TDaggerOp : PrimitiveGate_Op<"Tdagger", [Pure, SameOperandsAndResult
   }];
   let arguments = (ins Quantum_Qubit:$input);
   let results = (outs Quantum_Qubit:$result);
-  let assemblyFormat = [{ $input attr-dict }];
+  let assemblyFormat = [{ $input attr-dict  `:` type($input) `->` type($result) }];
 }
 
-def Quantum_MeasureOp : Quantum_Op<"measure"> {
-    let summary = "A single-qubit projective measurement in the computational basis.";
-    let description = [{
-    }];
+def Quantum_MeasureOp : Quantum_Op<"measure">{
+      let summary = "Measure a single qubit.";
+    let description = [{    }];
 
-    let arguments = (ins
-        Quantum_Qubit:$in_qubit,
-        OptionalAttr<ConfinedAttr<I32Attr, [IntMinValue<0>, IntMaxValue<1>]>>:$postselect
-    );
-
-    let results = (outs
-        I1:$mres,
-        Quantum_Qubit:$out_qubit
-    );
-
-    let assemblyFormat = [{
-        $in_qubit attr-dict `:` type(results)
-    }];
+    let arguments = (ins Quantum_Qubit:$qinp);
+    let results = (outs I1:$res, Quantum_Qubit:$qout);
+    let assemblyFormat = [{ $qinp attr-dict `:` type($qinp) `->` type($qout)}];
 }
 
 // 2-qubit gates
@@ -437,7 +402,7 @@ def Quantum_CYOp : PrimitiveGate_Op<"CY", [Pure]> {
   }];
   let arguments = (ins Quantum_Qubit:$control, Quantum_Qubit:$target);
   let results = (outs Quantum_Qubit:$control_out, Quantum_Qubit:$target_out);
-  let assemblyFormat = [{ $control `,` $target attr-dict }];
+  let assemblyFormat = [{ $control `,` $target attr-dict `:`  type($control) `,` type($target) `->` type($control_out) `,` type($target_out) }];
 }
 
 def Quantum_CZOp : PrimitiveGate_Op<"CZ", [Pure]> {
@@ -448,7 +413,7 @@ def Quantum_CZOp : PrimitiveGate_Op<"CZ", [Pure]> {
   }];
   let arguments = (ins Quantum_Qubit:$control, Quantum_Qubit:$target);
   let results = (outs Quantum_Qubit:$control_out, Quantum_Qubit:$target_out);
-  let assemblyFormat = [{ $control `,` $target attr-dict }];
+  let assemblyFormat = [{ $control `,` $target attr-dict `:`  type($control) `,` type($target) `->` type($control_out) `,` type($target_out) }];
 }
 
 def Quantum_SWAPOp : PrimitiveGate_Op<"SWAP", [Pure]> {
@@ -458,7 +423,7 @@ def Quantum_SWAPOp : PrimitiveGate_Op<"SWAP", [Pure]> {
   }];
   let arguments = (ins Quantum_Qubit:$qubit1, Quantum_Qubit:$qubit2);
   let results = (outs Quantum_Qubit:$qubit1_out, Quantum_Qubit:$qubit2_out);
-  let assemblyFormat = [{ $qubit1 `,` $qubit2 attr-dict }];
+  let assemblyFormat = [{ $qubit1 `,` $qubit2 attr-dict `:` type($qubit1) `,` type($qubit2) `->` type($qubit1_out) `,` type($qubit2_out)}];
 }
 
 def Quantum_CCXOp : PrimitiveGate_Op<"CCX", [Pure]> {
@@ -469,7 +434,7 @@ def Quantum_CCXOp : PrimitiveGate_Op<"CCX", [Pure]> {
   }];
   let arguments = (ins Quantum_Qubit:$control1, Quantum_Qubit:$control2, Quantum_Qubit:$target);
   let results = (outs Quantum_Qubit:$control1_out, Quantum_Qubit:$control2_out, Quantum_Qubit:$target_out);
-  let assemblyFormat = [{ $control1 `,` $control2 `,` $target attr-dict }];
+  let assemblyFormat = [{ $control1 `,` $control2 `,` $target attr-dict `:`  type($control1) `,` type($control2) `,` type($target) `->` type($control1_out) `,` type($control2_out) `,` type($target_out)  }];
 }
 
 // n-qubit gates
@@ -481,7 +446,7 @@ def Quantum_CCZOp : PrimitiveGate_Op<"CCZ", [Pure]> {
   }];
   let arguments = (ins Quantum_Qubit:$control1, Quantum_Qubit:$control2, Quantum_Qubit:$target);
   let results = (outs Quantum_Qubit:$control1_out, Quantum_Qubit:$control2_out, Quantum_Qubit:$target_out);
-  let assemblyFormat = [{ $control1 `,` $control2 `,` $target attr-dict }];
+  let assemblyFormat = [{ $control1 `,` $control2 `,` $target attr-dict `:`  type($control1) `,` type($control2) `,` type($target) `->` type($control1_out) `,` type($control2_out) `,` type($target_out) }];
 }
 
 def Quantum_CSWAPOp : PrimitiveGate_Op<"CSWAP", [Pure]> {
@@ -492,323 +457,19 @@ def Quantum_CSWAPOp : PrimitiveGate_Op<"CSWAP", [Pure]> {
   }];
   let arguments = (ins Quantum_Qubit:$control, Quantum_Qubit:$target1, Quantum_Qubit:$target2);
   let results = (outs Quantum_Qubit:$control_out, Quantum_Qubit:$target1_out, Quantum_Qubit:$target2_out);
-  let assemblyFormat = [{ $control `,` $target1 `,` $target2 attr-dict }];
+  let assemblyFormat = [{ $control `,` $target1 `,` $target2 attr-dict `:`  type($control) `,` type($target1) `,` type($target2) `->` type($control_out) `,` type($target1_out) `,` type($target2_out) }];
 }
 
 // Universal gate
-def Quantum_UOp : PrimitiveGate_Op<"U", [Pure, SameOperandsAndResultType]> {
+def Quantum_UOp : PrimitiveGate_Op<"U", [Pure]> {
   let summary = "Universal single-qubit rotation gate";
   let description = [{
     Applies a universal single-qubit rotation with three Euler angles.
     U(θ, φ, λ) = Rz(φ)Ry(θ)Rz(λ)
   }];
-  let arguments = (ins F32Attr:$theta, F32Attr:$phi, F32Attr:$lambda, Quantum_Qubit:$input);
+  let arguments = (ins F32:$theta, F32:$phi, F32:$lambda, Quantum_Qubit:$input);
   let results = (outs Quantum_Qubit:$result);
-  let assemblyFormat = [{ $input `(` $theta `,` $phi `,` $lambda `)` attr-dict }];
+  let assemblyFormat = [{ $input `(` $theta `,` $phi `,` $lambda `)` attr-dict `:`  type($input) `,` type($theta) `,` type($phi) `,` type($lambda) `->` type($result) }];
 }
-
-//observation ops
-def Quantum_ExpectationOp : Measurement_Op<"expectation"> {
-    let summary = "Compute the expectation value of the given observable for the current state";
-    let description = [{
-        Example:
-
-        ```mlir
-        func.func @foo(%q: !quantum.bit)
-        {
-            %obs = quantum.namedobs %q[4] : !quantum.obs
-            %expval = quantum.expectation %obs : f64
-
-            func.return
-        }
-        ```
-    }];
-
-    let arguments = (ins
-        Quantum_ObservableType:$input
-    );
-
-    let results = (outs
-        F32:$expval
-    );
-
-    let assemblyFormat = [{
-        $input attr-dict `:` type(results)
-    }];
-}
-
-def Quantum_HamiltonianOp : Observable_Op<"hamiltonian"> {
-    let summary = "Define a Hamiltonian observable for use in measurements";
-    let description = [{
-        ```mlir
-        func.func @foo(%q0: !quantum.bit, %q1: !quantum.bit, %c: tensor<2xf64>) {
-            %obs1 = quantum.namedobs %q0[4] : !quantum.obs
-            %obs2 = quantum.namedobs %q1[2] : !quantum.obs
-            %res = quantum.hamiltonian(%c: tensor<2xf64>) %obs1, %obs2 : !quantum.obs
-            func.return
-        }
-        ```
-    }];
-
-    let arguments = (ins
-        AnyTypeOf<[
-            1DTensorOf<[F32]>, MemRefRankOf<[F32], [1]>
-        ]>:$coeffs,
-        Quantum_Qubit:$input,
-        I32:$ntype
-    );
-
-    let results = (outs
-        Quantum_ObservableType:$out
-    );
-
-    let assemblyFormat = [{
-         $input `,` $coeffs `,` $ntype attr-dict `:` type($input)  `,` type($coeffs) `,`  type($ntype)  `->` type(results)
-    }];
-}
-
-
-def Quantum_CircuitOp : Quantum_Op<"circuit", [
-  AutomaticAllocationScope, CallableOpInterface,
-  FunctionOpInterface, IsolatedFromAbove, Symbol,
-  RecursiveMemoryEffects
-]> {
-  let summary = "An operation with a name containing a single `SSACFG` region corresponding to a quantum circuit(block) execution";
-  let description = [{
-
-    Defines a circuit(function) operation representing a
-    proecedural (deterministically timed) circuit execution
-    on the QPU *without* any classical compute or control-flow.
-    Effectively corresponding to a callable "circuit block".
-
-    The CircuitOp is modelled after the FuncOp of the MLIR func
-    dialect.
-
-    A circuit may only contain operations declaring qubits
-    TODO: move qubit declaration/allocation outside of the circuit),
-    unitary gates operations, and projective measurements. It may only
-    be launched from the QPU's control-system directly.
-
-    All non-constant classical values required to define the circuit must
-    be provided as circuit arguments to allow a clean separation of
-    classical and quantum processes within the MLIR.
-
-    Quantum programs should be canonicalized such that all quantum
-    operations occurr within a region contained by a `quir.circuit` operation
-    and are reached through a corresponding `quir.call_circuit`.
-
-    TODO: Clarify the difference between circuit and gate definitions.
-
-    Operations within the circuit cannot implicitly capture values defined
-    outside of the circuit, i.e. they are `IsolatedFromAbove`. All
-    external references must use circuit arguments or attributes that establish
-    a symbolic connection (e.g. symbols referenced by name via a string
-    attribute like SymbolRefAttr). An external circuit declaration (used when
-    referring to a circuit declared in some other module) has no body. While
-    the MLIR textual form provides a nice inline syntax for circuit arguments,
-    they are internally represented as “block arguments” to the first block in
-    the region.
-
-    Syntax:
-
-    ```
-    op ::= `quir.circuit` symbol-ref-id `(` argument-list `)` (`->`
-    function-result-list)? function-attributes? region
-    ```
-
-    Example:
-
-    ```mlir
-    // External circuit function definitions.
-    quir.circuit @x()
-
-    // A function that returns its argument twice:
-    quir.circuit @vqe(%angle: quir.angle<32>) -> i1
-      {quir.physicalId = 0 : i32} {
-      %q0 = quir.declare_qubit {id = 0 : i32} : !quir.qubit<1>
-      quir.gate_func.call @rz(%0, %angle) : (!quir.qubit<1>, !quir.angle<32>) -> ()
-      %result = "quir.measure"(%0) : (!quir.qubit<1>) -> i1
-      quir.return %result: i1
-    }
-    ```
-  }];
-
-  let arguments = (ins SymbolNameAttr:$sym_name,
-                       TypeAttrOf<FunctionType>:$function_type,
-                       OptionalAttr<StrAttr>:$sym_visibility,
-                       OptionalAttr<DictArrayAttr>:$arg_attrs,
-                       OptionalAttr<DictArrayAttr>:$res_attrs);
-  let regions = (region AnyRegion:$body);
-
-  let builders = [OpBuilder<(ins
-    "StringRef":$name, "FunctionType":$type,
-    CArg<"ArrayRef<NamedAttribute>", "{}">:$attrs,
-    CArg<"ArrayRef<DictionaryAttr>", "{}">:$argAttrs)
-    >];
-  let extraClassDeclaration = [{
-    static CircuitOp create(Location location, StringRef name, FunctionType type,
-                         ArrayRef<NamedAttribute> attrs = {});
-    static CircuitOp create(Location location, StringRef name, FunctionType type,
-                         Operation::dialect_attr_range attrs);
-    static CircuitOp create(Location location, StringRef name, FunctionType type,
-                         ArrayRef<NamedAttribute> attrs,
-                         ArrayRef<DictionaryAttr> argAttrs);
-
-    /// Create a deep copy of this circuit and all of its blocks, remapping any
-    /// operands that use values outside of the circuit using the map that is
-    /// provided (leaving them alone if no entry is present). If the mapper
-    /// contains entries for circuit arguments, these arguments are not
-    /// included in the new circuit. Replaces references to cloned sub-values
-    /// with the corresponding value that is copied, and adds those mappings to
-    /// the mapper.
-    CircuitOp clone(IRMapping &mapper);
-    CircuitOp clone();
-
-    /// Clone the internal blocks and attributes from this circuit into dest.
-    /// Any cloned blocks are appended to the back of dest. This circuit
-    /// asserts that the attributes of the current circuit and dest are
-    /// compatible.
-    void cloneInto(CircuitOp dest, IRMapping &mapper);
-
-    //===------------------------------------------------------------------===//
-    // CallableOpInterface
-    //===------------------------------------------------------------------===//
-
-    /// Returns the region on the current operation that is callable. This may
-    /// return null in the case of an external callable object, e.g. an external
-    /// function.
-    ::mlir::Region *getCallableRegion() { return isExternal() ? nullptr : &getBody(); }
-
-    /// Returns the results types that the callable region produces when
-    /// executed.
-    ArrayRef<Type> getCallableResults() { return getFunctionType().getResults(); }
-
-    /// Returns the argument attributes for all callable region arguments or
-    /// null if there are none.
-    ::mlir::ArrayAttr getCallableArgAttrs() {
-      return getArgAttrs().value_or(nullptr);
-    }
-
-    /// Returns the result attributes for all callable region results or
-    /// null if there are none.
-    ::mlir::ArrayAttr getCallableResAttrs() {
-      return getResAttrs().value_or(nullptr);
-    }
-
-    //===------------------------------------------------------------------===//
-    // FunctionOpInterface Methods
-    //===------------------------------------------------------------------===//
-
-    /// Returns the argument types of this function.
-    ArrayRef<Type> getArgumentTypes() { return getFunctionType().getInputs(); }
-
-    /// Returns the result types of this function.
-    ArrayRef<Type> getResultTypes() { return getFunctionType().getResults(); }
-
-    //===------------------------------------------------------------------===//
-    // SymbolOpInterface Methods
-    //===------------------------------------------------------------------===//
-
-    bool isDeclaration() { return isExternal(); }
-  }];
-
-  let hasCustomAssemblyFormat = 1;
-  let hasVerifier = 1;
-}
-
-def Quantum_ReturnOp : Quantum_Op<"return", [HasParent<"CircuitOp">, Pure, Terminator, ReturnLike]>,
-    Arguments<(ins Variadic<AnyType>:$operands)>, Results<(outs)> {
-        let summary = "Terminator for quir.circuit.";
-        let description = [{
-                A terminator for regions that appear in the body of the `quir.circuit`
-                circuit operation. The operands to the `quir.return` are the result values
-                that are returned to the `quir.call_circuit` invocation of the target circuit.
-
-                Example:
-
-                ```mlir
-                quir.circuit @foo(%angle: quir.angle<32>) -> (i1, i1)
-                    ...
-                    quir.return %0, %1: i1, i1
-                }
-            }];
-        let builders = [OpBuilder<(ins), [{ build($_builder, $_state, std::nullopt); }]>];
-        let assemblyFormat = "attr-dict ($operands^ `:` type($operands))?";
-        let hasVerifier = 1;
-}
-
-def Quantum_CallCircuitOp : Quantum_Op<"call_circuit", [CallOpInterface, MemRefsNormalizable, DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
-    let summary = "Call a circuit operation";
-    let description = [{
-        The `quir.call_circuit` operation represents calls to launch a quantum circuit in the target system.
-        The callee function is attached to a symbol reference via an attribute. The arguments list must match
-        the argument types provided by the callee. The calling of a circuit represents the classical<->quantum
-        interaction within the specified program. All classical input values to the circuit should be transferred
-        before the invocation of the circuit routine to enable deterministic execution of the quantum circuit.
-
-        TODO: Currently all qubits must be declared within the circuit for lowering to hardware due to how
-        qubit allocations are currently tracked with `declare_qubit`. In the future we should consider
-        supporting quantum arguments (qubits) to make truly reuseable circuit routines that align
-        with the Qiskit and OpenQASM3 circuit definitions.
-
-        Example:
-        ```mlir
-        %classical_result = quir.call_circuit @vqe(%theta) : (quir.angle<32>) -> (i1, i1)
-        ```
-    }];
-
-    let arguments = (ins FlatSymbolRefAttr:$callee, Variadic<AnyType>:$operands);
-    let results = (outs Variadic<AnyType>:$res);
-
-    let assemblyFormat = [{
-        $callee `(` $operands `)` attr-dict `:` functional-type($operands, results)
-    }];
-
-    let builders = [
-        OpBuilder<(ins "CircuitOp":$callee, CArg<"ValueRange", "{}">:$operands), [{
-            $_state.addOperands(operands);
-            $_state.addAttribute("callee", SymbolRefAttr::get(callee));
-            $_state.addTypes(callee.getFunctionType().getResults());
-        }]>,
-        OpBuilder<(ins "SymbolRefAttr":$callee, "TypeRange":$res,
-        CArg<"ValueRange", "{}">:$operands), [{
-            $_state.addOperands(operands);
-            $_state.addAttribute("callee", callee);
-            $_state.addTypes(res);
-        }]>,
-        OpBuilder<(ins "StringRef":$callee, "TypeRange":$res,
-        CArg<"ValueRange", "{}">:$operands), [{
-            build($_builder, $_state, SymbolRefAttr::get($_builder.getContext(), callee), res,
-                    operands);
-        }]>];
-
-    let extraClassDeclaration = [{
-        FunctionType getCalleeType();
-
-        /// Get the argument operands to the called function.
-        operand_range getArgOperands() {
-            return {arg_operand_begin(), arg_operand_end()};
-        }
-
-        MutableOperandRange getArgOperandsMutable() {
-            return getOperandsMutable();
-        }
-
-        operand_iterator arg_operand_begin() { return operand_begin(); }
-        operand_iterator arg_operand_end() { return operand_end(); }
-
-        /// Return the callee of this operation.
-        CallInterfaceCallable getCallableForCallee() {
-            return (*this)->getAttrOfType<SymbolRefAttr>("callee");
-        }
-
-        /// Set the callee for this operation.
-        void setCalleeFromCallable(CallInterfaceCallable callee) {
-            (*this)->setAttr("callee", callee.get<SymbolRefAttr>());
-        }
-    }];
-}
-
-
 
 #endif

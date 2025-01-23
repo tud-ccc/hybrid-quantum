@@ -39,9 +39,10 @@ run_test() {
 # Testing conversion of quantum dialect to LLVM IR
 #run_test "Quantum Parsing" "$CINM /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Quantum/all_operations.mlir"
 
-run_test "Opaque types" "$CINM  --convert-quantum-to-llvm /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Quantum/opaque.mlir"
-
-#run_test "QIR RUNNER" "qir-runner --file /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Lowering/test.ll"
+run_test "Basic Quantum Circuit" "$CINM  /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Quantum/new.mlir "
+# run_test "QUANTUM TO LLVMIR" "$CINM  --convert-quantum-to-llvm /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Quantum/opaque.mlir -o  /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Quantum/opaque_llvmir.mlir"
+# run_test "LLVMIR TO LLVM" "$TRANS  --mlir-to-llvmir /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Quantum/opaque_llvmir.mlir -o  /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Quantum/opaque.ll"
+# run_test "QIR RUNNER" "qir-runner  --file /net/media/scratch/quantum/Cinnamon/cinnamon/test/Dialect/Quantum/opaque.ll"
 
 # run_test "Quantum to LLVM Conversion" "$CINM \
 #   --convert-scf-to-cf \

@@ -1,7 +1,7 @@
 %Result = type opaque
 %Qubit = type opaque
 
-define void @gn() #0 {
+define void @ENTRYPOINT_main() #0 {
 block_0:
   call void @__quantum__qis__h__body(%Qubit*)
   call void @__quantum__qis__cx__body(%Qubit* , %Qubit*)

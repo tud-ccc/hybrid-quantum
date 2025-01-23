@@ -1,3 +1,6 @@
+//legacy code for quantum machine learning
+//need to update nqubit types to qubit<n> type
+
 module{
 
 func.func @main() {
