@@ -3,6 +3,7 @@
 /// @file
 /// @author      Karl F. A. Friebel (karl.friebel@tu-dresden.de)
 /// @author      Clément Fournier (clement.fournier@tu-dresden.de)
+/// @author      Lars Schütze (lars.schuetze@tu-dresden.de)
 
 #include "cinm-mlir/Dialect/Quantum/IR/QuantumDialect.h"
 #include "cinm-mlir/Dialect/Quantum/Transforms/Passes.h"
@@ -30,5 +31,5 @@ int main(int argc, char *argv[]) {
   quantum::registerQuantumTransformsPasses();
 
   return asMainReturnCode(
-      MlirOptMain(argc, argv, "cinm-mlir optimizer driver\n", registry));
+      MlirOptMain(argc, argv, "quantum-mlir optimizer driver\n", registry));
 }

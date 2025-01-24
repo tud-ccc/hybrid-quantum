@@ -18,9 +18,9 @@ cmake *ARGS:
     cmake -S . -B {{build_dir}} \
         -G Ninja \
         -DCMAKE_BUILD_TYPE={{build_type}} \
-        "-DLLVM_DIR={{llvm_prefix}}/lib/cmake/llvm" \
-        "-DMLIR_DIR={{llvm_prefix}}/lib/cmake/mlir" \
-        "-DUPMEM_DIR={{upmem_dir}}" \
+        -DLLVM_DIR="{{llvm_prefix}}/lib/cmake/llvm" \
+        -DMLIR_DIR="{{llvm_prefix}}/lib/cmake/mlir" \
+        -DUPMEM_DIR="{{upmem_dir}}" \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
         -DCMAKE_C_COMPILER=clang \
@@ -33,7 +33,7 @@ cmake *ARGS:
 
 # execute a specific ninja target
 doNinja *ARGS:
-    ninja -C{{build_dir}} {{ARGS}}
+    ninja -C {{build_dir}} {{ARGS}}
 
 
 # run build --first build needs cmake though
@@ -47,26 +47,26 @@ cleanBuild:
 alias b := build
 
 # run tests
-test: (doNinja "check-cinm-mlir")
+test: (doNinja "check-quantum-mlir")
 
 [no-cd]
-cinm-opt *ARGS: (doNinja "cinm-opt")
-    {{source_directory()}}/{{build_dir}}/bin/cinm-opt {{ARGS}}
+quantum-opt *ARGS: (doNinja "quantum-opt")
+    {{source_directory()}}/{{build_dir}}/bin/quantum-opt {{ARGS}}
 
-cinm-opt-help: (cinm-opt "--help")
+quantum-opt-help: (quantum-opt "--help")
 
-# Start a gdb session on cinm-opt.
-debug-cinm-opt *ARGS:
-    gdb --args {{build_dir}}/bin/cinm-opt {{ARGS}}
+# Start a gdb session on quantum-opt.
+debug-quantum-opt *ARGS:
+    gdb --args {{build_dir}}/bin/quantum-opt {{ARGS}}
 
-cnm-to-gpu FILE *ARGS: (cinm-opt FILE "--convert-cnm-to-gpu" ARGS)
+cnm-to-gpu FILE *ARGS: (quantum-opt FILE "--convert-cnm-to-gpu" ARGS)
 
 cinm-vulkan-runner FILE *ARGS:
     {{build_dir}}/bin/cinm-vulkan-runner {{FILE}} \
         --shared-libs=../llvm-project/build/lib/libvulkan-runtime-wrappers.so,../llvm-project/build/lib/libmlir_runner_utils.so.17 \
         {{ARGS}}
 
-genBench NAME: (doNinja "cinm-opt")
+genBench NAME: (doNinja "quantum-opt")
     #!/bin/bash
     source "{{upmem_dir}}/upmem_env.sh"
     cd testbench
@@ -79,7 +79,7 @@ runBench NAME:
     cd testbench/generated2/{{NAME}}/bin
     ./host
 
-bench NAME: (doNinja "cinm-opt")
+bench NAME: (doNinja "quantum-opt")
     #!/bin/bash
     set -e
     source "{{upmem_dir}}/upmem_env.sh"

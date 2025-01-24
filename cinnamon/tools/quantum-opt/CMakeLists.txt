@@ -1,13 +1,13 @@
 ################################################################################
-# cinm-opt
+# quantum-opt
 #
-# The cinm-mlir optimizer driver.
+# The quantum-mlir optimizer driver.
 ################################################################################
 
-project(cinm-opt)
+project(quantum-opt)
 
 add_executable(${PROJECT_NAME}
-    cinm-opt.cpp
+    quantum-opt.cpp
 )
 
 # Link all standard MLIR dialect and conversion libs.
