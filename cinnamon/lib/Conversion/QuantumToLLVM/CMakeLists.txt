@@ -1,5 +1,6 @@
 add_mlir_conversion_library(MLIRQuantumToLLVM
     QuantumToLLVM.cpp
+    Patterns.cpp
 
     ADDITIONAL_HEADER_DIRS
     ${MLIR_MAIN_INCLUDE_DIR}/Quantum/Conversion/QuantumToLLVM

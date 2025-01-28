@@ -46,7 +46,23 @@ using namespace mlir::quantum;
 #include "cinm-mlir/Dialect/Quantum/IR/QuantumTypes.cpp.inc"
 
 //===----------------------------------------------------------------------===//
+// QubitTypeStorage Implementation
+//===----------------------------------------------------------------------===//
+QubitTypeStorage *QubitTypeStorage::construct(TypeStorageAllocator &allocator, const KeyTy &key) {
+  return new (allocator.allocate<QubitTypeStorage>()) QubitTypeStorage(key);
+}
 
+//===----------------------------------------------------------------------===//
+// QubitType Implementation
+//===----------------------------------------------------------------------===//
+
+QubitType QubitType::get(MLIRContext *context, unsigned size) {
+  return Base::get(context, size);
+}
+
+unsigned QubitType::getSize() const {
+  return getImpl()->size;
+}
 //===----------------------------------------------------------------------===//
 // QuantumDialect
 //===----------------------------------------------------------------------===//
