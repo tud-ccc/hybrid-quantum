@@ -16,8 +16,8 @@
 //pauli X Y Z, H gates.
 %q0_X = "quantum.X" (%q00) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
 %q0_Y = "quantum.Y" (%q0_X) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
-%q0_Z = "quantum.Y" (%q0_Y) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
-%q0_H = "quantum.Y" (%q0_Z) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
+%q0_Z = "quantum.Z" (%q0_Y) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
+%q0_H = "quantum.H" (%q0_Z) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
 
 // Rotation gates.
 %reg2 = "quantum.alloc" () : () -> (!quantum.qubit<3>)
