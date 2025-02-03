@@ -9,7 +9,7 @@ module {
         %q = "quantum.alloc" () : () -> (!quantum.qubit<1>)
         // CHECK-DAG: qir.measure (%[[Q]], %[[R]])
         %m, %q_m = "quantum.measure" (%q) : (!quantum.qubit<1>) -> (i1, !quantum.qubit<1>)
-        // 
+        // CHECK-DAG: %[[M:.+]] = qir.measure_value (%[[R]])
         return %m : i1
     }
 

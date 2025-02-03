@@ -21,8 +21,9 @@ def ConvertQuantumToLLVMPass : Pass<"convert-quantum-to-llvm", "ModuleOp"> {
 
 def ConvertQuantumToQIRPass : Pass<"convert-quantum-to-qir", "ModuleOp"> {
     let summary = "Perform a dialect conversion from Quantum to QIR";
-    let constructor = "mlir::quantum::createConvertQuantumToQIRPass()";
+    let constructor = "quantum::createConvertQuantumToQIRPass()";
     let dependentDialects = [
+        "mlir::qir::QIRDialect",
         "mlir::arith::ArithDialect",
         "mlir::tensor::TensorDialect",
     ];

@@ -26,9 +26,9 @@ using namespace mlir;
 
 int main(int argc, char *argv[]) {
   DialectRegistry registry;
-  registerAllDialects(registry);
   registry.insert<quantum::QuantumDialect>();
   registry.insert<qir::QIRDialect>();
+  registerAllDialects(registry);
   registerAllPasses();
   registerAllExtensions(registry);
   registerQuantumConversionPasses();

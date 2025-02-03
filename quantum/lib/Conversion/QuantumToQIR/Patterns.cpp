@@ -61,7 +61,7 @@ namespace mlir::quantum {
 void populateQuantumToQIRConversionPatterns(TypeConverter &typeConverter, RewritePatternSet &patterns)
 {
     //patterns.add<AllocOpPattern>(typeConverter, patterns.getContext());
-    //patterns.add<MeasureOpPattern>(typeConverter, patterns.getContext());
+    patterns.add<MeasureOpPattern>(typeConverter, patterns.getContext());
 }
 
 } // namespace quantum

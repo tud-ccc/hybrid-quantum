@@ -26,14 +26,14 @@ def QIR_AllocOp : Memory_Op<"alloc", [MemoryEffects<[MemRead]>]> {
   let summary = "Allocate n qubits into a qubit register.";
   let description = [{ Allocates a fixed number of qubits into a qubit register. }];
 
-  let results = (outs QIR_Qubit:$result);
+  let results = (outs QIR_QubitType:$result);
 }
 
 def QIR_AllocResultOp : Memory_Op<"ralloc", [MemoryEffects<[MemRead]>]> {
   let summary = "Allocate n results into a result register.";
   let description = [{ Allocates a fixed number of results into a result register. }];
 
-  let results = (outs QIR_Result:$result);
+  let results = (outs QIR_ResultType:$result);
 }
 
 //===----------------------------------------------------------------------===//
@@ -48,14 +48,14 @@ def Quantum_HOp : PrimitiveGate_Op<"H", [MemoryEffects<[MemRead, MemWrite]>]> {
     The Hadamard gate creates an equal superposition of states.
   }];
 
-  let arguments = (ins QIR_Qubit:$input);
+  let arguments = (ins QIR_QubitType:$input);
 }
 
 def Quantum_MeasureOp : QIR_Op<"measure", [NoMemoryEffect]> {
     let summary = "Measure a single qubit.";
     let description = [{ }];
 
-    let arguments = (ins QIR_Qubit:$input, QIR_Result:$result);
+    let arguments = (ins QIR_QubitType:$input, QIR_ResultType:$result);
 }
 
 #endif

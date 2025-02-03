@@ -12,6 +12,7 @@ add_mlir_conversion_library(MLIRQuantumToQIR
     Core
 
     LINK_LIBS PUBLIC
+    QIRIR
     QuantumIR
     MLIRDialectUtils
     MLIRReconcileUnrealizedCasts
