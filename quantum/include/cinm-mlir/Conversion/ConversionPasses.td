@@ -1,0 +1,33 @@
+//===- Passes.td - Quantum dialect passes ---------------------*- tablegen -*-===//
+//
+// This is the definitions file for the cinm-mlir dialect conversion passes.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef QUANUTM_MLIR_CONVERSION_PASSES
+#define QUANTUM_MLIR_CONVERSION_PASSES
+
+include "mlir/Pass/PassBase.td"
+
+def ConvertQuantumToQIR : Pass<"convert-quantum-to-qir"> {
+    let summary = "Perform a dialect conversion from Quantum to QIR";
+
+    let constructor = "mlir::createConvertQuantumToQIRPass()";
+
+    let dependentDialects = [
+        "qir::QIRDialect"
+    ];
+}
+
+def ConvertQIRToLLVM : Pass<"convert-qir-to-llvm"> {
+    let summary = "Perform a dialect conversion from QIR to LLVM MLIR";
+
+    let constructor = "mlir::createConvertQIRToLLVMPass()";
+    
+    let dependentDialects = [
+        "LLVM::LLVMDialect"
+    ];
+}
+
+
+#endif // QUANTUM_MLIR_CONVERSION_PASSES

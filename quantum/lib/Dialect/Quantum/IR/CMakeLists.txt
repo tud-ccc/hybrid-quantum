@@ -1,4 +1,5 @@
 add_mlir_dialect_library(QuantumIR
+        QuantumAttributes.cpp
         QuantumBase.cpp
         QuantumOps.cpp
         QuantumTypes.cpp
@@ -10,11 +11,6 @@ add_mlir_dialect_library(QuantumIR
         MLIRIR
         MLIRParser
         MLIRSideEffectInterfaces
-
-        MLIRArithDialect
-        MLIRDLTIDialect
-        MLIRFunctionInterfaces
-        MLIRInferIntRangeInterface
-        MLIRMemRefDialect
-        MLIRSupport
+        QuantumEnums
+        QuantumTransforms
 )

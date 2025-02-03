@@ -32,15 +32,6 @@ def Quantum_Dialect : Dialect {
     private:
         void registerOps();
         void registerTypes();
-    public:
-        static StringRef getContainerModuleAttrName() {
-            return "quantum.container_module";
-        }
-        static StringRef getKernelFuncAttrName() { return "quantum.kernel"; }
-        static bool isKernel(Operation *op);
-        static unsigned getNumWorkgroupDimensions() { return 1; }
-        // static AddressSpace getWorkgroupAddressSpace() { return AddressSpace::Workgroup; }
-        // static AddressSpace getPrivateAddressSpace() { return AddressSpace::Private; }
     }];
     // let dependentDialects = ["arith::ArithDialect"];
     let useDefaultAttributePrinterParser = 1;
@@ -76,4 +67,4 @@ def Hermitian : NativeOpTrait<"Hermitian">;
 def Kernel : NativeOpTrait<"Kernel">;
 def QuantumMemory : Resource<"QuantumMemory">;
         
-#endif
+#endif // QUANTUM_BASE

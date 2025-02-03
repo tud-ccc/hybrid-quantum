@@ -1,13 +1,13 @@
 /// Implements the QIR dialect ops.
 ///
 /// @file
+/// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
 
 #include "cinm-mlir/Dialect/QIR/IR/QIROps.h"
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/OpImplementation.h"
-
-#include "llvm/ADT/APFloat.h"
+#include "mlir/IR/PatternMatch.h"
 
 #define DEBUG_TYPE "qir-ops"
 
@@ -30,5 +30,3 @@ void QIRDialect::registerOps()
 #include "cinm-mlir/Dialect/QIR/IR/QIROps.cpp.inc"
         >();
 }
-
-// parsers/printers

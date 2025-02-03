@@ -1,13 +1,32 @@
+/// Declaration of the QIR to LLVM conversion pass.
+///
+/// @file
+/// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
+
 #pragma once
 
-#include "cinm-mlir/Dialect/QIR/IR/QIRDialect.h"
+#include "mlir/Conversion/LLVMCommon/TypeConverter.h"
+#include "mlir/Pass/Pass.h"
+#include "mlir/Transforms/DialectConversion.h"
 
-#include <mlir/Conversion/Passes.h>
-#include <mlir/Pass/Pass.h>
+namespace mlir {
 
-namespace mlir::qir {
+//===- Generated includes -------------------------------------------------===//
 
-void populateQIRToLLVMConversionPatterns(LLVMTypeConverter &typeConverter, RewritePatternSet &patterns);
+#define GEN_PASS_DECL_CONVERTQIRTOLLVM
+#include "cinm-mlir/Conversion/ConversionPasses.h.inc"
+
+//===----------------------------------------------------------------------===//
+
+namespace qir {
+
+void populateConvertQIRToLLVMPatterns (
+    LLVMTypeConverter &typeConverter,
+    RewritePatternSet &patterns);
+
+} // namespace qir
+
+/// Constructs the convert-qir-to-llvm pass.
 std::unique_ptr<Pass> createConvertQIRToLLVMPass();
 
-} // namespace mlir::qir
+} // namespace mlir

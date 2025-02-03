@@ -1,67 +1,113 @@
+/// Implements the ConvertQuantumToQIRPass.
+///
+/// @file
+/// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
+
+#include "cinm-mlir/Conversion/QuantumToQIR/QuantumToQIR.h"
+
+#include "cinm-mlir/Dialect/Quantum/IR/Quantum.h"
+#include "cinm-mlir/Dialect/QIR/IR/QIR.h"
+
+#include "mlir/Conversion/IndexToLLVM/IndexToLLVM.h"
+#include "mlir/Conversion/LLVMCommon/Pattern.h"
+#include "mlir/Dialect/Index/IR/IndexDialect.h"
+#include "mlir/Dialect/Index/IR/IndexOps.h"
+#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-#include "cinm-mlir/Dialect/QIR/IR/QIRDialect.h"
-#include "cinm-mlir/Dialect/QIR/IR/QIROps.h"
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumDialect.h"
-#include "cinm-mlir/Conversion/QuantumPasses.h"
-#include "cinm-mlir/Conversion/QuantumToQIR/QuantumToQIR.h"
+using namespace mlir;
+using namespace mlir::quantum;
 
-namespace mlir::quantum {
+//===- Generated includes -------------------------------------------------===//
+
+namespace mlir {
 
 #define GEN_PASS_DEF_CONVERTQUANTUMTOQIRPASS
-#include "cinm-mlir/Conversion/QuantumPasses.h.inc"
-
-
-// class QuantumTypeConverter : public TypeConverter {
-// public:
-//     using TypeConverter::convertType;
-
-//     QuantumTypeConverter(MLIRContext *ctx) : TypeConverter() {
-//         //addConversion([](Type type) { return type; });
-//         addConversion([&](quantum::QubitType type) {
-//             return qir::QubitType::get(getContext());
-//         });
-// //         addConversion([&](qubitType type) { return convertQubitType(type); });
-// //         //addConversion([&](resultType type) { return convertResultType(type); });
-//     }
-
-//     MLIRContext *getContext() const { return context; }
-// private:
-//     MLIRContext *context;
-// };
-
-struct QuantumToQIRTarget : public ConversionTarget {
-  QuantumToQIRTarget(MLIRContext &ctx) : ConversionTarget(ctx) {
-    //addLegalDialect<StandardOpsDialect>();
-    addLegalDialect<qir::QIRDialect>();
-    //addLegalDialect<AffineDialect>();
-
-    addIllegalDialect<quantum::QuantumDialect>();
-  }
-};
-
-struct ConvertQuantumToQIRPass
-    : public impl::ConvertQuantumToQIRPassBase<ConvertQuantumToQIRPass> {
-    void runOnOperation() final {
-        TypeConverter typeConverter;
-        RewritePatternSet patterns(&getContext());        
-        populateQuantumToQIRConversionPatterns(typeConverter, patterns);
-
-        QuantumToQIRTarget target(getContext());
-        if (failed(applyPartialConversion(getOperation(), target, std::move(patterns)))) {
-            return signalPassFailure();
-        }
-    }
-};
-
-//} // namespace mlir::quantum
-
-//namespace mlir {
-
-std::unique_ptr<Pass> createConvertQuantumToQIRPass() {
-    return std::make_unique<quantum::ConvertQuantumToQIRPass>();
-}
+#include "cinm-mlir/Conversion/ConversionPasses.h.inc"
 
 } // namespace mlir
+
+//===----------------------------------------------------------------------===//
+
+namespace {
+
+struct ConvertQuantumToQIRPass
+        : mlir::impl::ConvertQuantumToQIRBase<ConvertQuantumToQIRPass> {
+    using ConvertQuantumToQIRBase::ConvertQuantumToQIRBase;
+
+    void runOnOperation() override;
+};
+
+class QubitMap {
+public:
+    QubitMap(MLIRContext *ctx) : ctx(ctx), qubits() {}
+
+    // Map a `quantum.Qubit` to (possible many) `qir.qubit`
+    void allocate(Value quantum, ValueRange qir) {
+        for (auto qubit : qir) {
+            qubits[quantum].push_back(qubit);
+        }
+    }
+
+    MLIRContext *getContext() const { return ctx; }
+private:
+    MLIRContext *ctx;
+    llvm::DenseMap<Value, std::vector<Value>> qubits;
+};
+
+struct ConvertAlloc : OpRewritePattern<AllocOp> {
+    using OpRewritePattern::OpRewritePattern;
+
+    LogicalResult matchAndRewrite(
+        AllocOp op,
+        AllocOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        //MLIRContext *ctx = getContext();
+        //const TypeConverter *conv = getTypeConverter();
+        unsigned size = op.getType().cast<quantum::QubitType>().getSize();
+        for(unsigned i = 0; i < size; i++) {
+            //auto qubit = rewriter.create<mlir::qir::AllocOp>(op.getLoc(),
+                //mlir::qir::QubitType::get(getContext()));
+        }
+        return success();
+    }
+}; // struct ConvertAllocOp
+
+} // namespace
+
+void ConvertQuantumToQIRPass::runOnOperation()
+{
+  TypeConverter typeConverter;
+  ConversionTarget target(getContext());
+  RewritePatternSet patterns(&getContext());
+
+  quantum::populateConvertQuantumToQIRPatterns(typeConverter, patterns);
+
+  target.addIllegalDialect<quantum::QuantumDialect>();
+  target.addLegalDialect<qir::QIRDialect>();
+
+  if (failed(applyPartialConversion(
+          getOperation(),
+          target,
+          std::move(patterns)))) {
+    return signalPassFailure();
+  }
+}
+
+void mlir::quantum::populateConvertQuantumToQIRPatterns(
+    TypeConverter &typeConverter,
+    RewritePatternSet &patterns)
+{
+    patterns.add<
+        ConvertAlloc>(typeConverter);
+}
+
+std::unique_ptr<Pass> mlir::createConvertQuantumToQIRPass() {
+    return std::make_unique<ConvertQuantumToQIRPass>();
+}
+
+

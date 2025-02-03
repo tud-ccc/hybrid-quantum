@@ -8,10 +8,12 @@ enforcing a common naming scheme.
 #]========================================================================]
 
 function(mlir_gen_enums prefix)
-    set(LLVM_TARGET_DEFINITIONS Enums.td)
+    string(TOLOWER ${prefix} filter)
+    
+    set(LLVM_TARGET_DEFINITIONS ${prefix}Enums.td)
 
-    mlir_tablegen(Enums.h.inc -gen-enum-decls)
-    mlir_tablegen(Enums.cpp.inc -gen-enum-defs)
+    mlir_tablegen(${prefix}Enums.h.inc -gen-enum-decls)
+    mlir_tablegen(${prefix}Enums.cpp.inc -gen-enum-defs)
 
     add_public_tablegen_target(${prefix}EnumsIncGen)
     add_dependencies(${prefix}IncGen ${prefix}EnumsIncGen)
@@ -36,8 +38,6 @@ function(mlir_gen_ir prefix)
     mlir_tablegen(${prefix}Base.cpp.inc -gen-dialect-defs -dialect=${filter})
     mlir_tablegen(${prefix}Types.h.inc -gen-typedef-decls -typedefs-dialect=${filter})
     mlir_tablegen(${prefix}Types.cpp.inc -gen-typedef-defs -typedefs-dialect=${filter})
-    mlir_tablegen(${prefix}Enums.h.inc -gen-enum-decls)
-    mlir_tablegen(${prefix}Enums.cpp.inc -gen-enum-defs)
     mlir_tablegen(${prefix}Attributes.h.inc -gen-attrdef-decls -attrdefs-dialect=${filter})
     mlir_tablegen(${prefix}Attributes.cpp.inc -gen-attrdef-defs -attrdefs-dialect=${filter})
     mlir_tablegen(${prefix}Ops.h.inc -gen-op-decls -dialect=${filter})
@@ -45,4 +45,19 @@ function(mlir_gen_ir prefix)
 
     add_public_tablegen_target(${prefix}IRIncGen)
     add_dependencies(${prefix}IncGen ${prefix}IRIncGen)
+
+    add_mlir_doc(${prefix}Ops ${prefix}Ops Dialects/ -gen-dialect-doc -dialect=${filter})
+endfunction()
+
+function(mlir_gen_passes prefix)
+    string(TOLOWER ${prefix} filter)
+    
+    set(LLVM_TARGET_DEFINITIONS ${prefix}Passes.td)
+
+    mlir_tablegen(${prefix}Passes.h.inc -gen-pass-decls -name ${prefix})
+    mlir_tablegen(${prefix}Passes.capi.h.inc -gen-pass-capi-header --prefix ${prefix})
+    mlir_tablegen(${prefix}Passes.capi.cpp.inc -gen-pass-capi-impl --prefix ${prefix})
+
+    add_public_tablegen_target(${prefix}PassesIncGen)
+    add_dependencies(${prefix}IncGen ${prefix}PassesIncGen)
 endfunction()

@@ -1,10 +1,9 @@
 /// Implements the QIR dialect base.
 ///
 /// @file
+/// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
 
-#include "cinm-mlir/Dialect/QIR/IR/QIRBase.h"
-
-#include "cinm-mlir/Dialect/QIR/IR/QIRDialect.h"
+#include "cinm-mlir/Dialect/QIR/IR/QIR.h"
 
 #define DEBUG_TYPE "qir-base"
 

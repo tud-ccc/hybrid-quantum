@@ -1,63 +1,92 @@
-#include "mlir/Conversion/ControlFlowToLLVM/ControlFlowToLLVM.h"
-#include "mlir/Conversion/FuncToLLVM/ConvertFuncToLLVM.h"
-#include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
-#include "mlir/Conversion/LLVMCommon/TypeConverter.h"
+/// Implements the ConvertQIRToLLVMPass.
+///
+/// @file
+/// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
+
+#include "cinm-mlir/Conversion/QIRToLLVM/QIRToLLVM.h"
+
+#include "cinm-mlir/Dialect/QIR/IR/QIR.h"
+#include "mlir/Conversion/IndexToLLVM/IndexToLLVM.h"
+#include "mlir/Conversion/LLVMCommon/Pattern.h"
+#include "mlir/Dialect/Index/IR/IndexDialect.h"
+#include "mlir/Dialect/Index/IR/IndexOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-#include "cinm-mlir/Dialect/QIR/IR/QIRDialect.h"
-#include "cinm-mlir/Conversion/QIRPasses.h"
-#include "cinm-mlir/Conversion/QIRToLLVM/QIRToLLVM.h"
+using namespace mlir;
+using namespace mlir::qir;
 
-namespace mlir::qir {
+//===- Generated includes -------------------------------------------------===//
 
-#define GEN_PASS_DEF_CONVERTQIRTOLLVMPASS
-#include "cinm-mlir/Conversion/QIRPasses.h.inc"
+namespace mlir {
 
-struct QIRTypeConverter : public LLVMTypeConverter {
-    QIRTypeConverter(MLIRContext *ctx) : LLVMTypeConverter(ctx) {
-        addConversion([&](qubitType type) { return convertQubitType(type); });
-        addConversion([&](resultType type) { return convertResultType(type); });
-    }
-
-private:
-    Type convertQubitType(Type mlirType) {
-            return LLVM::LLVMStructType::getOpaque("Qubit", &getContext());
-        }
-    
-
-    Type convertResultType(Type mlirType) {
-        return LLVM::LLVMStructType::getOpaque("Result", &getContext());
-    }
-};
-
-
-struct ConvertQIRToLLVMPass
-    : public impl::ConvertQIRToLLVMPassBase<ConvertQIRToLLVMPass> {
-    void runOnOperation() final {
-        MLIRContext *context = &getContext();
-        QIRTypeConverter typeConverter(context);
-
-        RewritePatternSet patterns(context);
-        cf::populateControlFlowToLLVMConversionPatterns(typeConverter, patterns);
-        populateFuncToLLVMConversionPatterns(typeConverter, patterns);
-        populateQIRToLLVMConversionPatterns(typeConverter, patterns);
-        
-        LLVMConversionTarget target(*context);
-        target.addLegalOp<ModuleOp>();
-        target.addIllegalDialect<QIRDialect>();
-
-        if (failed(applyFullConversion(getOperation(), target, std::move(patterns)))) {
-            signalPassFailure();
-        }
-    }
-};
-
-
-std::unique_ptr<Pass> createConvertQIRToLLVMPass() {
-    return std::make_unique<qir::ConvertQIRToLLVMPass>();
-}
+#define GEN_PASS_DEF_CONVERTQIRTOLLVM
+#include "cinm-mlir/Conversion/ConversionPasses.h.inc"
 
 } // namespace mlir
+
+//===----------------------------------------------------------------------===//
+
+
+namespace {
+
+struct ConvertQIRToLLVMPass
+        : mlir::impl::ConvertQIRToLLVMBase<ConvertQIRToLLVMPass> {
+    using ConvertQIRToLLVMBase::ConvertQIRToLLVMBase;
+
+    void runOnOperation() override;
+};
+
+struct ConvertMeasureOp : ConvertOpToLLVMPattern<MeasureOp> {
+    using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+    LogicalResult matchAndRewrite(
+        MeasureOp op,
+        MeasureOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        return failure();
+    }
+}; // struct ConvertMeasureOp
+
+} // namespace
+
+void ConvertQIRToLLVMPass::runOnOperation()
+{
+    LLVMTypeConverter typeConverter(&getContext());
+    ConversionTarget target(getContext());
+    RewritePatternSet patterns(&getContext());
+
+    qir::populateConvertQIRToLLVMPatterns(typeConverter, patterns);
+    //mlir::populateFuncToLLVMConversionPatterns(typeConverter, patterns);
+        
+    target.addIllegalDialect<qir::QIRDialect>();
+    target.addLegalDialect<LLVM::LLVMDialect>();
+
+    if (failed(applyPartialConversion(
+            getOperation(),
+            target,
+            std::move(patterns)))) {
+        signalPassFailure();
+    }
+}
+
+void mlir::qir::populateConvertQIRToLLVMPatterns(
+    LLVMTypeConverter &typeConverter,
+    RewritePatternSet &patterns)
+{
+    patterns.add<ConvertMeasureOp>(typeConverter);
+}
+
+std::unique_ptr<Pass> mlir::createConvertQIRToLLVMPass()
+{
+    return std::make_unique<ConvertQIRToLLVMPass>();
+}
+
+
+
+
+

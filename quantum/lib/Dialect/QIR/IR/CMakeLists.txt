@@ -5,7 +5,6 @@ add_mlir_dialect_library(QIRIR
 
     DEPENDS
         QIRIncGen
-        QIRConversionPassIncGen
 
     LINK_LIBS PUBLIC
         MLIRIR

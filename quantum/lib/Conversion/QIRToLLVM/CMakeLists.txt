@@ -1,20 +1,15 @@
-add_mlir_conversion_library(MLIRQIRToLLVM
-    QIRToLLVM.cpp
-    Patterns.cpp
-
-    ADDITIONAL_HEADER_DIRS
-    ${MLIR_MAIN_INCLUDE_DIR}/QIR/Conversion/QIRToLLVM
+add_mlir_conversion_library(QIRToLLVM
+        QIRToLLVM.cpp
 
     DEPENDS
-    QIRConversionPassIncGen
+        ConversionIncGen
 
     LINK_COMPONENTS
-    Core
+        Core
 
     LINK_LIBS PUBLIC
-    QIRIR
-    MLIRDialectUtils
-    MLIRReconcileUnrealizedCasts
-    MLIRLLVMDialect
-    MLIRLLVMCommonConversion
+        MLIRDialectUtils
+        MLIRTransformUtils
+        MLIRLLVMDialect
+        QIRIR
 )

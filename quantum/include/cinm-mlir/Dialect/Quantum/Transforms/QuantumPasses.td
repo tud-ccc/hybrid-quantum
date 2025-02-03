@@ -9,14 +9,8 @@
 
 include "mlir/Pass/PassBase.td"
 
-def QuantumOptimisePass : Pass<"quantum-optimise", ""> {
+def QuantumOptimise : Pass<"quantum-optimise", ""> {
   let summary = "Optimise the `quantum` dialect";
-  let description = [{
-  }];
-}
-
-def QuantumTorchPass : Pass<"quantum-torch", "">{
-  let summary = "Convert torch dialect to quantum dialect";
   let description = [{
   }];
 }

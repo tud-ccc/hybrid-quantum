@@ -10,12 +10,12 @@
 include "mlir/IR/BuiltinTypeInterfaces.td"
 include "QIRBase.td"
 
-def QIR_QubitType : QIR_Type<"qubit"> {
+def QIR_QubitType : QIR_Type<"Qubit"> {
   let mnemonic = "qubit";
   let summary = "qubit type";
 }
 
-def QIR_ResultType : QIR_Type<"result"> {
+def QIR_ResultType : QIR_Type<"Result"> {
     let mnemonic = "result";
     let summary = "A quantum measurement result.";
 }

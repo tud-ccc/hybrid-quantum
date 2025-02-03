@@ -5,6 +5,7 @@
 #pragma once
 
 #include "cinm-mlir/Dialect/QIR/IR/QIRAttributes.h"
+#include "mlir/IR/Types.h"
 
 
 //===- Generated includes -------------------------------------------------===//

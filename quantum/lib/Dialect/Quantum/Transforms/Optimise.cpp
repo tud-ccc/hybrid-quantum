@@ -1,23 +1,30 @@
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumBase.h"
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumOps.h"
-#include "cinm-mlir/Dialect/Quantum/Transforms/Passes.h"
+/// Implements the Optimise.
+///
+/// @file
+/// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
 
-#include "mlir/IR/Builders.h"
-#include "mlir/IR/BuiltinTypes.h"
-#include "mlir/IR/MLIRContext.h"
+#include "cinm-mlir/Dialect/Quantum/IR/Quantum.h"
+
+#include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 using namespace mlir;
+using namespace mlir::quantum;
+
+//===- Generated includes -------------------------------------------------===//
 
 namespace mlir::quantum {
 
-//===- Generated passes ---------------------------------------------------===//
 #define GEN_PASS_DEF_QUANTUMOPTIMISEPASS
-#include "cinm-mlir/Dialect/Quantum/Transforms/Passes.h.inc"
+#include "cinm-mlir/Dialect/Quantum/Transforms/QuantumPasses.h.inc"
+
+} // namespace mlir::quantum
 
 //===----------------------------------------------------------------------===//
+
+namespace {
 
 struct HermitianCancel : public OpRewritePattern<quantum::HOp> {
   using OpRewritePattern::OpRewritePattern;
@@ -55,7 +62,7 @@ struct AdjointCancel : public OpRewritePattern<quantum::HOp> {
 };
 
 
-struct QuantumOptimisePass : public quantum::impl::QuantumOptimisePassBase<QuantumOptimisePass> {
+struct QuantumOptimisePass : ::impl::QuantumOptimiseBase<QuantumOptimisePass> {
   void runOnOperation() override {
     RewritePatternSet patterns(&getContext());
     patterns.add<HermitianCancel, AdjointCancel>(&getContext());
@@ -66,4 +73,4 @@ struct QuantumOptimisePass : public quantum::impl::QuantumOptimisePassBase<Quant
   }
 };
 
-} // namespace mlir::quantum
+} // namespace

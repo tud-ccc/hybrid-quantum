@@ -1,19 +1,13 @@
 add_mlir_dialect_library(QuantumTransforms
-    Optimise.cpp
-    Torch.cpp
+        Optimise.cpp
 
-DEPENDS
-    QuantumIncGen
-    QuantumTransformPassesIncGen
+    ENABLE_AGGREGATION
 
-LINK_LIBS PUBLIC
-    MLIRIR
-    MLIRGPUDialect
-    MLIRBufferizationDialect
-    MLIRMemRefDialect
-    MLIRLLVMDialect
-    MLIRAffineDialect
-    MLIRLinalgDialect
-    MLIRSPIRVTarget
-    MLIRTransformUtils
+    DEPENDS
+        QuantumPassesIncGen
+
+    LINK_LIBS PUBLIC
+        MLIRPass
+        MLIRTransforms
+        MLIRTransformUtils
 )
