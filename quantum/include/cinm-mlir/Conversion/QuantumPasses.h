@@ -5,6 +5,7 @@
 #pragma once
 
 #include "cinm-mlir/Conversion/QuantumToLLVM/QuantumToLLVM.h"
+#include "cinm-mlir/Conversion/QuantumToQIR/QuantumToQIR.h"
 
 
 namespace mlir {

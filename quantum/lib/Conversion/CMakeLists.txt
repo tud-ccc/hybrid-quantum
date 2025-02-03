@@ -1,2 +1,3 @@
 add_subdirectory(QuantumToLLVM)
 add_subdirectory(QIRToLLVM)
+add_subdirectory(QuantumToQIR)
