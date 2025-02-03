@@ -7,19 +7,19 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumDialect.h"
-#include "cinm-mlir/Conversion/QuantumPasses.h"
-#include "cinm-mlir/Conversion/QuantumToLLVM/QuantumToLLVM.h"
+#include "cinm-mlir/Dialect/QIR/IR/QIRDialect.h"
+#include "cinm-mlir/Conversion/QIRPasses.h"
+#include "cinm-mlir/Conversion/QIRToLLVM/QIRToLLVM.h"
 
-namespace mlir::quantum {
+namespace mlir::qir {
 
-#define GEN_PASS_DEF_CONVERTQUANTUMTOLLVMPASS
-#include "cinm-mlir/Conversion/QuantumPasses.h.inc"
+#define GEN_PASS_DEF_CONVERTQIRTOLLVMPASS
+#include "cinm-mlir/Conversion/QIRPasses.h.inc"
 
 struct QIRTypeConverter : public LLVMTypeConverter {
     QIRTypeConverter(MLIRContext *ctx) : LLVMTypeConverter(ctx) {
         addConversion([&](qubitType type) { return convertQubitType(type); });
-        //addConversion([&](resultType type) { return convertResultType(type); });
+        addConversion([&](resultType type) { return convertResultType(type); });
     }
 
 private:
@@ -28,14 +28,14 @@ private:
         }
     
 
-    //Type convertResultType(Type mlirType) {
-    //    return LLVM::LLVMStructType::getOpaque("Result", &getContext());
-    //}
+    Type convertResultType(Type mlirType) {
+        return LLVM::LLVMStructType::getOpaque("Result", &getContext());
+    }
 };
 
 
-struct ConvertQuantumToLLVMPass
-    : public impl::ConvertQuantumToLLVMPassBase<ConvertQuantumToLLVMPass> {
+struct ConvertQIRToLLVMPass
+    : public impl::ConvertQIRToLLVMPassBase<ConvertQIRToLLVMPass> {
     void runOnOperation() final {
         MLIRContext *context = &getContext();
         QIRTypeConverter typeConverter(context);
@@ -43,11 +43,11 @@ struct ConvertQuantumToLLVMPass
         RewritePatternSet patterns(context);
         cf::populateControlFlowToLLVMConversionPatterns(typeConverter, patterns);
         populateFuncToLLVMConversionPatterns(typeConverter, patterns);
-        populateQuantumToLLVMConversionPatterns(typeConverter, patterns);
+        populateQIRToLLVMConversionPatterns(typeConverter, patterns);
         
         LLVMConversionTarget target(*context);
         target.addLegalOp<ModuleOp>();
-        target.addIllegalDialect<QuantumDialect>();
+        target.addIllegalDialect<QIRDialect>();
 
         if (failed(applyFullConversion(getOperation(), target, std::move(patterns)))) {
             signalPassFailure();
@@ -56,8 +56,8 @@ struct ConvertQuantumToLLVMPass
 };
 
 
-std::unique_ptr<Pass> createConvertQuantumToLLVMPass() {
-    return std::make_unique<quantum::ConvertQuantumToLLVMPass>();
+std::unique_ptr<Pass> createConvertQIRToLLVMPass() {
+    return std::make_unique<qir::ConvertQIRToLLVMPass>();
 }
 
 } // namespace mlir

@@ -3,11 +3,11 @@
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumOps.h"
-#include "cinm-mlir/Conversion/QuantumToLLVM/QuantumToLLVM.h"
+#include "cinm-mlir/Dialect/QIR/IR/QIROps.h"
+#include "cinm-mlir/Conversion/QIRToLLVM/QIRToLLVM.h"
 
 using namespace mlir;
-using namespace mlir::quantum;
+using namespace mlir::qir;
 
 namespace {
 LLVM::LLVMFuncOp ensureFunctionDeclaration(PatternRewriter &rewriter, Operation *op,
@@ -36,30 +36,30 @@ struct AllocOpPattern : public OpConversionPattern<AllocOp> {
     LogicalResult matchAndRewrite(AllocOp op, AllocOpAdaptor adaptor,
                                   ConversionPatternRewriter &rewriter) const override
     {
-        Location loc = op.getLoc();
-        MLIRContext *ctx = getContext();
-        const TypeConverter *conv = getTypeConverter();
+        // Location loc = op.getLoc();
+        // MLIRContext *ctx = getContext();
+        // const TypeConverter *conv = getTypeConverter();
 
-        // Extract the size from the result type (!quantum.qubit<size>)
-        auto resultType = op.getResult().getType();
-        unsigned size = resultType.getSize();
+        // // Extract the size from the result type (!QIR.qubit<size>)
+        // auto resultType = op.getResult().getType();
+        // unsigned size = resultType.getSize();
 
-        // QIR function name and signature
-        StringRef qirName = "__quantum__rt__qubit_allocate_array";
-        Type qubitPtrTy = conv->convertType(resultType); // Convert !quantum.qubit<size> to LLVM type
-        Type qirSignature = LLVM::LLVMFunctionType::get(qubitPtrTy, {IntegerType::get(ctx, 64)});
+        // // QIR function name and signature
+        // StringRef qirName = "__quantum__rt__qubit_allocate_array";
+        // Type qubitPtrTy = conv->convertType(resultType); // Convert !QIR.qubit<size> to LLVM type
+        // Type qirSignature = LLVM::LLVMFunctionType::get(qubitPtrTy, {IntegerType::get(ctx, 64)});
 
-        // Ensure function declaration exists
-        LLVM::LLVMFuncOp fnDecl = ensureFunctionDeclaration(rewriter, op, qirName, qirSignature);
-        if (!fnDecl) {
-            return rewriter.notifyMatchFailure(op, "Failed to create or find function declaration.");
-        }
+        // // Ensure function declaration exists
+        // LLVM::LLVMFuncOp fnDecl = ensureFunctionDeclaration(rewriter, op, qirName, qirSignature);
+        // if (!fnDecl) {
+        //     return rewriter.notifyMatchFailure(op, "Failed to create or find function declaration.");
+        // }
 
-        // Create constant for the size
-        Value nQubits = rewriter.create<LLVM::ConstantOp>(loc, rewriter.getI64IntegerAttr(size));
+        // // Create constant for the size
+        // Value nQubits = rewriter.create<LLVM::ConstantOp>(loc, rewriter.getI64IntegerAttr(size));
 
-        // Replace the operation with a call to QIR function
-        rewriter.replaceOpWithNewOp<LLVM::CallOp>(op, qubitPtrTy, fnDecl.getSymName(), nQubits);
+        // // Replace the operation with a call to QIR function
+        // rewriter.replaceOpWithNewOp<LLVM::CallOp>(op, qubitPtrTy, fnDecl.getSymName(), nQubits);
 
         return success();
     }
@@ -77,11 +77,11 @@ struct MeasureOpPattern : public OpConversionPattern<MeasureOp> {
 
 }
 
-namespace mlir::quantum {
-void populateQuantumToLLVMConversionPatterns(LLVMTypeConverter &typeConverter, RewritePatternSet &patterns)
+namespace mlir::qir {
+void populateQIRToLLVMConversionPatterns(LLVMTypeConverter &typeConverter, RewritePatternSet &patterns)
 {
     patterns.add<AllocOpPattern>(typeConverter, patterns.getContext());
     patterns.add<MeasureOpPattern>(typeConverter, patterns.getContext());
 }
 
-} // namespace quantum
+} // namespace QIR

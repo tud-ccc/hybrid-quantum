@@ -8,6 +8,9 @@
 #include "cinm-mlir/Dialect/Quantum/IR/QuantumDialect.h"
 #include "cinm-mlir/Dialect/Quantum/Transforms/Passes.h"
 #include "cinm-mlir/Conversion/QuantumPasses.h"
+#include "cinm-mlir/Dialect/QIR/IR/QIRDialect.h"
+#include "cinm-mlir/Dialect/QIR/Transforms/Passes.h"
+#include "cinm-mlir/Conversion/QIRPasses.h"
 
 #include <mlir/IR/DialectRegistry.h>
 #include <mlir/InitAllExtensions.h>
@@ -25,6 +28,7 @@ int main(int argc, char *argv[]) {
   DialectRegistry registry;
   registerAllDialects(registry);
   registry.insert<quantum::QuantumDialect>();
+  registry.insert<qir::QIRDialect>();
   registerAllPasses();
   registerAllExtensions(registry);
   registerQuantumConversionPasses();
