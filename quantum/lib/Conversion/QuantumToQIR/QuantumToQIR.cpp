@@ -11,11 +11,11 @@ namespace mlir::quantum {
 #define GEN_PASS_DEF_CONVERTQUANTUMTOQIRPASS
 #include "cinm-mlir/Conversion/QuantumPasses.h.inc"
 
-// struct QIRTypeConverter : public TypeConverter {
-//     QIRTypeConverter(MLIRContext *ctx) : TypeConverter() {
+ struct QIRTypeConverter : public TypeConverter {
+     QIRTypeConverter(MLIRContext *ctx) : TypeConverter() {
 //         addConversion([&](qubitType type) { return convertQubitType(type); });
 //         //addConversion([&](resultType type) { return convertResultType(type); });
-//     }
+     }
 
 // private:
 //     Type convertQubitType(Type mlirType) {
@@ -26,23 +26,24 @@ namespace mlir::quantum {
 //     //Type convertResultType(Type mlirType) {
 //     //    return LLVM::LLVMStructType::getOpaque("Result", &getContext());
 //     //}
-// };
+ };
 
 
 struct ConvertQuantumToQIRPass
     : public impl::ConvertQuantumToQIRPassBase<ConvertQuantumToQIRPass> {
     void runOnOperation() final {
         MLIRContext *context = &getContext();
-        //QIRTypeConverter typeConverter(context);
+        QIRTypeConverter typeConverter(context);
 
         RewritePatternSet patterns(context);
-        //populateQuantumToQIRConversionPatterns(typeConverter, patterns);
+        populateQuantumToQIRConversionPatterns(typeConverter, patterns);
         
         ConversionTarget target(*context);
-        target.addLegalOp<ModuleOp>();
+        //target.addLegalOp<ModuleOp>();
+        //target.addLegalOp<FuncOp>();
         target.addIllegalDialect<QuantumDialect>();
 
-        if (failed(applyFullConversion(getOperation(), target, std::move(patterns)))) {
+        if (failed(applyPartialConversion(getOperation(), target, std::move(patterns)))) {
             signalPassFailure();
         }
     }
