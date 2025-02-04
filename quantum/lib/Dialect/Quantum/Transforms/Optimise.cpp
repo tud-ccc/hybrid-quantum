@@ -17,7 +17,7 @@ using namespace mlir::quantum;
 
 namespace mlir::quantum {
 
-#define GEN_PASS_DEF_QUANTUMOPTIMISEPASS
+#define GEN_PASS_DEF_QUANTUMOPTIMISE
 #include "cinm-mlir/Dialect/Quantum/Transforms/Passes.h.inc"
 
 } // namespace mlir::quantum
@@ -25,6 +25,13 @@ namespace mlir::quantum {
 //===----------------------------------------------------------------------===//
 
 namespace {
+
+struct QuantumOptimisePass
+        : mlir::quantum::impl::QuantumOptimiseBase<QuantumOptimisePass> {
+  using QuantumOptimiseBase::QuantumOptimiseBase;
+
+  void runOnOperation() override;
+};
 
 //struct HermitianCancel : RewritePattern<quantum::HOp> {
 //   using RewritePattern::RewritePattern;
@@ -66,20 +73,31 @@ namespace {
 //   }
 // };
 
+} // namespace
 
-struct QuantumOptimisePass : ::impl::QuantumOptimiseBase<QuantumOptimisePass> {
-  void runOnOperation() override {
+
+void QuantumOptimisePass::runOnOperation()
+{
     RewritePatternSet patterns(&getContext());
-    //patterns.add<
-    //  HermitianCancel,
-    //  AdjointCancel>(&getContext());
+
+
+    populateQuantumOptimisePatterns(patterns);
 
     if (failed(applyPatternsAndFoldGreedily(
       getOperation(),
       std::move(patterns)))) {
       signalPassFailure();
     }
-  }
-};
+}
 
-} // namespace
+void mlir::quantum::populateQuantumOptimisePatterns(RewritePatternSet &patterns)
+{
+    //patterns.add<
+    //  HermitianCancel,
+    //  AdjointCancel>(patterns.getContext());
+}
+
+std::unique_ptr<Pass> mlir::quantum::createQuantumOptimisePass()
+{
+    return std::make_unique<QuantumOptimisePass>();
+}

@@ -19,6 +19,12 @@ namespace mlir {
 
 namespace quantum {
 
+/// Adds the quantum optimise pass patterns to @p patterns .
+void populateQuantumOptimisePatterns(RewritePatternSet &patterns);
+
+/// Constructs the lower-funnel-shift pass.
+std::unique_ptr<Pass> createQuantumOptimisePass();
+
 //===----------------------------------------------------------------------===//
 // Registration
 //===----------------------------------------------------------------------===//

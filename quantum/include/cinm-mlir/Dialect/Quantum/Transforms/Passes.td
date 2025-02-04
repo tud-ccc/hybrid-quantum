@@ -4,15 +4,18 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef QUANTUM_TRANSFORM_PASSES
-#define QUANTUM_TRANSFORM_PASSES
+#ifndef QUANTUM_PASSES
+#define QUANTUM_PASSES
 
 include "mlir/Pass/PassBase.td"
 
-def QuantumOptimise : Pass<"quantum-optimise", ""> {
+def QuantumOptimise : Pass<"quantum-optimise", "ModuleOp"> {
   let summary = "Optimise the `quantum` dialect";
+
   let description = [{
   }];
+
+  let constructor = "mlir::quantum::createQuantumOptimisePass()";
 }
 
-#endif // QUANTUM_TRANSFORM_PASSES
+#endif // QUANTUM_PASSES

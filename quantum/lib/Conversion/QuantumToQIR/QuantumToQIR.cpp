@@ -60,7 +60,7 @@ struct ConvertAlloc : public OpRewritePattern<AllocOp> {
     LogicalResult matchAndRewrite(
         AllocOp op,
         //AllocOpAdaptor adaptor,
-        ConversionPatternRewriter &rewriter) const override
+        PatternRewriter &rewriter) const override
     {
         //MLIRContext *ctx = getContext();
         //const TypeConverter *conv = getTypeConverter();
