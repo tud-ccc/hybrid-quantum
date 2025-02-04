@@ -1,4 +1,5 @@
 add_mlir_dialect_library(QIRIR
+        QIRAttributes.cpp
         QIRBase.cpp
         QIROps.cpp
         QIRTypes.cpp

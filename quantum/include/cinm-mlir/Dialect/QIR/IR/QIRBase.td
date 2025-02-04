@@ -10,6 +10,8 @@
 include "mlir/IR/BuiltinAttributes.td"
 include "mlir/IR/BuiltinTypes.td"
 include "mlir/IR/OpBase.td"
+include "mlir/IR/EnumAttr.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
 
 def QIR_Dialect : Dialect {
     let name = "qir";

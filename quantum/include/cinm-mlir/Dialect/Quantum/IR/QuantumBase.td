@@ -24,7 +24,7 @@ def Quantum_Dialect : Dialect {
     }];
 
     let useDefaultTypePrinterParser = 1;
-    let hasOperationAttrVerify = 1;
+    let hasOperationAttrVerify = 0;
     // let useFoldAPI = kEmitFoldAdaptorFolder;
 
 
@@ -34,7 +34,7 @@ def Quantum_Dialect : Dialect {
         void registerTypes();
     }];
     // let dependentDialects = ["arith::ArithDialect"];
-    let useDefaultAttributePrinterParser = 1;
+    let useDefaultAttributePrinterParser = 0;
     // let useDefaultTypePrinterParser = 1;
 }
 

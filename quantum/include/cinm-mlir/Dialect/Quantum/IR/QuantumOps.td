@@ -59,7 +59,7 @@ def Quantum_ExtractOp : Quantum_Op<"extract", [Pure]> {
     let assemblyFormat = [{
         $qreg (`[` $idx^ `]`)? attr-dict `:` type($qreg) `->` type($out)}];
 
-    let hasVerifier = 1;
+    let hasVerifier = 0;
 }
 
 def Quantum_InsertOp : Memory_Op<"insert", [Pure]> {
@@ -82,7 +82,7 @@ def Quantum_InsertOp : Memory_Op<"insert", [Pure]> {
         $qreg `[` ($idx^):($idx_attr)? `]` `,` $qubit attr-dict `:` type($qreg) `,` type($qubit) `->` type(results)
     }];
 
-    let hasVerifier = 1;
+    let hasVerifier = 0;
 }
 
 //===----------------------------------------------------------------------===//
@@ -139,7 +139,7 @@ def Quantum_CNOTOp : PrimitiveGate_Op<"CNOT", [Pure]> {
   );
 
   let assemblyFormat = [{ $input `,` $target attr-dict `:`  type($input) `,` type($target)  `->` type($control_out) `,` type($target_out)}];
-  let hasVerifier = 1;
+  let hasVerifier = 0;
 }
 
 def Quantum_XOp : PrimitiveGate_Op<"X", [Pure, AllTypesMatch<["input", "result"]>, Hermitian]> {
@@ -170,7 +170,7 @@ def Quantum_XOp : PrimitiveGate_Op<"X", [Pure, AllTypesMatch<["input", "result"]
     $input attr-dict `:` type($input)
   }];
 
-  let hasVerifier = 1;
+  let hasVerifier = 0;
 }
 
 def Quantum_YOp : PrimitiveGate_Op<"Y", [Pure, AllTypesMatch<["input", "result"]>, Hermitian]> {

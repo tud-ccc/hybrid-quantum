@@ -1,4 +1,4 @@
-// RUN: quantum-opt %s --convert-quantum-to-qir --canonicalize | FileCheck %s
+// RUN: quantum-opt %s --convert-quantum-to-qir | FileCheck %s
 
 module {
 

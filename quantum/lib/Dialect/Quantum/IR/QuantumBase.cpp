@@ -6,9 +6,6 @@
 #include "cinm-mlir/Dialect/Quantum/IR/QuantumBase.h"
 
 #include "cinm-mlir/Dialect/Quantum/IR/Quantum.h"
-#include "mlir/Transforms/InliningUtils.h"
-
-#include <memory>
 
 #define DEBUG_TYPE "quantum-base"
 

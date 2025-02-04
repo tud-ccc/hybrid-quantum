@@ -25,7 +25,8 @@ int main(int argc, char *argv[]) {
   registry.insert<qir::QIRDialect>();
   
   registerAllPasses();
-  registerTransformsPasses();
+  quantum::registerQuantumPasses();
+  quantum::registerConversionPasses();
 
   return asMainReturnCode(
       MlirOptMain(argc, argv, "quantum-mlir optimizer driver\n", registry));

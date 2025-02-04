@@ -7,8 +7,8 @@
 #ifndef QIR_TYPES
 #define QIR_TYPES
 
+include "cinm-mlir/Dialect/QIR/IR/QIRAttributes.td"
 include "mlir/IR/BuiltinTypeInterfaces.td"
-include "QIRBase.td"
 
 def QIR_QubitType : QIR_Type<"Qubit"> {
   let mnemonic = "qubit";
