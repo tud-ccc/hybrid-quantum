@@ -10,6 +10,6 @@ add_mlir_conversion_library(QuantumToQIR
     LINK_LIBS PUBLIC
         MLIRDialectUtils
         MLIRTransformUtils
-        MLIRLLVMDialect
         QuantumIR
+        QIRIR
 )

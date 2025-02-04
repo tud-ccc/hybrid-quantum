@@ -8,11 +8,6 @@
 #include "cinm-mlir/Dialect/Quantum/IR/Quantum.h"
 #include "cinm-mlir/Dialect/QIR/IR/QIR.h"
 
-#include "mlir/Conversion/IndexToLLVM/IndexToLLVM.h"
-#include "mlir/Conversion/LLVMCommon/Pattern.h"
-#include "mlir/Dialect/Index/IR/IndexDialect.h"
-#include "mlir/Dialect/Index/IR/IndexOps.h"
-#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
@@ -25,7 +20,7 @@ using namespace mlir::quantum;
 
 namespace mlir {
 
-#define GEN_PASS_DEF_CONVERTQUANTUMTOQIRPASS
+#define GEN_PASS_DEF_CONVERTQUANTUMTOQIR
 #include "cinm-mlir/Conversion/Passes.h.inc"
 
 } // namespace mlir

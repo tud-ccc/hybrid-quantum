@@ -4,7 +4,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef QUANUTM_MLIR_CONVERSION_PASSES
+#ifndef QUANTUM_MLIR_CONVERSION_PASSES
 #define QUANTUM_MLIR_CONVERSION_PASSES
 
 include "mlir/Pass/PassBase.td"
@@ -15,6 +15,7 @@ def ConvertQuantumToQIR : Pass<"convert-quantum-to-qir"> {
     let constructor = "mlir::createConvertQuantumToQIRPass()";
 
     let dependentDialects = [
+        "quantum::QuantumDialect",
         "qir::QIRDialect"
     ];
 }
@@ -25,6 +26,7 @@ def ConvertQIRToLLVM : Pass<"convert-qir-to-llvm"> {
     let constructor = "mlir::createConvertQIRToLLVMPass()";
     
     let dependentDialects = [
+        "qir::QIRDialect",
         "LLVM::LLVMDialect"
     ];
 }
