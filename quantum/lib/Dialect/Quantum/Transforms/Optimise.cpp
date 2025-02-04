@@ -18,7 +18,7 @@ using namespace mlir::quantum;
 namespace mlir::quantum {
 
 #define GEN_PASS_DEF_QUANTUMOPTIMISEPASS
-#include "cinm-mlir/Dialect/Quantum/Transforms/QuantumPasses.h.inc"
+#include "cinm-mlir/Dialect/Quantum/Transforms/Passes.h.inc"
 
 } // namespace mlir::quantum
 
@@ -26,48 +26,57 @@ namespace mlir::quantum {
 
 namespace {
 
-struct HermitianCancel : public OpRewritePattern<quantum::HOp> {
-  using OpRewritePattern::OpRewritePattern;
+//struct HermitianCancel : RewritePattern<quantum::HOp> {
+//   using RewritePattern::RewritePattern;
 
-  LogicalResult matchAndRewrite(quantum::HOp op,
-                                PatternRewriter &rewriter) const final {
-    Location loc = op.getLoc();                  
-    llvm::outs() << "Transforming quantum.H at location: " << loc << "\n";
+//   LogicalResult matchAndRewrite(
+//     quantum::HOp op,
+//     PatternRewriter &rewriter) const final
+//   {
+//     Location loc = op.getLoc();                  
+//     llvm::outs() << "Transforming quantum.H at location: " << loc << "\n";
 
-    // Check if the operation has the Hermitian trait
-    // if (op->hasTrait<mlir::OpTrait::Hermitian>()) {
-    //   // Get the next operation in the block
-    //   Block *block = op->getBlock();
-    //   auto nextOpIt = std::next(Block::iterator(op));
+//     // Check if the operation has the Hermitian trait
+//     // if (op->hasTrait<mlir::OpTrait::Hermitian>()) {
+//     //   // Get the next operation in the block
+//     //   Block *block = op->getBlock();
+//     //   auto nextOpIt = std::next(Block::iterator(op));
 
-    //   // Check if the next operation is also a Hermitian operation of the same type
-    //   if (nextOpIt != block->end() && 
-    //       nextOpIt->hasTrait<mlir::quantum::Hermitian>() && 
-    //       op->getName() == nextOpIt->getName()) {
-    //     // Both operations are identical Hermitian operations, cancel them
-    //     rewriter.eraseOp(op);
-    //     rewriter.eraseOp(*nextOpIt);
-        return success();
-  }
-};
+//     //   // Check if the next operation is also a Hermitian operation of the same type
+//     //   if (nextOpIt != block->end() && 
+//     //       nextOpIt->hasTrait<mlir::quantum::Hermitian>() && 
+//     //       op->getName() == nextOpIt->getName()) {
+//     //     // Both operations are identical Hermitian operations, cancel them
+//     //     rewriter.eraseOp(op);
+//     //     rewriter.eraseOp(*nextOpIt);
+//         return success();
+//   }
+// };
 
-struct AdjointCancel : public OpRewritePattern<quantum::HOp> {
-  using OpRewritePattern::OpRewritePattern;
+// struct AdjointCancel : public OpRewritePattern<quantum::HOp> {
+//   AdjointCancel(MLIRContext *context)
+//       : OpRewritePattern<AdjointCancel>(context, /*benefit=*/1) {}
 
-  LogicalResult matchAndRewrite(quantum::HOp op,
-                                PatternRewriter &rewriter) const final {
-    // Implement adjoint cancellation logic here
-    return success();
-  }
-};
+//   LogicalResult matchAndRewrite(
+//     quantum::HOp op,
+//     PatternRewriter &rewriter) const final
+//   {
+//     // Implement adjoint cancellation logic here
+//     return success();
+//   }
+// };
 
 
 struct QuantumOptimisePass : ::impl::QuantumOptimiseBase<QuantumOptimisePass> {
   void runOnOperation() override {
     RewritePatternSet patterns(&getContext());
-    patterns.add<HermitianCancel, AdjointCancel>(&getContext());
+    //patterns.add<
+    //  HermitianCancel,
+    //  AdjointCancel>(&getContext());
 
-    if (failed(applyPatternsAndFoldGreedily(getOperation(), std::move(patterns)))) {
+    if (failed(applyPatternsAndFoldGreedily(
+      getOperation(),
+      std::move(patterns)))) {
       signalPassFailure();
     }
   }

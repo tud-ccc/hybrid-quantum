@@ -26,7 +26,7 @@ using namespace mlir::quantum;
 namespace mlir {
 
 #define GEN_PASS_DEF_CONVERTQUANTUMTOQIRPASS
-#include "cinm-mlir/Conversion/ConversionPasses.h.inc"
+#include "cinm-mlir/Conversion/Passes.h.inc"
 
 } // namespace mlir
 
@@ -58,12 +58,13 @@ private:
     llvm::DenseMap<Value, std::vector<Value>> qubits;
 };
 
-struct ConvertAlloc : OpRewritePattern<AllocOp> {
-    using OpRewritePattern::OpRewritePattern;
+struct ConvertAlloc : public OpRewritePattern<AllocOp> {
+    ConvertAlloc(MLIRContext *context)
+        : OpRewritePattern<AllocOp>(context, /* benefit */ 1) {}
 
     LogicalResult matchAndRewrite(
         AllocOp op,
-        AllocOpAdaptor adaptor,
+        //AllocOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
         //MLIRContext *ctx = getContext();
@@ -103,7 +104,7 @@ void mlir::quantum::populateConvertQuantumToQIRPatterns(
     RewritePatternSet &patterns)
 {
     patterns.add<
-        ConvertAlloc>(typeConverter);
+        ConvertAlloc>(patterns.getContext());
 }
 
 std::unique_ptr<Pass> mlir::createConvertQuantumToQIRPass() {

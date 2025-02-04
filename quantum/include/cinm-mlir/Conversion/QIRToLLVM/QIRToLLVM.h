@@ -14,7 +14,7 @@ namespace mlir {
 //===- Generated includes -------------------------------------------------===//
 
 #define GEN_PASS_DECL_CONVERTQIRTOLLVM
-#include "cinm-mlir/Conversion/ConversionPasses.h.inc"
+#include "cinm-mlir/Conversion/Passes.h.inc"
 
 //===----------------------------------------------------------------------===//
 

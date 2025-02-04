@@ -7,7 +7,7 @@
 
 #include "cinm-mlir/Dialect/Quantum/IR/QuantumDialect.h"
 #include "cinm-mlir/Dialect/Quantum/Transforms/Passes.h"
-#include "cinm-mlir/Conversion/QuantumPasses.h"
+#include "cinm-mlir/Conversion/Passes.h"
 
 #include <mlir/IR/DialectRegistry.h>
 #include <mlir/InitAllExtensions.h>

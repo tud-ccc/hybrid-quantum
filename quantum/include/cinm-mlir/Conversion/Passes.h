@@ -6,27 +6,15 @@
 #pragma once
 
 #include "cinm-mlir/Conversion/QuantumToQIR/QuantumToQIR.h"
+#include "cinm-mlir/Conversion/QIRToLLVM/QIRToLLVM.h"
 
 namespace mlir::quantum {
 
 //===- Generated passes ---------------------------------------------------===//
 
 #define GEN_PASS_REGISTRATION
-#include "cinm-mlir/Conversion/ConversionPasses.h.inc"
+#include "cinm-mlir/Conversion/Passes.h.inc"
 
 //===----------------------------------------------------------------------===//
 
 } //namespace mlir::quantum
-
-#include "cinm-mlir/Conversion/QIRToLLVM/QIRToLLVM.h"
-
-namespace mlir::qir {
-
-//===- Generated passes ---------------------------------------------------===//
-
-#define GEN_PASS_REGISTRATION
-#include "cinm-mlir/Conversion/ConversionPasses.h.inc"
-
-//===----------------------------------------------------------------------===//
-
-} // namespace mlir::qir

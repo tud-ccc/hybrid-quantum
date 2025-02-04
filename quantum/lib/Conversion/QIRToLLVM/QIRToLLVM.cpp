@@ -24,7 +24,7 @@ using namespace mlir::qir;
 namespace mlir {
 
 #define GEN_PASS_DEF_CONVERTQIRTOLLVM
-#include "cinm-mlir/Conversion/ConversionPasses.h.inc"
+#include "cinm-mlir/Conversion/Passes.h.inc"
 
 } // namespace mlir
 

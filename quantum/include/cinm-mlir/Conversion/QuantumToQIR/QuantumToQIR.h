@@ -8,8 +8,8 @@ namespace mlir {
 
 //===- Generated includes -------------------------------------------------===//
 
-#define GEN_PASS_DECL_CONVERTBITTOLLVM
-#include "cinm-mlir/Conversion/ConversionPasses.h.inc"
+#define GEN_PASS_DECL_CONVERTQUANTUMTOQIR
+#include "cinm-mlir/Conversion/Passes.h.inc"
 
 //===----------------------------------------------------------------------===//
 

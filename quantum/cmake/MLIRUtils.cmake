@@ -49,14 +49,12 @@ function(mlir_gen_ir prefix)
     add_mlir_doc(${prefix}Ops ${prefix}Ops Dialects/ -gen-dialect-doc -dialect=${filter})
 endfunction()
 
-function(mlir_gen_passes prefix)
-    string(TOLOWER ${prefix} filter)
-    
-    set(LLVM_TARGET_DEFINITIONS ${prefix}Passes.td)
+function(mlir_gen_passes prefix)    
+    set(LLVM_TARGET_DEFINITIONS Passes.td)
 
-    mlir_tablegen(${prefix}Passes.h.inc -gen-pass-decls -name ${prefix})
-    mlir_tablegen(${prefix}Passes.capi.h.inc -gen-pass-capi-header --prefix ${prefix})
-    mlir_tablegen(${prefix}Passes.capi.cpp.inc -gen-pass-capi-impl --prefix ${prefix})
+    mlir_tablegen(Passes.h.inc -gen-pass-decls -name ${prefix})
+    mlir_tablegen(Passes.capi.h.inc -gen-pass-capi-header --prefix ${prefix})
+    mlir_tablegen(Passes.capi.cpp.inc -gen-pass-capi-impl --prefix ${prefix})
 
     add_public_tablegen_target(${prefix}PassesIncGen)
     add_dependencies(${prefix}IncGen ${prefix}PassesIncGen)
