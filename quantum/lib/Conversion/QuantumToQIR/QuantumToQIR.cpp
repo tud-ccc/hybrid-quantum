@@ -36,39 +36,53 @@ struct ConvertQuantumToQIRPass
     void runOnOperation() override;
 };
 
-class QubitMap {
+struct QuantumToQirQubitTypeMapping {
 public:
-    QubitMap(MLIRContext *ctx) : ctx(ctx), qubits() {}
+    QuantumToQirQubitTypeMapping() : map() {}
 
     // Map a `quantum.Qubit` to (possible many) `qir.qubit`
     void allocate(Value quantum, ValueRange qir) {
+        if(!map.contains(quantum)) {
+            llvm::SmallVector<Value> elem;
+            map.insert({quantum, elem});
+        }
         for (auto qubit : qir) {
-            qubits[quantum].push_back(qubit);
+            map[quantum].push_back(qubit);
         }
     }
 
-    MLIRContext *getContext() const { return ctx; }
 private:
-    MLIRContext *ctx;
-    llvm::DenseMap<Value, std::vector<Value>> qubits;
+    llvm::DenseMap<Value, llvm::SmallVector<Value>> map;
 };
 
-struct ConvertAlloc : public OpRewritePattern<AllocOp> {
-    ConvertAlloc(MLIRContext *context)
-        : OpRewritePattern<AllocOp>(context, /* benefit */ 1) {}
+template <typename Op>
+struct QuantumToQIROpConversion : OpConversionPattern<Op> {
+    QuantumToQIROpConversion(MLIRContext *context, QuantumToQirQubitTypeMapping *qubitMap)
+        : OpConversionPattern<Op>(context, /* benefit */ 1), qubitMap(qubitMap) {}
+
+    QuantumToQirQubitTypeMapping *qubitMap;
+};
+
+struct ConvertAlloc : public QuantumToQIROpConversion<quantum::AllocOp> {
+    using QuantumToQIROpConversion::QuantumToQIROpConversion;
 
     LogicalResult matchAndRewrite(
         AllocOp op,
-        //AllocOpAdaptor adaptor,
-        PatternRewriter &rewriter) const override
+        AllocOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
     {
         //MLIRContext *ctx = getContext();
         //const TypeConverter *conv = getTypeConverter();
-        unsigned size = op.getType().cast<quantum::QubitType>().getSize();
+        unsigned size = op.getType().getSize();
+        llvm::SmallVector<Value> qubits;
         for(unsigned i = 0; i < size; i++) {
-            //auto qubit = rewriter.create<mlir::qir::AllocOp>(op.getLoc(),
-                //mlir::qir::QubitType::get(getContext()));
+            auto qubit = rewriter.create<qir::AllocOp>(
+                op.getLoc(),
+                qir::QubitType::get(getContext()));
+            qubits.push_back(qubit);
         }
+        qubitMap->allocate(op.getResult(), qubits);
+        rewriter.eraseOp(op);
         return success();
     }
 }; // struct ConvertAllocOp
@@ -98,8 +112,10 @@ void mlir::quantum::populateConvertQuantumToQIRPatterns(
     TypeConverter &typeConverter,
     RewritePatternSet &patterns)
 {
+    QuantumToQirQubitTypeMapping qubitMap;
+
     patterns.add<
-        ConvertAlloc>(patterns.getContext());
+        ConvertAlloc>(patterns.getContext(), &qubitMap);
 }
 
 std::unique_ptr<Pass> mlir::createConvertQuantumToQIRPass() {
