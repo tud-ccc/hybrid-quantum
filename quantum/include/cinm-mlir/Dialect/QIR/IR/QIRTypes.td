@@ -13,6 +13,7 @@ include "mlir/IR/BuiltinTypeInterfaces.td"
 def QIR_QubitType : QIR_Type<"Qubit"> {
   let mnemonic = "qubit";
   let summary = "qubit type";
+  code builderCall = "::mlir::qir::QubitType::get($_ctxt)";
 }
 
 def QIR_ResultType : QIR_Type<"Result"> {

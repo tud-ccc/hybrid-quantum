@@ -23,8 +23,8 @@ include "cinm-mlir/Dialect/QIR/IR/QIRTypes.td"
 // QIR memory operations.
 //===----------------------------------------------------------------------===//
 def QIR_AllocOp : Memory_Op<"alloc", [MemoryEffects<[MemRead]>]> {
-  let summary = "Allocate n qubits into a qubit register.";
-  let description = [{ Allocates a fixed number of qubits into a qubit register. }];
+  let summary = "Allocates a qubit.";
+  let description = [{  }];
 
   let results = (outs QIR_QubitType:$result);
 }

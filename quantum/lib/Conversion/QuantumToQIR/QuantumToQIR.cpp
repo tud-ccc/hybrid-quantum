@@ -12,6 +12,7 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include <llvm/ADT/ArrayRef.h>
 
 using namespace mlir;
 using namespace mlir::quantum;
@@ -38,7 +39,7 @@ public:
         }
     }
 
-    llvm::SmallVector<Value> find(Value quantum) {
+    llvm::ArrayRef<Value> find(Value quantum) {
         return map[quantum];
     }
 
@@ -106,12 +107,10 @@ struct ConvertMeasure : public QuantumToQIROpConversion<quantum::MeasureOp> {
             op.getLoc(),
             qir::ResultType::get(getContext())).getResult();
 
-        auto measureOp = rewriter.create<qir::MeasureOp>(
+        rewriter.create<qir::MeasureOp>(
             op.getLoc(),
             qirInput,
-            resultDef).getResult();
-            
-        rewriter.eraseOp(op);
+            resultDef);
 
         // Replace direct uses of the measurement value with QIR values
         auto result = rewriter.create<qir::ReadMeasurementOp>(
@@ -119,7 +118,7 @@ struct ConvertMeasure : public QuantumToQIROpConversion<quantum::MeasureOp> {
             measurementResult.getType(),
             resultDef).getResult();
 
-        measurementResult.replaceAllUsesWith(result);
+        rewriter.replaceOp(op, {result, inputQubit});
 
         return success();
     }
