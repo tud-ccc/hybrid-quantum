@@ -4,12 +4,13 @@ module {
 
     // CHECK-LABEL: func.func @single_qubit(
     func.func @single_qubit() -> (i1) {
-        // CHECK-DAG: %[[Q:.+]] = qir.alloc () : !qir.qubit
-        // CHECK-DAG: %[[R:.+]] = qir.ralloc () : !qir.result
+        // CHECK-NEXT: %[[Q:.+]] = "qir.alloc"() : () -> !qir.qubit
+        // CHECK-NEXT: %[[R:.+]] = "qir.ralloc"() : () -> !qir.result
         %q = "quantum.alloc" () : () -> (!quantum.qubit<1>)
-        // CHECK-DAG: qir.measure (%[[Q]], %[[R]])
+        // CHECK-NEXT: "qir.measure"(%[[Q]], %[[R]]) : (!qir.qubit, !qir.result) -> ()
+        // CHECK-NEXT: %[[M:.+]] = "qir.read_measurement"(%[[R]]) : (!qir.result) -> i1
         %m, %q_m = "quantum.measure" (%q) : (!quantum.qubit<1>) -> (i1, !quantum.qubit<1>)
-        // CHECK-DAG: %[[M:.+]] = qir.measure_value (%[[R]])
+        // CHECK-NEXT: return %[[M]]
         return %m : i1
     }
 

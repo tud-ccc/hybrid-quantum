@@ -20,7 +20,7 @@ include "cinm-mlir/Dialect/QIR/IR/QIRBase.td"
 include "cinm-mlir/Dialect/QIR/IR/QIRTypes.td"
 
 //===----------------------------------------------------------------------===//
-// Quantum memory operations.
+// QIR memory operations.
 //===----------------------------------------------------------------------===//
 def QIR_AllocOp : Memory_Op<"alloc", [MemoryEffects<[MemRead]>]> {
   let summary = "Allocate n qubits into a qubit register.";
@@ -37,12 +37,12 @@ def QIR_AllocResultOp : Memory_Op<"ralloc", [MemoryEffects<[MemRead]>]> {
 }
 
 //===----------------------------------------------------------------------===//
-// Quantum gate operations.
+// QIR gate operations.
 //===----------------------------------------------------------------------===//
 class PrimitiveGate_Op<string mnemonic, list<Trait> traits = []> :
         Gate_Op<mnemonic, traits>;
         
-def Quantum_HOp : PrimitiveGate_Op<"H", [MemoryEffects<[MemRead, MemWrite]>]> {
+def QIR_HOp : PrimitiveGate_Op<"H", [MemoryEffects<[MemRead, MemWrite]>]> {
   let summary = "Hadamard gate operation";
   let description = [{
     The Hadamard gate creates an equal superposition of states.
@@ -51,11 +51,19 @@ def Quantum_HOp : PrimitiveGate_Op<"H", [MemoryEffects<[MemRead, MemWrite]>]> {
   let arguments = (ins QIR_QubitType:$input);
 }
 
-def Quantum_MeasureOp : QIR_Op<"measure", [NoMemoryEffect]> {
+def QIR_MeasureOp : QIR_Op<"measure", [MemoryEffects<[MemRead, MemWrite]>]> {
     let summary = "Measure a single qubit.";
     let description = [{ }];
 
     let arguments = (ins QIR_QubitType:$input, QIR_ResultType:$result);
+}
+
+def QIR_ReadMeasurementOp : QIR_Op<"read_measurement", [MemoryEffects<[MemRead]>]> {
+  let summary = "Read the measurement value from result memory";
+  let description = [{ }];
+  
+  let arguments = (ins QIR_ResultType:$input);
+  let results = (outs I1:$measurement);
 }
 
 #endif

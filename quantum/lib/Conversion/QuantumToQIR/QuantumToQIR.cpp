@@ -32,14 +32,14 @@ public:
     QuantumToQirQubitTypeMapping() : map() {}
 
     // Map a `quantum.Qubit` to (possible many) `qir.qubit`
-    void allocate(Value quantum, ValueRange qir) {
-        if(!map.contains(quantum)) {
-            llvm::SmallVector<Value> elem;
-            map.insert({quantum, elem});
+    void allocate(Value quantumQubit, ValueRange qirQubits) {
+        for (auto qirQubit : qirQubits) {
+            map[quantumQubit].push_back(qirQubit);
         }
-        for (auto qubit : qir) {
-            map[quantum].push_back(qubit);
-        }
+    }
+
+    llvm::SmallVector<Value> find(Value quantum) {
+        return map[quantum];
     }
 
 private:
@@ -85,6 +85,46 @@ struct ConvertAlloc : public QuantumToQIROpConversion<quantum::AllocOp> {
     }
 }; // struct ConvertAllocOp
 
+struct ConvertMeasure : public QuantumToQIROpConversion<quantum::MeasureOp> {
+    using QuantumToQIROpConversion::QuantumToQIROpConversion;
+
+    LogicalResult matchAndRewrite(
+        MeasureOp op,
+        MeasureOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        auto inputQubit = op.getInput();
+        auto resultQubit = op.getResult();
+        auto measurementResult = op.getMeasurement();
+
+        // Map resulting qubit to qubit memory reference
+        auto qirInput = mapping->find(inputQubit)[0];
+        mapping->allocate(resultQubit, qirInput);
+        
+        // Create new result type holding measurement value
+        auto resultDef = rewriter.create<qir::AllocResultOp>(
+            op.getLoc(),
+            qir::ResultType::get(getContext())).getResult();
+
+        auto measureOp = rewriter.create<qir::MeasureOp>(
+            op.getLoc(),
+            qirInput,
+            resultDef).getResult();
+            
+        rewriter.eraseOp(op);
+
+        // Replace direct uses of the measurement value with QIR values
+        auto result = rewriter.create<qir::ReadMeasurementOp>(
+            op.getLoc(),
+            measurementResult.getType(),
+            resultDef).getResult();
+
+        measurementResult.replaceAllUsesWith(result);
+
+        return success();
+    }
+}; // struct ConvertMeasure
+
 } // namespace
 
 void ConvertQuantumToQIRPass::runOnOperation()
@@ -114,7 +154,9 @@ void mlir::quantum::populateConvertQuantumToQIRPatterns(
     RewritePatternSet &patterns)
 {
     patterns.add<
-        ConvertAlloc>(patterns.getContext(), &mapping);
+        ConvertAlloc,
+        ConvertMeasure
+    >(patterns.getContext(), &mapping);
 }
 
 std::unique_ptr<Pass> mlir::createConvertQuantumToQIRPass() {

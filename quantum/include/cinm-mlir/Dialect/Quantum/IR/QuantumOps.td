@@ -300,12 +300,12 @@ def Quantum_TDaggerOp : PrimitiveGate_Op<"Tdagger", [Pure, AllTypesMatch<["input
   let assemblyFormat = [{ $input attr-dict  `:` type($input) `->` type($result) }];
 }
 
-def Quantum_MeasureOp : Quantum_Op<"measure", [NoMemoryEffect]> {
+def Quantum_MeasureOp : Quantum_Op<"measure", [NoMemoryEffect, AllTypesMatch<["input", "result"]>]> {
     let summary = "Measure a single qubit.";
     let description = [{    }];
 
-    let arguments = (ins Quantum_QubitType:$qinp);
-    let results = (outs I1:$res, Quantum_QubitType:$qoutp);
+    let arguments = (ins Quantum_QubitType:$input);
+    let results = (outs I1:$measurement, Quantum_QubitType:$result);
     //let assemblyFormat = [{ $qinp attr-dict `:` type($qinp) `->` type($res) `,` type($qoutp)}];
 }
 
