@@ -2,6 +2,7 @@
 #include "mlir/Dialect/LLVMIR/FunctionCallUtils.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 
 #include "cinm-mlir/Dialect/Quantum/IR/QuantumOps.h"
 #include "cinm-mlir/Conversion/QuantumToLLVM/QuantumToLLVM.h"
@@ -10,6 +11,8 @@ using namespace mlir;
 using namespace mlir::quantum;
 
 namespace {
+//UTILITY TRANSFORMATIONS
+//-------------------------------------------------------------------------------
 LLVM::LLVMFuncOp ensureFunctionDeclaration(PatternRewriter &rewriter, Operation *op,
                                            StringRef fnSymbol, Type fnType)
 {
@@ -27,8 +30,7 @@ LLVM::LLVMFuncOp ensureFunctionDeclaration(PatternRewriter &rewriter, Operation 
     }
 
     return cast<LLVM::LLVMFuncOp>(fnDecl);
-}
-
+};
 
 struct AllocOpPattern : public OpConversionPattern<AllocOp> {
     using OpConversionPattern::OpConversionPattern;
@@ -36,40 +38,67 @@ struct AllocOpPattern : public OpConversionPattern<AllocOp> {
     LogicalResult matchAndRewrite(AllocOp op, AllocOpAdaptor adaptor,
                                   ConversionPatternRewriter &rewriter) const override
     {
+        // Get the qubit index from the type
+        auto qubitIndex = op.getQubit().getType().getId().getInt();
+        
+        // Create a constant for the qubit index
+        auto indexAttr = rewriter.getI64IntegerAttr(qubitIndex);
+        auto indexConstant = rewriter.create<LLVM::ConstantOp>(op.getLoc(), rewriter.getI64Type(), indexAttr);
+        
+        // Replace the AllocOp with the constant
+        rewriter.replaceOp(op, indexConstant);
+        return success();
+    }
+};
+
+
+
+struct HOpPattern : public OpConversionPattern<HOp> {
+    using OpConversionPattern::OpConversionPattern;
+
+    LogicalResult matchAndRewrite(HOp op, HOpAdaptor adaptor,
+                                  ConversionPatternRewriter &rewriter) const override
+    {
         Location loc = op.getLoc();
-        MLIRContext *ctx = getContext();
-        const TypeConverter *conv = getTypeConverter();
+        
+        // Define the QIR function name
+        StringRef qirName = "__quantum__qis__h__body";
 
-        // Extract the size from the result type (!quantum.qubit<size>)
-        auto resultType = op.getResult().getType();
-        unsigned size = resultType.getSize();
+        // Create the function type: (%Qubit*) -> void
+        Type qubitPtrType = LLVM::LLVMPointerType::get(rewriter.getContext());
+        Type voidType = LLVM::LLVMVoidType::get(rewriter.getContext());
+        Type qirSignature = LLVM::LLVMFunctionType::get(voidType, {qubitPtrType}, false);
 
-        // QIR function name and signature
-        StringRef qirName = "__quantum__rt__qubit_allocate_array";
-        Type qubitPtrTy = conv->convertType(resultType); // Convert !quantum.qubit<size> to LLVM type
-        Type qirSignature = LLVM::LLVMFunctionType::get(qubitPtrTy, {IntegerType::get(ctx, 64)});
-
-        // Ensure function declaration exists
+        // Ensure the function is declared
         LLVM::LLVMFuncOp fnDecl = ensureFunctionDeclaration(rewriter, op, qirName, qirSignature);
-        if (!fnDecl) {
-            return rewriter.notifyMatchFailure(op, "Failed to create or find function declaration.");
-        }
 
-        // Create constant for the size
-        Value nQubits = rewriter.create<LLVM::ConstantOp>(loc, rewriter.getI64IntegerAttr(size));
+        // Get the qubit index from the operand (which should now be a constant)
+        Value qubitIndex = adaptor.getQubit();
+        
+        // Create the inttoptr operation
+        Value qubitPtr = rewriter.create<LLVM::IntToPtrOp>(loc, qubitPtrType, qubitIndex);
 
-        // Replace the operation with a call to QIR function
-        rewriter.replaceOpWithNewOp<LLVM::CallOp>(op, qubitPtrTy, fnDecl.getSymName(), nQubits);
+        // Create the call operation
+        rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+            op,
+            TypeRange(),
+            fnDecl.getSymName(),
+            ValueRange{qubitPtr}
+        );
 
         return success();
     }
 };
+
+
 }
+
 
 namespace mlir::quantum {
 void populateQuantumToLLVMConversionPatterns(LLVMTypeConverter &typeConverter, RewritePatternSet &patterns)
 {
     patterns.add<AllocOpPattern>(typeConverter, patterns.getContext());
+    patterns.add<HOpPattern>(typeConverter, patterns.getContext());
 }
 
 } // namespace quantum

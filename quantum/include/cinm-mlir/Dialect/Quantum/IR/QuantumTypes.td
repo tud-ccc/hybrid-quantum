@@ -22,9 +22,17 @@ def Quantum_AsyncToken : Quantum_Type<"AsyncToken"> {
 def Quantum_Qubit : Quantum_Type<"qubit"> {
   let mnemonic = "qubit";
   let summary = "Multi-qubit register type";
+  let parameters = (ins "IntegerAttr":$id);
+  let assemblyFormat = "`<` $id `>`";
+}
+
+def Quantum_QubitRegister : Quantum_Type<"nqubit"> {
+  let mnemonic = "nqubit";
+  let summary = "Multi-qubit register type";
   let parameters = (ins "unsigned":$size);
   let assemblyFormat = "`<` $size `>`";
 }
+
 
 def Quantum_Result : Quantum_Type<"result"> {
     let mnemonic = "result";

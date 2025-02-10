@@ -24,12 +24,12 @@ struct QIRTypeConverter : public LLVMTypeConverter {
 
 private:
     Type convertQubitType(Type mlirType) {
-            return LLVM::LLVMStructType::getOpaque("Qubit", &getContext());
+        return LLVM::LLVMPointerType::get(&getContext()); 
         }
     
 
     Type convertResultType(Type mlirType) {
-        return LLVM::LLVMStructType::getOpaque("Result", &getContext());
+        return LLVM::LLVMPointerType::get(&getContext()); 
     }
 };
 

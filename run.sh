@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export PATH=$(pwd)/llvm/build/bin:$PATH
-cd cinnamon 
+cd quantum 
 llvm_prefix=../llvm/build
 
 # Check if build directory exists

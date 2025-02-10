@@ -69,13 +69,7 @@ LogicalResult QuantumDialect::verifyOperationAttribute(Operation *op,
 }
 
 
-//Verfiers
-LogicalResult XOp::verify() {
-  if (getInput().getType() != getResult().getType())
-    return emitOpError("input and result must have the same type");
-  return success();
-}
-
+//Verfiers, just testing for now. 
 LogicalResult CNOTOp::verify() {
   return success();
 }
@@ -85,11 +79,6 @@ LogicalResult InsertOp::verify()
     if (!(getIdx() || getIdxAttr().has_value())) {
         return emitOpError() << "expected op to have a non-null index";
     }
-    return success();
-}
-
-LogicalResult ExtractOp::verify()
-{
     return success();
 }
 
