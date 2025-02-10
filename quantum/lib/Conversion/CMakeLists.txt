@@ -1,1 +1,2 @@
-add_subdirectory(QuantumToLLVM)
+add_subdirectory(QuantumToQIR)
+add_subdirectory(QIRToLLVM)

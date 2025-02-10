@@ -5,17 +5,13 @@
 /// @author      Clément Fournier (clement.fournier@tu-dresden.de)
 /// @author      Lars Schütze (lars.schuetze@tu-dresden.de)
 
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumDialect.h"
-#include "cinm-mlir/Dialect/Quantum/Transforms/Passes.h"
-#include "cinm-mlir/Conversion/QuantumPasses.h"
-
-#include <mlir/IR/DialectRegistry.h>
-#include <mlir/InitAllExtensions.h>
-
+#include "cinm-mlir/Conversion/Passes.h"
+#include "cinm-mlir/Dialect/Quantum/IR/Quantum.h"
+#include "cinm-mlir/Dialect/QIR/IR/QIR.h"
+#include "mlir/IR/Dialect.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/InitAllPasses.h"
-#include "mlir/Support/FileUtilities.h"
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
 
 using namespace mlir;
@@ -24,11 +20,13 @@ using namespace mlir;
 int main(int argc, char *argv[]) {
   DialectRegistry registry;
   registerAllDialects(registry);
+
   registry.insert<quantum::QuantumDialect>();
+  registry.insert<qir::QIRDialect>();
+  
   registerAllPasses();
-  registerAllExtensions(registry);
-  registerQuantumConversionPasses();
-  quantum::registerQuantumTransformsPasses();
+  quantum::registerQuantumPasses();
+  quantum::registerConversionPasses();
 
   return asMainReturnCode(
       MlirOptMain(argc, argv, "quantum-mlir optimizer driver\n", registry));

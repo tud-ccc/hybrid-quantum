@@ -7,40 +7,10 @@
 #ifndef QUANTUM_OPS
 #define QUANTUM_OPS
 
-include "cinm-mlir/Dialect/Quantum/IR/QuantumBase.td"
 include "cinm-mlir/Dialect/Quantum/IR/QuantumTypes.td"
-include "cinm-mlir/Dialect/Quantum/IR/QuantumAttributes.td"
-
-include "mlir/Dialect/DLTI/DLTIBase.td"
-include "mlir/IR/EnumAttr.td"
-include "mlir/IR/OpAsmInterface.td"
-include "mlir/IR/SymbolInterfaces.td"
-include "mlir/IR/BuiltinAttributes.td"
-include "mlir/Interfaces/CallInterfaces.td"
-include "mlir/Interfaces/ControlFlowInterfaces.td"
+include "mlir/Interfaces/CastInterfaces.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
-include "mlir/Interfaces/InferIntRangeInterface.td"
-include "mlir/Interfaces/DataLayoutInterfaces.td"
-include "mlir/Interfaces/FunctionInterfaces.td"
-include "mlir/IR/RegionKindInterface.td"
-include "mlir/IR/SymbolInterfaces.td"
-
-def NamedObservable : I32EnumAttr<"NamedObservable",
-    "Known named observables",
-    [
-        I32EnumAttrCase<"Identity", 0>,
-        I32EnumAttrCase<"PauliX",   1>,
-        I32EnumAttrCase<"PauliY",   2>,
-        I32EnumAttrCase<"PauliZ",   3>,
-        I32EnumAttrCase<"Hadamard", 4>,
-    ]> {
-    let cppNamespace = "::mlir::quantum";
-    let genSpecializedAttr = 0;
-}
-
-def NamedObservableAttr : EnumAttr<Quantum_Dialect, NamedObservable, "named_observable">;
-
 
 //===----------------------------------------------------------------------===//
 // Quantum memory operations.
@@ -62,9 +32,16 @@ def Quantum_AllocOp : Quantum_Op<"alloc"> {
 
 def Quantum_DeallocateOp : Memory_Op<"deallocate"> {
     let summary = "Deallocate a quantum register.";
-    let description = [{  Deallocates a quantum register, releasing the qubits for reuse. }];
-    let arguments = (ins Quantum_Qubit:$qubit );
-    let assemblyFormat = [{ $qubit attr-dict `:` type($qubit) }];
+    let description = [{
+    }];
+
+    let arguments = (ins
+        Quantum_QubitType:$qreg
+    );
+
+    let assemblyFormat = [{
+        $qreg attr-dict `:` type(operands)
+    }];
 }
 
 
@@ -78,11 +55,12 @@ def Quantum_ExtractOp : Quantum_Op<"extract", [NoMemoryEffect]> {
     );
 
     let results = (outs
-        Variadic<Quantum_Qubit>:$out
+        Variadic<Quantum_QubitType>:$out
     );
 
     let assemblyFormat = [{
         $qreg (`[` $idx^ `]`)? attr-dict `:` type($qreg) `->` type($out)}];
+
 }
 
 def Quantum_InsertOp : Memory_Op<"insert", [NoMemoryEffect]> {
@@ -94,18 +72,18 @@ def Quantum_InsertOp : Memory_Op<"insert", [NoMemoryEffect]> {
         Quantum_Qubit:$qreg,
         Optional<Index>:$idx,
         OptionalAttr<ConfinedAttr<I32Attr, [IntNonNegative]>>:$idx_attr,
-        Quantum_Qubit:$qubit
+        Quantum_QubitType:$qubit
     );
 
     let results = (outs
-        Quantum_Qubit:$out
+        Quantum_QubitType:$out
     );
 
     let assemblyFormat = [{
         $qreg `[` ($idx^):($idx_attr)? `]` `,` $qubit attr-dict `:` type($qreg) `,` type($qubit) `->` type(results)
     }];
 
-    let hasVerifier = 1;
+    let hasVerifier = 0;
 }
 
 //===----------------------------------------------------------------------===//
@@ -153,16 +131,16 @@ def Quantum_CNOTOp : PrimitiveGate_Op<"CNOT", [NoMemoryEffect]> {
   }];
 
   let arguments = (ins
-    Quantum_Qubit:$input,
-    Quantum_Qubit:$target
+    Quantum_QubitType:$input,
+    Quantum_QubitType:$target
   );
   let results = (outs
-    Quantum_Qubit:$control_out,
-    Quantum_Qubit:$target_out
+    Quantum_QubitType:$control_out,
+    Quantum_QubitType:$target_out
   );
 
   let assemblyFormat = [{ $input `,` $target attr-dict `:`  type($input) `,` type($target)  `->` type($control_out) `,` type($target_out)}];
-  let hasVerifier = 1;
+  let hasVerifier = 0;
 }
 
 def Quantum_XOp : PrimitiveGate_Op<"X", [NoMemoryEffect, Hermitian]> {
@@ -219,17 +197,17 @@ def Quantum_ROp : PrimitiveGate_Op<"R", [NoMemoryEffect]> {
     ```
   }];
 
-  // Define the arguments: axis (as an enum), angle, and input qubit
-  let arguments = (ins QuantumAxisAttr:$axis, F32:$theta, Quantum_Qubit:$input);
+//   // Define the arguments: axis (as an enum), angle, and input qubit
+//   let arguments = (ins QuantumAxisAttr:$axis, F32:$theta, Quantum_QubitType:$input);
 
-  // Define the result type
-  let results = (outs Quantum_Qubit:$result);
+//   // Define the result type
+//   let results = (outs Quantum_QubitType:$result);
 
-  // Define the assembly format
-  let assemblyFormat = [{
-    `(`$input `,` $axis `,` $theta`)` attr-dict `:` type($input) `->` type($result)
-  }];
-}
+//   // Define the assembly format
+//   let assemblyFormat = [{
+//     `(`$input `,` $axis `,` $theta`)` attr-dict `:` type($input) `->` type($result)
+//   }];
+// }
 
 // 1-qubit gates
 def Quantum_SOp : PrimitiveGate_Op<"S", [NoMemoryEffect, SameOperandsAndResultType]> {
@@ -238,8 +216,8 @@ def Quantum_SOp : PrimitiveGate_Op<"S", [NoMemoryEffect, SameOperandsAndResultTy
     The S gate applies a π/2 phase shift. It's equivalent to a Z rotation by π/2.
     Matrix representation: [[1, 0], [0, i]]
   }];
-  let arguments = (ins Quantum_Qubit:$input);
-  let results = (outs Quantum_Qubit:$result);
+  let arguments = (ins Quantum_QubitType:$input);
+  let results = (outs Quantum_QubitType:$result);
   let assemblyFormat = [{ $input attr-dict `:` type($input) `->` type($result)}];
 }
 
@@ -249,8 +227,8 @@ def Quantum_TOp : PrimitiveGate_Op<"T", [NoMemoryEffect, SameOperandsAndResultTy
     The T gate applies a π/4 phase shift. It's equivalent to a Z rotation by π/4.
     Matrix representation: [[1, 0], [0, exp(iπ/4)]]
   }];
-  let arguments = (ins Quantum_Qubit:$input);
-  let results = (outs Quantum_Qubit:$result);
+  let arguments = (ins Quantum_QubitType:$input);
+  let results = (outs Quantum_QubitType:$result);
   let assemblyFormat = [{ $input attr-dict `:` type($input) `->` type($result) }];
 }
 
@@ -260,8 +238,8 @@ def Quantum_SDaggerOp : PrimitiveGate_Op<"Sdagger", [NoMemoryEffect, SameOperand
     The S dagger gate applies a -π/2 phase shift. It's the inverse of the S gate.
     Matrix representation: [[1, 0], [0, -i]]
   }];
-  let arguments = (ins Quantum_Qubit:$input);
-  let results = (outs Quantum_Qubit:$result);
+  let arguments = (ins Quantum_QubitType:$input);
+  let results = (outs Quantum_QubitType:$result);
   let assemblyFormat = [{ $input attr-dict `:` type($input) `->` type($result)}];
 }
 
@@ -271,8 +249,8 @@ def Quantum_TDaggerOp : PrimitiveGate_Op<"Tdagger", [NoMemoryEffect, SameOperand
     The T dagger gate applies a -π/4 phase shift. It's the inverse of the T gate.
     Matrix representation: [[1, 0], [0, exp(-iπ/4)]]
   }];
-  let arguments = (ins Quantum_Qubit:$input);
-  let results = (outs Quantum_Qubit:$result);
+  let arguments = (ins Quantum_QubitType:$input);
+  let results = (outs Quantum_QubitType:$result);
   let assemblyFormat = [{ $input attr-dict  `:` type($input) `->` type($result) }];
 }
 
@@ -283,6 +261,8 @@ def Quantum_MeasureOp : Quantum_Op<"measure">{
     let assemblyFormat = [{ $qubit attr-dict `:` type($qubit) `->` type($result)}];
 }
 
+//def Quantum_ResetOp : Quantum_Op<"measure", [NoMemoryEffect, AllTypesMatch<["input", "result"]>]> {
+
 // 2-qubit gates
 def Quantum_CYOp : PrimitiveGate_Op<"CY", [NoMemoryEffect]> {
   let summary = "Controlled-Y gate";
@@ -290,8 +270,8 @@ def Quantum_CYOp : PrimitiveGate_Op<"CY", [NoMemoryEffect]> {
     Applies a controlled-Y operation. The Y gate is applied to the target qubit
     if the control qubit is in the |1⟩ state.
   }];
-  let arguments = (ins Quantum_Qubit:$control, Quantum_Qubit:$target);
-  let results = (outs Quantum_Qubit:$control_out, Quantum_Qubit:$target_out);
+  let arguments = (ins Quantum_QubitType:$control, Quantum_QubitType:$target);
+  let results = (outs Quantum_QubitType:$control_out, Quantum_QubitType:$target_out);
   let assemblyFormat = [{ $control `,` $target attr-dict `:`  type($control) `,` type($target) `->` type($control_out) `,` type($target_out) }];
 }
 
@@ -301,8 +281,8 @@ def Quantum_CZOp : PrimitiveGate_Op<"CZ", [NoMemoryEffect]> {
     Applies a controlled-Z operation. The Z gate is applied to the target qubit
     if the control qubit is in the |1⟩ state.
   }];
-  let arguments = (ins Quantum_Qubit:$control, Quantum_Qubit:$target);
-  let results = (outs Quantum_Qubit:$control_out, Quantum_Qubit:$target_out);
+  let arguments = (ins Quantum_QubitType:$control, Quantum_QubitType:$target);
+  let results = (outs Quantum_QubitType:$control_out, Quantum_QubitType:$target_out);
   let assemblyFormat = [{ $control `,` $target attr-dict `:`  type($control) `,` type($target) `->` type($control_out) `,` type($target_out) }];
 }
 
@@ -311,8 +291,8 @@ def Quantum_SWAPOp : PrimitiveGate_Op<"SWAP", [NoMemoryEffect]> {
   let description = [{
     Swaps the states of two qubits.
   }];
-  let arguments = (ins Quantum_Qubit:$qubit1, Quantum_Qubit:$qubit2);
-  let results = (outs Quantum_Qubit:$qubit1_out, Quantum_Qubit:$qubit2_out);
+  let arguments = (ins Quantum_QubitType:$qubit1, Quantum_QubitType:$qubit2);
+  let results = (outs Quantum_QubitType:$qubit1_out, Quantum_QubitType:$qubit2_out);
   let assemblyFormat = [{ $qubit1 `,` $qubit2 attr-dict `:` type($qubit1) `,` type($qubit2) `->` type($qubit1_out) `,` type($qubit2_out)}];
 }
 
@@ -322,9 +302,9 @@ def Quantum_CCXOp : PrimitiveGate_Op<"CCX", [NoMemoryEffect, SameOperandsAndResu
     Applies a controlled-controlled-X (Toffoli) operation. The X gate is applied to the
     target qubit if both control qubits are in the |1⟩ state.
   }];
-  let arguments = (ins Quantum_Qubit:$control1, Quantum_Qubit:$control2, Quantum_Qubit:$target);
-  let results = (outs Quantum_Qubit:$control1_out, Quantum_Qubit:$control2_out, Quantum_Qubit:$target_out);
-  let assemblyFormat = [{ $control1 `,` $control2 `,` $target attr-dict `:`  type($control1) `,` type($control2) `,` type($target)}];
+  let arguments = (ins Quantum_QubitType:$control1, Quantum_QubitType:$control2, Quantum_QubitType:$target);
+  let results = (outs Quantum_QubitType:$control1_out, Quantum_QubitType:$control2_out, Quantum_QubitType:$target_out);
+  //let assemblyFormat = [{ $control1 `,` $control2 `,` $target attr-dict `:`  type($control1) `,` type($control2) `,` type($target)}];
 }
 
 // n-qubit gates
@@ -334,9 +314,9 @@ def Quantum_CCZOp : PrimitiveGate_Op<"CCZ", [NoMemoryEffect,SameOperandsAndResul
     Applies a controlled-controlled-Z operation. The Z gate is applied to the
     target qubit if both control qubits are in the |1⟩ state.
   }];
-  let arguments = (ins Quantum_Qubit:$control1, Quantum_Qubit:$control2, Quantum_Qubit:$target);
-  let results = (outs Quantum_Qubit:$control1_out, Quantum_Qubit:$control2_out, Quantum_Qubit:$target_out);
-  let assemblyFormat = [{ $control1 `,` $control2 `,` $target attr-dict `:`  type($control1) `,` type($control2) `,` type($target)}];
+  let arguments = (ins Quantum_QubitType:$control1, Quantum_QubitType:$control2, Quantum_QubitType:$target);
+  let results = (outs Quantum_QubitType:$control1_out, Quantum_QubitType:$control2_out, Quantum_QubitType:$target_out);
+  //let assemblyFormat = [{ $control1 `,` $control2 `,` $target attr-dict `:`  type($control1) `,` type($control2) `,` type($target)}];
 }
 
 def Quantum_CSWAPOp : PrimitiveGate_Op<"CSWAP", [NoMemoryEffect, SameOperandsAndResultType]> {
@@ -345,9 +325,9 @@ def Quantum_CSWAPOp : PrimitiveGate_Op<"CSWAP", [NoMemoryEffect, SameOperandsAnd
     Applies a controlled-SWAP operation. The states of the two target qubits are
     swapped if the control qubit is in the |1⟩ state.
   }];
-  let arguments = (ins Quantum_Qubit:$control, Quantum_Qubit:$target1, Quantum_Qubit:$target2);
-  let results = (outs Quantum_Qubit:$control_out, Quantum_Qubit:$target1_out, Quantum_Qubit:$target2_out);
-  let assemblyFormat = [{ $control `,` $target1 `,` $target2 attr-dict `:`  type($control) `,` type($target1) `,` type($target2)}];
+  let arguments = (ins Quantum_QubitType:$control, Quantum_QubitType:$target1, Quantum_QubitType:$target2);
+  let results = (outs Quantum_QubitType:$control_out, Quantum_QubitType:$target1_out, Quantum_QubitType:$target2_out);
+  //let assemblyFormat = [{ $control `,` $target1 `,` $target2 attr-dict `:`  type($control) `,` type($target1) `,` type($target2)}];
 }
 
 // Universal gate
@@ -357,9 +337,9 @@ def Quantum_UOp : PrimitiveGate_Op<"U", [NoMemoryEffect]> {
     Applies a universal single-qubit rotation with three Euler angles.
     U(θ, φ, λ) = Rz(φ)Ry(θ)Rz(λ)
   }];
-  let arguments = (ins F32:$theta, F32:$phi, F32:$lambda, Quantum_Qubit:$input);
-  let results = (outs Quantum_Qubit:$result);
-  let assemblyFormat = [{ $input `(` $theta `,` $phi `,` $lambda `)` attr-dict `:`  type($input) `,` type($theta) `,` type($phi) `,` type($lambda) `->` type($result) }];
+  let arguments = (ins F32:$theta, F32:$phi, F32:$lambda, Quantum_QubitType:$input);
+  let results = (outs Quantum_QubitType:$result);
+  //let assemblyFormat = [{ $input `(` $theta `,` $phi `,` $lambda `)` attr-dict `:`  type($input) `,` type($theta) `,` type($phi) `,` type($lambda) `->` type($result) }];
 }
 
 #endif
