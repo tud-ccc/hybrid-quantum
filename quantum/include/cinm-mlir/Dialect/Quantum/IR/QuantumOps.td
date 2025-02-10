@@ -309,6 +309,8 @@ def Quantum_MeasureOp : Quantum_Op<"measure", [NoMemoryEffect, AllTypesMatch<["i
     //let assemblyFormat = [{ $qinp attr-dict `:` type($qinp) `->` type($res) `,` type($qoutp)}];
 }
 
+//def Quantum_ResetOp : Quantum_Op<"measure", [NoMemoryEffect, AllTypesMatch<["input", "result"]>]> {
+
 // 2-qubit gates
 def Quantum_CYOp : PrimitiveGate_Op<"CY", [Pure]> {
   let summary = "Controlled-Y gate";
