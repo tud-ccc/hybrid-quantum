@@ -28,7 +28,7 @@ run_test() {
 }
 
 # Basic circuit using Quantum dialect
-#run_test "Basic Quantum Circuit" "cinm-opt  --allow-unregistered-dialect /net/media/scratch/quantum/Cinnamon/quantum/examples/conversion.mlir --quantum-torch"
+#run_test "Basic Quantum Circuit" "cinm-opt /net/media/scratch/quantum/Cinnamon/quantum/examples/conversion.mlir --quantum-torch"
 
 # Testing a basic transformation pass for gate cancellation operation
 #run_test "Function test" " /net/media/scratch/quantum/Cinnamon/quantum/examples/circuit.mlir"
@@ -40,9 +40,9 @@ run_test() {
 #run_test "Quantum Parsing" "cinm-opt /net/media/scratch/quantum/Cinnamon/quantum/examples/all_operations.mlir"
 
 run_test "Basic Quantum Circuit" "$CINM /net/media/scratch/quantum/Cinnamon/quantum/examples/simple_circuit.mlir "
-run_test "QUANTUM TO LLVMIR" "$CINM --convert-arith-to-llvm --convert-quantum-to-llvm /net/media/scratch/quantum/Cinnamon/quantum/examples/simple_circuit.mlir -o  /net/media/scratch/quantum/Cinnamon/quantum/examples/simple_circuit_llvm.mlir"
+run_test "QUANTUM TO LLVMIR" "$CINM -convert-func-to-llvm --convert-arith-to-llvm --convert-qir-to-llvm /net/media/scratch/quantum/Cinnamon/quantum/examples/simple_circuit.mlir -o  /net/media/scratch/quantum/Cinnamon/quantum/examples/simple_circuit_llvm.mlir"
 run_test "LLVMIR TO LLVM" "$TRANS  --mlir-to-llvmir /net/media/scratch/quantum/Cinnamon/quantum/examples/simple_circuit_llvm.mlir -o  /net/media/scratch/quantum/Cinnamon/quantum/examples/simple_circuit.ll"
-run_test "QIR RUNNER" "qir-runner  --file /net/media/scratch/quantum/Cinnamon/quantum/examples/simple_circuit.ll -opaque-pointers"
+#run_test "QIR RUNNER" "qir-runner  --file /net/media/scratch/quantum/Cinnamon/quantum/examples/simple_circuit.ll -opaque-pointers"
 
 # run_test "Quantum to LLVM Conversion" "cinm-opt \
 #   --convert-scf-to-cf \

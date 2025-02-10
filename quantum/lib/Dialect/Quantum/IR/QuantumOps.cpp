@@ -70,42 +70,5 @@ void QuantumDialect::registerOps()
     addOperations<
 #define GET_OP_LIST
 #include "cinm-mlir/Dialect/Quantum/IR/QuantumOps.cpp.inc"
-<<<<<<< HEAD
-      >();
-}
-
-LogicalResult QuantumDialect::verifyOperationAttribute(Operation *op,
-                                                     NamedAttribute attr) {
-  if (!llvm::isa<UnitAttr>(attr.getValue()) ||
-      attr.getName() != getContainerModuleAttrName())
-    return success();
-
-  auto module = dyn_cast<ModuleOp>(op);
-  if (!module)
-    return op->emitError("expected '")
-           << getContainerModuleAttrName() << "' attribute to be attached to '"
-           << ModuleOp::getOperationName() << '\'';
-  return success();
-}
-
-
-//Verfiers, just testing for now. 
-LogicalResult CNOTOp::verify() {
-  return success();
-}
-
-LogicalResult InsertOp::verify()
-{
-    if (!(getIdx() || getIdxAttr().has_value())) {
-        return emitOpError() << "expected op to have a non-null index";
-    }
-    return success();
-}
-
-
-#define GET_OP_CLASSES
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumOps.cpp.inc"
-=======
         >();
 }
->>>>>>> origin/main

@@ -14,13 +14,6 @@ include "mlir/IR/BuiltinTypeInterfaces.td"
 def Quantum_QubitType : Quantum_Type<"Qubit"> {
   let mnemonic = "qubit";
   let summary = "Multi-qubit register type";
-  let parameters = (ins "IntegerAttr":$id);
-  let assemblyFormat = "`<` $id `>`";
-}
-
-def Quantum_QubitRegister : Quantum_Type<"nqubit"> {
-  let mnemonic = "nqubit";
-  let summary = "Multi-qubit register type";
   let parameters = (ins "unsigned":$size);
   let assemblyFormat = "`<` $size `>`";
 }

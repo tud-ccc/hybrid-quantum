@@ -1,7 +1,9 @@
 module {
   func.func @main() {
-    %q1 = quantum.alloc : !quantum.qubit<10>
-    quantum.H %q1: !quantum.qubit<10>
+    %q = "qir.alloc" () : () -> (!qir.qubit)
+    %r = "qir.ralloc" () : () -> (!qir.result)
+    "qir.H" (%q) : (!qir.qubit) -> ()
+    "qir.measure" (%q, %r) : (!qir.qubit, !qir.result) -> ()
     return
   }
 }
