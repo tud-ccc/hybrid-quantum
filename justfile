@@ -8,19 +8,37 @@ set dotenv-load := true
 # Make sure your LLVM is tags/llvmorg-18.1.6
 
 llvm_prefix := env_var("LLVM_BUILD_DIR")
+qir_prefix := env_var("QIRRUNNER_BUILD_DIR")
 build_type := env_var_or_default("LLVM_BUILD_TYPE", "RelWithDebInfo")
 linker := env_var_or_default("CMAKE_LINKER_TYPE", "DEFAULT")
-upmem_dir := env_var_or_default("UPMEM_HOME", "")
 build_dir := "quantum/build"
+
+llvm *ARGS:
+    cmake -S {{llvm_prefix}}/../llvm -B {{llvm_prefix}} \
+        -G "Ninja" \
+        -DLLVM_ENABLE_PROJECTS="mlir;llvm;clang" \
+        -DLLVM_TARGETS_TO_BUILD="host" \
+        -DLLVM_ENABLE_ASSERTIONS=ON \
+        -DMLIR_ENABLE_BINDINGS_PYTHON=OFF \
+        -DLLVM_BUILD_TOOLS=OFF \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DBUILD_SHARED_LIBS=ON \
+        -DLLVM_OPTIMIZED_TABLEGEN=ON
+
+    ninja -C {{llvm_prefix}}
+    ninja -C {{llvm_prefix}} llc
+    ninja -C {{llvm_prefix}} opt
+
+qir-runner *ARGS:
+    cargo build -Znext-lockfile-bump --manifest-path qir-runner/backend/Cargo.toml
 
 # execute cmake -- this is only needed on the first build
 cmake *ARGS:
-    cmake -S . -B {{build_dir}} \
+    cmake -S quantum -B {{build_dir}} \
         -G Ninja \
         -DCMAKE_BUILD_TYPE={{build_type}} \
         -DLLVM_DIR="{{llvm_prefix}}/lib/cmake/llvm" \
         -DMLIR_DIR="{{llvm_prefix}}/lib/cmake/mlir" \
-        -DUPMEM_DIR="{{upmem_dir}}" \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
         -DCMAKE_C_COMPILER=clang \
@@ -35,7 +53,6 @@ cmake *ARGS:
 doNinja *ARGS:
     ninja -C {{build_dir}} {{ARGS}}
 
-
 # run build --first build needs cmake though
 build: doNinja
 
@@ -43,8 +60,6 @@ cleanBuild:
     rm -rf {{build_dir}}
     just cmake
     just build
-
-alias b := build
 
 # run tests
 test: (doNinja "check-quantum-mlir")
@@ -59,52 +74,16 @@ quantum-opt-help: (quantum-opt "--help")
 debug-quantum-opt *ARGS:
     gdb --args {{build_dir}}/bin/quantum-opt {{ARGS}}
 
-cnm-to-gpu FILE *ARGS: (quantum-opt FILE "--convert-cnm-to-gpu" ARGS)
+qir *ARGS:
+    {{llvm_prefix}}/bin/clang -fuse-ld=mold \
+        -L /lib/rustlib/x86_64-unknown-linux-gnu/lib \
+        -L {{qir_prefix}} -L {{qir_prefix}}/deps \
+        -lqir_backend -lgcc_s -lutil -lrt -lpthread -lm -ldl -lc \
+        {{ARGS}} -o {{replace(ARGS, ".ll", ".out")}}
 
-cinm-vulkan-runner FILE *ARGS:
-    {{build_dir}}/bin/cinm-vulkan-runner {{FILE}} \
-        --shared-libs=../llvm-project/build/lib/libvulkan-runtime-wrappers.so,../llvm-project/build/lib/libmlir_runner_utils.so.17 \
-        {{ARGS}}
-
-genBench NAME: (doNinja "quantum-opt")
-    #!/bin/bash
-    source "{{upmem_dir}}/upmem_env.sh"
-    cd testbench
-    export BENCH_NAME="{{NAME}}"
-    make clean && make {{NAME}}-exe
-
-runBench NAME:
-    #!/bin/bash
-    source "{{upmem_dir}}/upmem_env.sh"
-    cd testbench/generated2/{{NAME}}/bin
-    ./host
-
-bench NAME: (doNinja "quantum-opt")
-    #!/bin/bash
-    set -e
-    source "{{upmem_dir}}/upmem_env.sh"
-    cd testbench
-    export BENCH_NAME="{{NAME}}"
-    make clean && make {{NAME}}-exe
-    cd generated2/{{NAME}}/bin
-    ./host
-
-
-
-# Invoke he LLVM IR compiler.
+# Invoke the LLVM IR compiler.
 llc *ARGS:
     {{llvm_prefix}}/bin/llc {{ARGS}}
-
-# Lowers Sigi all the way to LLVM IR. Temporary files are left there.
-llvmDialectIntoExecutable FILE:
-    #!/bin/bash
-    FILEBASE={{FILE}}
-    FILEBASE=${FILEBASE%.*}
-    FILEBASE=${FILEBASE%.llvm}
-    {{llvm_prefix}}/bin/mlir-translate -mlir-to-llvmir {{FILE}} > ${FILEBASE}.ll
-    # creates {{FILE}}.s
-    {{llvm_prefix}}/bin/llc -O0 ${FILEBASE}.ll
-    clang-14 -fuse-ld=lld -L{{build_dir}}/lib -lSigiRuntime ${FILEBASE}.s -g -o ${FILEBASE}.exe -no-pie
 
 addNewDialect DIALECT_NAME DIALECT_NS:
     just --justfile ./dialectTemplate/justfile applyTemplate {{DIALECT_NAME}} {{DIALECT_NS}} "cinm-mlir" {{justfile_directory()}}

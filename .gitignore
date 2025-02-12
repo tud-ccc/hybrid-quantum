@@ -3,3 +3,4 @@
 llvm
 upmem
 .env
+qir-runner
