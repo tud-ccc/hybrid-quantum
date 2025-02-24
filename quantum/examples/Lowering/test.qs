@@ -1,25 +1,49 @@
-import Microsoft.Quantum.Diagnostics.*;
+namespace VQEAdaptiveExample {
+    open Microsoft.Quantum.Canon;
+    open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Measurement;
+    open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Arrays;
 
-operation Main() : (Result, Result) {  
-    // Allocate two qubits, q1 and q2, in the 0 state.
-    use (q1, q2) = (Qubit(), Qubit());
-    
-    // Put q1 into an even superposition.
-    // It now has a 50% chance of being measured as 0 or 1.
-    H(q1);
-    // Entangle q1 and q2, making q2 depend on q1.
-    CNOT(q1, q2);
+    /// # Summary
+    /// Prepares a parameterized ansatz state on 2 qubits.
+    /// This circuit is static (its structure is fixed) and takes the parameters as input.
+    operation PrepareAnsatz(qs : Qubit[], parameters : Double[]) : Unit {
+        // Example: Apply an Rz rotation on qubit 0, then a CNOT, then an Rz rotation on qubit 1.
+        Rz(parameters[0], qs[0]);
+        CNOT(qs[0], qs[1]);
+        Rz(parameters[1], qs[1]);
+    }
 
-    // Show the entangled state of the qubits.
-    DumpMachine();
+    /// # Summary
+    /// Runs the quantum circuit for a fixed number of shots and returns the total number of Zero outcomes.
+    /// The measurement is performed in a fixed basis ([PauliZ, PauliI]) so that the circuit remains static.
+    operation EvaluateCircuit(parameters : Double[], shots : Int) : Int {
+        mutable totalZeroCount = 0;
+        for _ in 1..shots {
+            use qs = Qubit[2];
+            PrepareAnsatz(qs, parameters);
+            // Measure qubit 0 in the PauliZ basis (and ignore qubit 1)
+            if (Measure([PauliZ, PauliI], qs) == Zero) {
+                set totalZeroCount += 1;
+            }
+            ResetAll(qs);
+        }
+        return totalZeroCount;
+    }
 
-    // Measure q1 and q2 and store the results in m1 and m2.
-    let (m1, m2) = (M(q1), M(q2));
-    
-    // Reset q1 and q2 to the 0 state.
-    Reset(q1);
-    Reset(q2);
-    
-    // Return the measurement results.
-    return (m1, m2);
+    /// # Summary
+    /// Entry point for the VQE example that updates the parameters dynamically in a loop.
+    @EntryPoint()
+    operation Main() : Unit {
+        mutable parameters = [0.222, 0.444];
+        let shots = 1;
+        let iterations = 5;
+        for i in 1..iterations {
+            let zeroCount = EvaluateCircuit(parameters, shots);
+            // Update parameters by adding 0.01 to each element.
+            set parameters w/= 0 <- parameters[0] + 0.01;
+            set parameters w/= 1 <- parameters[1] + 0.01;
+        }
+    }
 }

@@ -36,19 +36,74 @@ def QIR_AllocResultOp : Memory_Op<"ralloc", [MemoryEffects<[MemRead]>]> {
   let results = (outs QIR_ResultType:$result);
 }
 
+def QIR_ShowStateOp : Memory_Op<"show_state", [MemoryEffects<[MemRead]>]> {
+  let summary = "Show the internal state of the simulator.";
+  let description = [{  }];
+}
+
 //===----------------------------------------------------------------------===//
 // QIR gate operations.
 //===----------------------------------------------------------------------===//
-class PrimitiveGate_Op<string mnemonic, list<Trait> traits = []> :
-        Gate_Op<mnemonic, traits>;
+class PrimitiveGate_Op<string mnemonic, list<Trait> traits = []>:Gate_Op<mnemonic, traits>{
+  // Declare a mnemonic field so that derived definitions can override it.
+  let arguments = (ins QIR_QubitType:$input);
+}
         
 def QIR_HOp : PrimitiveGate_Op<"H", [MemoryEffects<[MemRead, MemWrite]>]> {
   let summary = "Hadamard gate operation";
   let description = [{
     The Hadamard gate creates an equal superposition of states.
   }];
+}
 
-  let arguments = (ins QIR_QubitType:$input);
+
+def QIR_XOp : PrimitiveGate_Op<"X"> {
+  let summary = "X gate operation";
+  let description = [{
+    The X gate negates a qubit value.
+  }];
+}
+
+def QIR_ZOp : PrimitiveGate_Op<"Z"> {
+  let summary = "Z gate operation";
+  let description = [{
+    The Z gate negates a qubit value.
+  }];
+}
+
+def QIR_YOp : PrimitiveGate_Op<"Y"> {
+  let summary = "Y gate operation";
+  let description = [{
+    The Y gate negates a qubit value.
+  }];
+}
+
+
+def QIR_RXOp : Gate_Op<"RX"> {
+  let summary = "RX gate operation";
+  let description = [{
+    The X gate negates a qubit value.
+  }];
+
+  let arguments = (ins QIR_QubitType:$input, F32:$theta);
+}
+
+// Rz: a single-qubit rotation with an angle parameter.
+def QIR_RzOp : Gate_Op<"Rz"> {
+  let summary = "Rz gate operation";
+  let description = [{
+    The Rz gate rotates a qubit around the Z-axis by a specified angle.
+  }];
+  let arguments = (ins QIR_QubitType:$input, F64:$angle);
+}
+
+// Swap: a two-qubit gate that exchanges the states of its inputs.
+def QIR_SwapOp : Gate_Op<"Swap"> {
+  let summary = "Swap gate operation";
+  let description = [{
+    The Swap gate exchanges the quantum states of two qubits.
+  }];
+  let arguments = (ins QIR_QubitType:$input1, QIR_QubitType:$input2);
 }
 
 def QIR_MeasureOp : QIR_Op<"measure", [MemoryEffects<[MemRead, MemWrite]>]> {
