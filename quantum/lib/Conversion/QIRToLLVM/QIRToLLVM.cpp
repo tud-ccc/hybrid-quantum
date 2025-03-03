@@ -35,7 +35,7 @@ namespace mlir {
 
 namespace {
 
-struct ConvertQIRToLLVMPass
+  struct ConvertQIRToLLVMPass
         : mlir::impl::ConvertQIRToLLVMBase<ConvertQIRToLLVMPass> {
     using ConvertQIRToLLVMBase::ConvertQIRToLLVMBase;
 

@@ -27,11 +27,10 @@ run_test() {
     echo "------------------------"
 }
 
-run_test "Basic Quantum Circuit" "$CINM /net/media/scratch/quantum/hybrid-quantum/quantum/examples/simple_circuit.mlir "
-run_test "QUANTUM TO LLVMIR" "$CINM -convert-func-to-llvm --convert-arith-to-llvm --convert-qir-to-llvm /net/media/scratch/quantum/hybrid-quantum/quantum/examples/simple_circuit.mlir -o  /net/media/scratch/quantum/hybrid-quantum/quantum/examples/simple_circuit_llvm.mlir --mlir-print-ir-after-all"
-run_test "LLVMIR TO LLVM" "$TRANS  --mlir-to-llvmir /net/media/scratch/quantum/hybrid-quantum/quantum/examples/simple_circuit_llvm.mlir -o  /net/media/scratch/quantum/hybrid-quantum/quantum/examples/simple_circuit.ll --print-after-all"
-run_test "QIR generator" "just qir quantum/examples/simple_circuit.ll"
-run_test "QIR Runner" "/net/media/scratch/quantum/hybrid-quantum/quantum/examples/simple_circuit.out"
+run_test "QUANTUM TO LLVMIR" "$CINM --convert-scf-to-cf --canonicalize  --convert-arith-to-llvm  --convert-qir-to-llvm --convert-func-to-llvm --reconcile-unrealized-casts /net/media/scratch/quantum/hybrid-quantum/quantum/examples/qir/bell_for.mlir -o  /net/media/scratch/quantum/hybrid-quantum/quantum/examples/qir/bell_for_llvm.mlir --mlir-print-ir-after-all"
+run_test "LLVMIR TO LLVM" "$TRANS  --mlir-to-llvmir /net/media/scratch/quantum/hybrid-quantum/quantum/examples/qir/bell_for_llvm.mlir -o  /net/media/scratch/quantum/hybrid-quantum/quantum/examples/qir/bell_for_llvm.ll"
+run_test "QIR generator" "just qir quantum/examples/qir/bell_for_llvm.ll"
+run_test "QIR Runner" "/net/media/scratch/quantum/hybrid-quantum/quantum/examples/qir/bell_for_llvm.out"
 
 # # Print summary
 # echo "Test Summary:" 

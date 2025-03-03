@@ -1,3 +1,4 @@
+
   func.func @main() {
     %q0 = "qir.alloc" () : () -> (!qir.qubit)
     %r0 = "qir.ralloc" () : () -> (!qir.result)

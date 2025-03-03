@@ -42,8 +42,8 @@ namespace VQEAdaptiveExample {
         for i in 1..iterations {
             let zeroCount = EvaluateCircuit(parameters, shots);
             // Update parameters by adding 0.01 to each element.
-            set parameters w/= 0 <- parameters[0] + 0.01;
-            set parameters w/= 1 <- parameters[1] + 0.01;
+            set parameters w/= 0 <- parameters[0] + 0.111;
+            set parameters w/= 1 <- parameters[1] + 0.111;
         }
     }
 }
