@@ -15,7 +15,6 @@
 
 //===----------------------------------------------------------------------===//
 
-//namespace mlir::quantum {
-
+// namespace mlir::quantum {
 
 //} // namespace mlir::quantum

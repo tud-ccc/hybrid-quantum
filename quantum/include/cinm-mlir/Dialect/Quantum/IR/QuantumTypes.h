@@ -14,4 +14,3 @@
 #include "cinm-mlir/Dialect/Quantum/IR/QuantumTypes.h.inc"
 
 //===----------------------------------------------------------------------===//
-

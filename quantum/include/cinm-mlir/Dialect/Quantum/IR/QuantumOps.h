@@ -6,7 +6,6 @@
 
 #include "cinm-mlir/Dialect/Quantum/IR/QuantumBase.h"
 #include "cinm-mlir/Dialect/Quantum/IR/QuantumTypes.h"
-
 #include "mlir/Bytecode/BytecodeOpInterface.h"
 #include "mlir/Dialect/DLTI/Traits.h"
 #include "mlir/IR/Builders.h"
@@ -21,16 +20,19 @@
 #include "mlir/Interfaces/InferIntRangeInterface.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
+
 #include "llvm/ADT/STLExtras.h"
 
 namespace mlir {
-namespace quantum {
-} // namespace Quantum
+namespace quantum {} // namespace quantum
 
 namespace OpTrait {
-template <typename ConcreteType> class Unitary : public TraitBase<ConcreteType, Unitary> {};
-template <typename ConcreteType> class Hermitian : public TraitBase<ConcreteType, Hermitian> {};
-template <typename ConcreteType> class Kernel : public TraitBase<ConcreteType, Kernel> {};
+template<typename ConcreteType>
+class Unitary : public TraitBase<ConcreteType, Unitary> {};
+template<typename ConcreteType>
+class Hermitian : public TraitBase<ConcreteType, Hermitian> {};
+template<typename ConcreteType>
+class Kernel : public TraitBase<ConcreteType, Kernel> {};
 
 } // namespace OpTrait
 } // namespace mlir
@@ -38,7 +40,6 @@ template <typename ConcreteType> class Kernel : public TraitBase<ConcreteType, K
 class QuantumMemory : public mlir::SideEffects::Resource::Base<QuantumMemory> {
     llvm::StringRef getName() final { return "QuantumMemory"; }
 };
-
 
 //===- Generated includes -------------------------------------------------===//
 
