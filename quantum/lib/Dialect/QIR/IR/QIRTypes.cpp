@@ -27,9 +27,10 @@ using namespace mlir::qir;
 // QIRDialect
 //===----------------------------------------------------------------------===//
 
-void QIRDialect::registerTypes() {
-  addTypes<
+void QIRDialect::registerTypes()
+{
+    addTypes<
 #define GET_TYPEDEF_LIST
 #include "cinm-mlir/Dialect/QIR/IR/QIRTypes.cpp.inc"
-      >();
+        >();
 }

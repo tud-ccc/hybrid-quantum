@@ -21,7 +21,6 @@ using namespace mlir::quantum;
 
 //===----------------------------------------------------------------------===//
 
-
 // LogicalResult QuantumDialect::verifyOperationAttribute(Operation *op,
 //                                                      NamedAttribute attr) {
 //   if (!llvm::isa<UnitAttr>(attr.getValue()) ||
@@ -31,11 +30,11 @@ using namespace mlir::quantum;
 //   auto module = dyn_cast<ModuleOp>(op);
 //   if (!module)
 //     return op->emitError("expected '")
-//            << getContainerModuleAttrName() << "' attribute to be attached to '"
+//            << getContainerModuleAttrName() << "' attribute to be attached to
+//            '"
 //            << ModuleOp::getOperationName() << '\'';
 //   return success();
 // }
-
 
 // //Verfiers
 // LogicalResult XOp::verify() {
