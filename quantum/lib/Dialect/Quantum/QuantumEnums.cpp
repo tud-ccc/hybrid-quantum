@@ -13,4 +13,3 @@ using namespace mlir::quantum;
 #include "cinm-mlir/Dialect/Quantum/QuantumEnums.cpp.inc"
 
 //===----------------------------------------------------------------------===//
-

@@ -20,7 +20,7 @@ namespace mlir {
 
 namespace qir {
 
-void populateConvertQIRToLLVMPatterns (
+void populateConvertQIRToLLVMPatterns(
     LLVMTypeConverter &typeConverter,
     RewritePatternSet &patterns);
 

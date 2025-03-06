@@ -1,7 +1,7 @@
 #!/bin/bash
 
-CINM=/net/media/scratch/quantum/Cinnamon/quantum/build/bin/cinm-opt
-TRANS=/net/media/scratch/quantum/Cinnamon/quantum/build/bin/cinm-translate
+CINM=/net/media/scratch/quantum/hybrid-quantum/quantum/build/bin/quantum-opt
+TRANS=/net/media/scratch/quantum/hybrid-quantum/quantum/build/bin/quantum-translate
 total_tests=0
 failed_tests=0
 
@@ -27,44 +27,10 @@ run_test() {
     echo "------------------------"
 }
 
-# Basic circuit using Quantum dialect
-#run_test "Basic Quantum Circuit" "$CINM  --allow-unregistered-dialect /net/media/scratch/quantum/Cinnamon/quantum/test/Dialect/Quantum/conversion.mlir --quantum-torch"
-
-# Testing a basic transformation pass for gate cancellation operation
-#run_test "Function test" "$CINM /net/media/scratch/quantum/Cinnamon/quantum/test/Dialect/Quantum/circuit.mlir"
-
-# Testing all quantum gates operation from Ops.td file
-#run_test "Quantum Gates Operations" "$CINM /net/media/scratch/quantum/Cinnamon/quantum/test/Dialect/Quantum/circuit.mlir"
-
-# Testing conversion of quantum dialect to LLVM IR
-#run_test "Quantum Parsing" "$CINM /net/media/scratch/quantum/Cinnamon/quantum/test/Dialect/Quantum/all_operations.mlir"
-
-run_test "Basic Quantum Circuit" "$CINM  /net/media/scratch/quantum/Cinnamon/quantum/test/Dialect/Quantum/simple_circuit.mlir "
-run_test "QUANTUM TO LLVMIR" "$CINM --convert-arith-to-llvm --convert-quantum-to-llvm /net/media/scratch/quantum/Cinnamon/quantum/test/Dialect/Quantum/simple_circuit.mlir -o  /net/media/scratch/quantum/Cinnamon/quantum/test/Dialect/Quantum/simple_circuit_llvm.mlir"
-run_test "LLVMIR TO LLVM" "$TRANS  --mlir-to-llvmir /net/media/scratch/quantum/Cinnamon/quantum/test/Dialect/Quantum/simple_circuit_llvm.mlir -o  /net/media/scratch/quantum/Cinnamon/quantum/test/Dialect/Quantum/simple_circuit.ll"
-run_test "QIR RUNNER" "qir-runner  --file /net/media/scratch/quantum/Cinnamon/quantum/test/Dialect/Quantum/simple_circuit.ll"
-
-# run_test "Quantum to LLVM Conversion" "$CINM \
-#   --convert-scf-to-cf \
-#   --convert-cf-to-llvm \
-#   --convert-arith-to-llvm \
-#   --convert-func-to-llvm \
-#   --reconcile-unrealized-casts \
-#   /net/media/scratch/quantum/Cinnamon/quantum/test/Dialect/Quantum/all_operations.mlir"
-
-
-#   run_test "Quantum to LLVM Conversion" "$CINM \
-#   --convert-arith-to-llvm \
-#   --convert-func-to-llvm \
-#   --finalize-memref-to-llvm \
-#   --convert-quantum-to-llvm \
-#   /net/media/scratch/quantum/Cinnamon/quantum/test/Dialect/Quantum/simple_circuit_llvm.mlir"
-
-#run_test "LLVM IR to LLVM Conversion" "cinm-translate --mlir-to-llvmir /net/media/scratch/quantum/Cinnamon/quantum/test/Dialect/Quantum/simple_circuit.mlir -o /net/media/scratch/quantum/Cinnamon/quantum/test/Dialect/Quantum/output.ll"
-
-# run_test "QIR RUNNER" "qir-runner --file /net/media/scratch/quantum/Cinnamon/quantum/test/Dialect/Quantum/output.ll"
-
-#run_test "Torch2Quantum" "$CINM  --allow-unregistered-dialect /net/media/scratch/quantum/Cinnamon/quantum/test/Dialect/Quantum/conversion.mlir --quantum-torch"
+run_test "QUANTUM TO LLVMIR" "$CINM --convert-scf-to-cf --canonicalize  --convert-arith-to-llvm  --convert-qir-to-llvm --convert-func-to-llvm --reconcile-unrealized-casts /net/media/scratch/quantum/hybrid-quantum/quantum/examples/qir/bell_for.mlir -o  /net/media/scratch/quantum/hybrid-quantum/quantum/examples/qir/bell_for_llvm.mlir --mlir-print-ir-after-all"
+run_test "LLVMIR TO LLVM" "$TRANS  --mlir-to-llvmir /net/media/scratch/quantum/hybrid-quantum/quantum/examples/qir/bell_for_llvm.mlir -o  /net/media/scratch/quantum/hybrid-quantum/quantum/examples/qir/bell_for_llvm.ll"
+run_test "QIR generator" "just qir quantum/examples/qir/bell_for_llvm.ll"
+run_test "QIR Runner" "/net/media/scratch/quantum/hybrid-quantum/quantum/examples/qir/bell_for_llvm.out"
 
 # # Print summary
 # echo "Test Summary:" 

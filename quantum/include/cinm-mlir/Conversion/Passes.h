@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "cinm-mlir/Conversion/QuantumToQIR/QuantumToQIR.h"
 #include "cinm-mlir/Conversion/QIRToLLVM/QIRToLLVM.h"
+#include "cinm-mlir/Conversion/QuantumToQIR/QuantumToQIR.h"
 
 namespace mlir::quantum {
 
@@ -17,4 +17,4 @@ namespace mlir::quantum {
 
 //===----------------------------------------------------------------------===//
 
-} //namespace mlir::quantum
+} // namespace mlir::quantum

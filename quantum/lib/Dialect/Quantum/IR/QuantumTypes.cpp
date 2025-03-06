@@ -25,14 +25,14 @@ using namespace mlir::quantum;
 
 //===----------------------------------------------------------------------===//
 
-
 //===----------------------------------------------------------------------===//
 // QuantumDialect
 //===----------------------------------------------------------------------===//
 
-void QuantumDialect::registerTypes() {
-  addTypes<
+void QuantumDialect::registerTypes()
+{
+    addTypes<
 #define GET_TYPEDEF_LIST
 #include "cinm-mlir/Dialect/Quantum/IR/QuantumTypes.cpp.inc"
-      >();
+        >();
 }

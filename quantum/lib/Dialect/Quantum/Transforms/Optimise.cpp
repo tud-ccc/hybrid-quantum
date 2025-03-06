@@ -4,7 +4,6 @@
 /// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
 
 #include "cinm-mlir/Dialect/Quantum/IR/Quantum.h"
-
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
@@ -28,19 +27,19 @@ namespace {
 
 struct QuantumOptimisePass
         : mlir::quantum::impl::QuantumOptimiseBase<QuantumOptimisePass> {
-  using QuantumOptimiseBase::QuantumOptimiseBase;
+    using QuantumOptimiseBase::QuantumOptimiseBase;
 
-  void runOnOperation() override;
+    void runOnOperation() override;
 };
 
-//struct HermitianCancel : RewritePattern<quantum::HOp> {
-//   using RewritePattern::RewritePattern;
+// struct HermitianCancel : RewritePattern<quantum::HOp> {
+//    using RewritePattern::RewritePattern;
 
 //   LogicalResult matchAndRewrite(
 //     quantum::HOp op,
 //     PatternRewriter &rewriter) const final
 //   {
-//     Location loc = op.getLoc();                  
+//     Location loc = op.getLoc();
 //     llvm::outs() << "Transforming quantum.H at location: " << loc << "\n";
 
 //     // Check if the operation has the Hermitian trait
@@ -49,9 +48,10 @@ struct QuantumOptimisePass
 //     //   Block *block = op->getBlock();
 //     //   auto nextOpIt = std::next(Block::iterator(op));
 
-//     //   // Check if the next operation is also a Hermitian operation of the same type
-//     //   if (nextOpIt != block->end() && 
-//     //       nextOpIt->hasTrait<mlir::quantum::Hermitian>() && 
+//     //   // Check if the next operation is also a Hermitian operation of the
+//     same type
+//     //   if (nextOpIt != block->end() &&
+//     //       nextOpIt->hasTrait<mlir::quantum::Hermitian>() &&
 //     //       op->getName() == nextOpIt->getName()) {
 //     //     // Both operations are identical Hermitian operations, cancel them
 //     //     rewriter.eraseOp(op);
@@ -75,26 +75,22 @@ struct QuantumOptimisePass
 
 } // namespace
 
-
 void QuantumOptimisePass::runOnOperation()
 {
     RewritePatternSet patterns(&getContext());
 
-
     populateQuantumOptimisePatterns(patterns);
 
-    if (failed(applyPatternsAndFoldGreedily(
-      getOperation(),
-      std::move(patterns)))) {
-      signalPassFailure();
-    }
+    if (failed(
+            applyPatternsAndFoldGreedily(getOperation(), std::move(patterns))))
+        signalPassFailure();
 }
 
 void mlir::quantum::populateQuantumOptimisePatterns(RewritePatternSet &patterns)
 {
-    //patterns.add<
-    //  HermitianCancel,
-    //  AdjointCancel>(patterns.getContext());
+    // patterns.add<
+    //   HermitianCancel,
+    //   AdjointCancel>(patterns.getContext());
 }
 
 std::unique_ptr<Pass> mlir::quantum::createQuantumOptimisePass()

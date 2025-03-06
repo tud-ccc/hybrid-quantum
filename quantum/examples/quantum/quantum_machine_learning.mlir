@@ -96,7 +96,6 @@ func.func @compute_gradient(%exp_vals_plus: f32, %exp_vals_minus: f32, %shift: f
     return %output: f32
 }
 
-
 //Backward
 func.func @backward(%thetas: tensor<2xf32>, %qvector: !quantum.nqubit, %shift: f32, %hh: !quantum.obs) -> f32 {
     // Define constants for indexing
@@ -119,9 +118,6 @@ func.func @backward(%thetas: tensor<2xf32>, %qvector: !quantum.nqubit, %shift: f
     %exp_vals_plus = func.call @run(%thetas_plus, %qvector, %hh) : (tensor<2xf32>, !quantum.nqubit, !quantum.obs) -> f32
     %exp_vals_minus = func.call @run(%thetas_minus, %qvector, %hh) : (tensor<2xf32>, !quantum.nqubit, !quantum.obs) -> f32
     %out_grad = func.call @compute_gradient(%exp_vals_plus, %exp_vals_minus, %shift): (f32, f32, f32) -> f32
-
     return %out_grad : f32
 }
-
-
 }
