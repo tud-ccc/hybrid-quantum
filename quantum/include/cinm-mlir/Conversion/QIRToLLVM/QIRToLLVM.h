@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "cinm-mlir/Dialect/QIR/IR/QIROps.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -19,10 +20,12 @@ namespace mlir {
 //===----------------------------------------------------------------------===//
 
 namespace qir {
+struct QubitMapping;
 
 void populateConvertQIRToLLVMPatterns(
     LLVMTypeConverter &typeConverter,
-    RewritePatternSet &patterns);
+    RewritePatternSet &patterns,
+    const QubitMapping &mapping);
 
 } // namespace qir
 
