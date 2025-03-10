@@ -38,17 +38,21 @@ struct mlir::qir::QubitMapping {
 public:
     explicit QubitMapping(Operation* op)
     {
-        int64_t id = 0;
+        int64_t allocOpId = 0;
+        int64_t allocResultOpId = 0;
 
         // Walk through all operations in the module and find AllocOp
-        op->walk([&](AllocOp allocOp) {
-            mapping[allocOp] = id++; // Assign a unique ID to each AllocOp
+        op->walk([&](AllocOp allocOp) { mapping[allocOp] = allocOpId++; });
+
+        // Walk through all operations in the module and find AllocResultOp
+        op->walk([&](AllocResultOp allocResultOp) {
+            resultMapping[allocResultOp] = allocResultOpId++;
         });
 
-        qubitCount = id; // Store total count of allocated qubits
+        qubitCount = allocOpId;
+        resultCount = allocResultOpId;
     }
 
-    // Retrieve the unique integer ID for an AllocOp.
     int64_t getQubitId(AllocOp allocOp) const
     {
         auto it = mapping.find(allocOp);
@@ -56,12 +60,22 @@ public:
         return it->second;
     }
 
-    // Return the total number of qubits.
+    int64_t getResultId(AllocResultOp allocResultOp) const
+    {
+        auto it = resultMapping.find(allocResultOp);
+        assert(
+            it != resultMapping.end() && "AllocResultOp not found in mapping!");
+        return it->second;
+    }
+
     int64_t getQubitCount() const { return qubitCount; }
+    int64_t getResultCount() const { return resultCount; }
 
 private:
-    int64_t qubitCount = 0;                      // Total number of qubits.
-    llvm::DenseMap<Operation*, int64_t> mapping; // Maps AllocOp to unique ID.
+    int64_t qubitCount = 0;
+    int64_t resultCount = 0;
+    llvm::DenseMap<AllocOp, int64_t> mapping;
+    llvm::DenseMap<AllocResultOp, int64_t> resultMapping;
 };
 
 namespace {
@@ -178,6 +192,13 @@ struct ReadMeasurementOpPattern
 struct AllocResultOpPattern : public ConvertOpToLLVMPattern<AllocResultOp> {
     using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
+    AllocResultOpPattern(
+        LLVMTypeConverter &typeConverter,
+        const QubitMapping &mapping)
+            : ConvertOpToLLVMPattern(typeConverter),
+              qubitMapping(mapping)
+    {}
+
     LogicalResult matchAndRewrite(
         AllocResultOp op,
         AllocResultOpAdaptor adaptor,
@@ -186,28 +207,30 @@ struct AllocResultOpPattern : public ConvertOpToLLVMPattern<AllocResultOp> {
         Location loc = op.getLoc();
         MLIRContext* ctx = getContext();
 
-        // Generate a unique integer ID for the qubit
-        static int64_t nextResultId = 0;
-        int64_t resultId = nextResultId++;
+        // Get the unique ID for this AllocResultOp from the analysis result
+        int64_t resultId = qubitMapping.getResultId(op);
 
-        // Create an LLVM constant integer to represent the qubit ID
+        // Create an LLVM constant integer to represent the unique ID.
         Type i64Type = rewriter.getI64Type();
         Value intValue = rewriter.create<LLVM::ConstantOp>(
             loc,
             i64Type,
             rewriter.getI64IntegerAttr(resultId));
 
-        // Create a pointer type
+        // Create a pointer type.
         Type ptrType = LLVM::LLVMPointerType::get(ctx);
 
-        // Create the inttoptr operation
+        // Create the inttoptr operation.
         Value ptrValue =
             rewriter.create<LLVM::IntToPtrOp>(loc, ptrType, intValue);
 
-        // Replace the original op with the inttoptr operation
+        // Replace the original op with the computed pointer.
         rewriter.replaceOp(op, ptrValue);
         return success();
     }
+
+private:
+    const QubitMapping &qubitMapping;
 };
 
 struct HOpPattern : public ConvertOpToLLVMPattern<HOp> {
@@ -582,14 +605,15 @@ void mlir::qir::populateConvertQIRToLLVMPatterns(
     RewritePatternSet &patterns,
     const QubitMapping &qubitMapping)
 {
-    patterns.add<AllocOpPattern>(typeConverter, qubitMapping);
+    patterns.add<AllocOpPattern, AllocResultOpPattern>(
+        typeConverter,
+        qubitMapping);
 
     patterns.add<
         HOpPattern,
         XOpPattern,
         YOpPattern,
         ZOpPattern,
-        AllocResultOpPattern,
         RzOpLowering,
         RxOpLowering,
         CNOTOpPattern,
