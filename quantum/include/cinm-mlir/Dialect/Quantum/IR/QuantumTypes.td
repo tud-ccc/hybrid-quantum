@@ -19,6 +19,7 @@ def Quantum_QubitType : Quantum_Type<"Qubit"> {
   let extraClassDeclaration = [{
     bool isSingleQubit() const;
   }];
+   let genVerifyDecl = 1;
 }
 
 class QubitSizePred<int N> : CPred<"$_self.cast<QubitType>().getSize() == " # N>;
