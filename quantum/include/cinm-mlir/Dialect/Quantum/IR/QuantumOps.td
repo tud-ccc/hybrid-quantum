@@ -18,70 +18,76 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 def Quantum_AllocOp : Memory_Op<"alloc", [MemoryEffects<[MemRead]>]> {
   let summary = "Allocate n qubits into a quantum register.";
   let description = [{
-    Allocates a fixed number of qubits into a quantum register.
+    Allocates a fixed number of N qubits into a single quantum register.
+
+    Example:
+
+    ```mlir
+    %q0 = quantum.alloc : !quantum.qubit<5>
+    ```
   }];
 
   let results = (outs Quantum_QubitType:$result);
-
-  let assemblyFormat = [{
-    attr-dict `:` type($result)
-  }];
 }
 
-def Quantum_DeallocateOp : Memory_Op<"deallocate"> {
+def Quantum_DeallocateOp : Memory_Op<"deallocate", [MemoryEffects<[MemRead,MemWrite]>]> {
     let summary = "Deallocate a quantum register.";
     let description = [{
+    Use this operation on all qubit registers that are not measured.
+    Deallocated qubits no longer can be used.
+
+    Example:
+    
+    ```mlir
+    %q0 = quantum.alloc : !quantum.qubit<5> 
+    %quantum.deallocate (%q0) : !quantum.qubit<5> -> ()
+    ```
     }];
 
-    let arguments = (ins
-        Quantum_QubitType:$qreg
-    );
-
-    let assemblyFormat = [{
-        $qreg attr-dict `:` type(operands)
-    }];
+    let arguments = (ins Quantum_QubitType:$input);
 }
 
-def Quantum_ExtractOp : Quantum_Op<"extract", [Pure]> {
-    let summary = "Extract a range of qubits qubits from a register.";
+def Quantum_SplitOp : Memory_Op<"split", [MemoryEffects<[MemRead,MemWrite]>]> {
+    let summary = "Split a qubit register into two sub-registers.";
     let description = [{
+    Example: 
+
+    ```mlir
+    %q = quantum.alloc : !quantum.qubit<5>
+    %q0, %q1 = quantum.split (%q) : (!quantum.qubit<5>) -> (!quantum.qubit<2>, !quantum.qubit<3>)
+    ```
     }];
 
     let arguments = (ins
-        Quantum_QubitType:$qreg,
-        Variadic<I32>:$idx
+        Quantum_QubitType:$input
     );
-
     let results = (outs
-        Variadic<Quantum_QubitType>:$out
+        Variadic<Quantum_QubitType>:$result
     );
-
-    let assemblyFormat = [{
-        $qreg (`[` $idx^ `]`)? attr-dict `:` type($qreg) `->` type($out)}];
-
     let hasVerifier = 0;
 }
 
-def Quantum_InsertOp : Memory_Op<"insert", [Pure]> {
-    let summary = "Update the qubit value of a register.";
+def Quantum_MergeOp : Memory_Op<"merge", [MemoryEffects<[MemRead,MemWrite]>]> {
+    let summary = "Combine qubit registers into a single one.";
     let description = [{
+
+    Example:
+
+    ```mlir
+    %lhs = "quantum.alloc" () : () -> !quantum.qubit<3>
+    %rhs = "quantum.alloc" () : () -> !quantum.qubit<2>
+    %q = "quantum.merge" (%lhs, %rhs) : (!quantum.qubit<3>, !quantum.qubit<2>) -> (!quantum.qubit<5>)
+    ```
     }];
 
     let arguments = (ins
-        Quantum_QubitType:$qreg,
-        Optional<I32>:$idx,
-        OptionalAttr<ConfinedAttr<I32Attr, [IntNonNegative]>>:$idx_attr,
-        Quantum_QubitType:$qubit
+        Quantum_QubitType:$lhs,
+        Quantum_QubitType:$rhs
     );
 
     let results = (outs
-        Quantum_QubitType:$out
+        Quantum_QubitType:$output
     );
-
-    let assemblyFormat = [{
-        $qreg `[` ($idx^):($idx_attr)? `]` `,` $qubit attr-dict `:` type($qreg) `,` type($qubit) `->` type(results)
-    }];
-
     let hasVerifier = 0;
 }
 
@@ -300,16 +306,48 @@ def Quantum_TDaggerOp : PrimitiveGate_Op<"Tdagger", [Pure, AllTypesMatch<["input
   let assemblyFormat = [{ $input attr-dict  `:` type($input) `->` type($result) }];
 }
 
-def Quantum_MeasureOp : Quantum_Op<"measure", [NoMemoryEffect, AllTypesMatch<["input", "result"]>]> {
+def Quantum_MeasureSingleOp : Quantum_Op<"measure_single", [NoMemoryEffect, AllTypesMatch<["input", "result"]>]> {
     let summary = "Measure a single qubit.";
-    let description = [{    }];
+    let description = [{ 
+      Return the measurement outcome of a single quibit in the basis dimension.
+      The qubit can no longer be used.
 
-    let arguments = (ins Quantum_QubitType:$input);
-    let results = (outs I1:$measurement, Quantum_QubitType:$result);
-    //let assemblyFormat = [{ $qinp attr-dict `:` type($qinp) `->` type($res) `,` type($qoutp)}];
+      Example:
+      
+      ```mlir
+      %q0 = quantum.allocate : !quantum.qubit<1>
+      %m, %qm = quantum.measure_single (%q0) : !quantum.qubit<1> -> (i1, !quantum.qubit<1>)
+      ```
+    }];
+
+    let arguments = (ins Quantum_SingleQubitType:$input);
+    let results = (outs
+      I1:$measurement,
+      Quantum_SingleQubitType:$result
+    );
 }
 
-//def Quantum_ResetOp : Quantum_Op<"measure", [NoMemoryEffect, AllTypesMatch<["input", "result"]>]> {
+def Quantum_MeasureOp : Quantum_Op<"measure", [NoMemoryEffect, AllTypesMatch<["input", "result"]>]> {
+    let summary = "Measure a qubit register of size N.";
+    let description = [{
+      Return the measurement outcome of a qubit register of size N
+      as a 1xN-sized tensor in the basis dimension.
+      The qubit register can no longer be used.
+
+      Example:
+      
+      ```mlir
+      %q0 = quantum.allocate : !quantum.qubit<2>
+      %m, %qm = quantum.measure_single (%q0) : !quantum.qubit<2> -> (tensor<2xi1>, !quantum.qubit<2>)
+      ```    
+    }];
+
+    let arguments = (ins Quantum_QubitType:$input);
+    let results = (outs
+      Quantum_MeasurementType:$measurement,
+      Quantum_QubitType:$result
+    );
+}
 
 // 2-qubit gates
 def Quantum_CYOp : PrimitiveGate_Op<"CY", [Pure]> {

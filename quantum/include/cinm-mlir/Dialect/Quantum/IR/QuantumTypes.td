@@ -14,9 +14,21 @@ include "mlir/IR/BuiltinTypeInterfaces.td"
 def Quantum_QubitType : Quantum_Type<"Qubit"> {
   let mnemonic = "qubit";
   let summary = "Multi-qubit register type";
-  let parameters = (ins "unsigned":$size);
+  let parameters = (ins "int64_t":$size);
   let assemblyFormat = "`<` $size `>`";
+  let extraClassDeclaration = [{
+    bool isSingleQubit() const;
+  }];
 }
+
+class QubitSizePred<int N> : CPred<"$_self.cast<QubitType>().getSize() == " # N>;
+
+class QubitArrayOfSize<int N>
+  : Type<And<[Quantum_QubitType.predicate, QubitSizePred<N>]>,
+         "Quantum " # N # "-Qubit Type">,
+    BuildableType<"QubitType::get($_builder.getContext(), " # N # ")">;
+
+def Quantum_SingleQubitType : QubitArrayOfSize<1>;
 
 def Quantum_MeasurementType : 1DTensorOf<[I1]>;
 

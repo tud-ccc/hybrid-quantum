@@ -84,9 +84,9 @@ struct ConvertAlloc : public QuantumToQIROpConversion<quantum::AllocOp> {
         AllocOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        unsigned size = op.getType().getSize();
+        int64_t size = op.getType().getSize();
         llvm::SmallVector<Value> qubits;
-        for (unsigned i = 0; i < size; i++) {
+        for (int64_t i = 0; i < size; i++) {
             auto qubit = rewriter.create<qir::AllocOp>(
                 op.getLoc(),
                 qir::QubitType::get(getContext()));
