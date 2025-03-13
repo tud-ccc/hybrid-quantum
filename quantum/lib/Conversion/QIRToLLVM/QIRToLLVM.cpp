@@ -495,6 +495,43 @@ struct MeasureOpPattern : public ConvertOpToLLVMPattern<MeasureOp> {
     }
 };
 
+struct SwapOpPattern : public ConvertOpToLLVMPattern<qir::SwapOp> {
+    using ConvertOpToLLVMPattern<qir::SwapOp>::ConvertOpToLLVMPattern;
+
+    LogicalResult matchAndRewrite(
+        qir::SwapOp op,
+        qir::SwapOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        Location loc = op.getLoc();
+        MLIRContext* ctx = getContext();
+
+        // Create the LLVM function type for the swap function: (ptr, ptr) ->
+        // void.
+        Type ptrType = LLVM::LLVMPointerType::get(ctx);
+        Type voidType = LLVM::LLVMVoidType::get(ctx);
+        auto fnType =
+            LLVM::LLVMFunctionType::get(voidType, {ptrType, ptrType}, false);
+        StringRef swapFuncName = "__quantum__qis__swap__body";
+        LLVM::LLVMFuncOp fnDecl =
+            ensureFunctionDeclaration(rewriter, op, swapFuncName, fnType);
+
+        // Retrieve the two input qubits from the adaptor.
+        // Assuming your QIR_SwapOp defines arguments "input1" and "input2".
+        Value input1 = adaptor.getInput1();
+        Value input2 = adaptor.getInput2();
+
+        // Create the call operation to invoke the runtime swap function.
+        rewriter.create<LLVM::CallOp>(
+            loc,
+            TypeRange{},
+            fnDecl.getSymName(),
+            ValueRange{input1, input2});
+        rewriter.eraseOp(op);
+        return success();
+    }
+};
+
 } // namespace
 
 void ConvertQIRToLLVMPass::runOnOperation()
@@ -530,6 +567,7 @@ void mlir::qir::populateConvertQIRToLLVMPatterns(
     patterns.add<
         AllocOpPattern,
         HOpPattern,
+        SwapOpPattern,
         XOpPattern,
         YOpPattern,
         ZOpPattern,

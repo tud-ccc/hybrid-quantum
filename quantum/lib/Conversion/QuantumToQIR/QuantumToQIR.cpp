@@ -6,8 +6,10 @@
 #include "cinm-mlir/Conversion/QuantumToQIR/QuantumToQIR.h"
 
 #include "cinm-mlir/Dialect/QIR/IR/QIR.h"
+#include "cinm-mlir/Dialect/QIR/IR/QIROps.h"
 #include "cinm-mlir/Dialect/QIR/IR/QIRTypes.h"
 #include "cinm-mlir/Dialect/Quantum/IR/Quantum.h"
+#include "cinm-mlir/Dialect/Quantum/IR/QuantumOps.h"
 #include "cinm-mlir/Dialect/Quantum/IR/QuantumTypes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/PatternMatch.h"
@@ -185,6 +187,26 @@ struct ConvertH : public QuantumToQIROpConversion<quantum::HOp> {
     }
 }; // struct ConvertAllocOp
 
+struct ConvertSwap : public QuantumToQIROpConversion<quantum::SWAPOp> {
+    using QuantumToQIROpConversion::QuantumToQIROpConversion;
+
+    LogicalResult matchAndRewrite(
+        SWAPOp op,
+        SWAPOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        // Retrieve the two input qubits from the adaptor.
+        Value qubit1 = adaptor.getQubit1();
+        Value qubit2 = adaptor.getQubit2();
+        auto qirQubit1 = mapping->find(qubit1)[0];
+        auto qirQubit2 = mapping->find(qubit2)[0];
+        mapping->allocate(op.getQubit1Out(), qirQubit1);
+        mapping->allocate(op.getQubit2Out(), qirQubit2);
+        rewriter.create<qir::SwapOp>(op.getLoc(), qirQubit1, qirQubit2);
+        rewriter.eraseOp(op);
+        return success();
+    }
+};
 } // namespace
 
 void ConvertQuantumToQIRPass::runOnOperation()
@@ -235,10 +257,11 @@ void mlir::quantum::populateConvertQuantumToQIRPatterns(
     QuantumToQirQubitTypeMapping &mapping,
     RewritePatternSet &patterns)
 {
-    patterns.add<ConvertAlloc, ConvertMeasure, ConvertH, ConvertFunc>(
-        &typeConverter,
-        patterns.getContext(),
-        &mapping);
+    patterns
+        .add<ConvertAlloc, ConvertMeasure, ConvertH, ConvertFunc, ConvertSwap>(
+            &typeConverter,
+            patterns.getContext(),
+            &mapping);
 }
 
 std::unique_ptr<Pass> mlir::createConvertQuantumToQIRPass()
