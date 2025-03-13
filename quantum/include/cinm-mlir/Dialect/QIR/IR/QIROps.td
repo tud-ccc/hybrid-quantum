@@ -110,7 +110,10 @@ def QIR_MeasureOp : QIR_Op<"measure", [MemoryEffects<[MemRead, MemWrite]>]> {
     let summary = "Measure a single qubit.";
     let description = [{ }];
 
-    let arguments = (ins QIR_QubitType:$input, QIR_ResultType:$result);
+    let arguments = (ins
+      QIR_QubitType:$input,
+      QIR_ResultType:$result
+    );
 }
 
 def QIR_ReadMeasurementOp : QIR_Op<"read_measurement", [MemoryEffects<[MemRead]>]> {
