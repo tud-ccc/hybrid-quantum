@@ -27,6 +27,10 @@ def MultiQubitLegalization : Pass<"quantum-multi-qubit-legalize", "ModuleOp"> {
   }];
 
   let constructor = "mlir::quantum::createMultiQubitLegalizationPass()";
+
+  let dependentDialects = [
+    "tensor::TensorDialect"
+  ];
 }
 
 #endif // QUANTUM_PASSES

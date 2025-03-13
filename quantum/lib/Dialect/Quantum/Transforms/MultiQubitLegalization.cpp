@@ -5,6 +5,7 @@
 
 #include "cinm-mlir/Dialect/Quantum/IR/Quantum.h"
 #include "cinm-mlir/Dialect/Quantum/IR/QuantumOps.h"
+#include "cinm-mlir/Dialect/Quantum/IR/QuantumTypes.h"
 #include "cinm-mlir/Dialect/Quantum/Transforms/Passes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/PatternMatch.h"
@@ -12,19 +13,18 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/OneToNTypeConversion.h"
 
-#include <complex>
-#include <iostream>
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/ADT/SmallVectorExtras.h>
 #include <llvm/Support/Casting.h>
 #include <mlir/Dialect/Func/Transforms/OneToNFuncConversions.h>
+#include <mlir/Dialect/Tensor/IR/Tensor.h>
+#include <mlir/IR/BuiltinTypes.h>
 #include <mlir/IR/ValueRange.h>
 #include <mlir/Support/LogicalResult.h>
 #include <mlir/Transforms/DialectConversion.h>
 #include <optional>
-#include <ostream>
 
 using namespace mlir;
 using namespace mlir::quantum;
@@ -172,6 +172,53 @@ struct TransformMergeOp : public OneToNOpConversionPattern<MergeOp> {
     }
 };
 
+struct TransformMeasureOp : public OneToNOpConversionPattern<MeasureOp> {
+    using OneToNOpConversionPattern::OneToNOpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        MeasureOp op,
+        OpAdaptor adaptor,
+        OneToNPatternRewriter &rewriter) const override
+    {
+        const int64_t size = op.getInput().getType().getSize();
+        if (size == 1)
+            return rewriter.notifyMatchFailure(
+                op,
+                "Only multi-qubit allocations are transformed");
+
+        auto loc = op.getLoc();
+        auto i1Type = rewriter.getI1Type();
+        auto genTensorType = mlir::RankedTensorType::get({1}, i1Type);
+
+        llvm::SmallVector<Value> qubitResults;
+        llvm::SmallVector<Value> measureResults;
+
+        for (int64_t i = 0; i < size; ++i) {
+            auto inQubit = adaptor.getOperands().front()[i];
+            auto measure = rewriter.create<MeasureOp>(
+                loc,
+                genTensorType,
+                QubitType::get(getContext(), 1),
+                inQubit);
+
+            measureResults.push_back(measure->getResult(0));
+            qubitResults.push_back(measure->getResult(1));
+        }
+        auto concatenatedTensor =
+            rewriter.create<tensor::ConcatOp>(loc, 0, measureResults);
+
+        SmallVector<Value> replacementValues;
+        replacementValues.insert(
+            replacementValues.begin(),
+            concatenatedTensor.getResult());
+        replacementValues.append(qubitResults.begin(), qubitResults.end());
+
+        rewriter.replaceOp(op, replacementValues, adaptor.getResultMapping());
+
+        return success();
+    }
+};
+
 } // namespace
 
 void MultiQubitLegalizationPass::runOnOperation()
@@ -190,6 +237,17 @@ void MultiQubitLegalizationPass::runOnOperation()
             types = SmallVector<Type>(
                 type.getSize(),
                 QubitType::get(type.getContext(), 1));
+            return success();
+        });
+    converter.addConversion(
+        [](RankedTensorType type,
+           llvm::SmallVectorImpl<Type> &types) -> std::optional<LogicalResult> {
+            // A qubit<1> does not need conversion
+            if (type.getRank() == 1) return std::nullopt;
+            // Convert a tensor<Nx_> to N x tensor<1x_>
+            types = SmallVector<Type>(
+                type.getRank(),
+                mlir::RankedTensorType::get({1}, type.getElementType()));
             return success();
         });
 
@@ -212,7 +270,8 @@ void mlir::quantum::populateMultiQubitLegalizationPatterns(
         TransformDeallocate,
         TransformHOp,
         TransformSplitOp,
-        TransformMergeOp>(converter, patterns.getContext());
+        TransformMergeOp,
+        TransformMeasureOp>(converter, patterns.getContext());
 }
 
 std::unique_ptr<Pass> mlir::quantum::createMultiQubitLegalizationPass()

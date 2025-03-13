@@ -1,4 +1,4 @@
-// RUN: quantum-opt %s --debug --quantum-multi-qubit-legalize | FileCheck %s
+// RUN: quantum-opt %s --debug --debug-only=greedy-rewriter,dialect-conversion --quantum-multi-qubit-legalize | FileCheck %s
 // --debug-only=dialect-conversion
 
 module {
@@ -82,6 +82,22 @@ module {
         // CHECK-DAG: "quantum.deallocate"(%[[Q2]]) : (!quantum.qubit<1>) -> ()
         "quantum.deallocate" (%q3) : (!quantum.qubit<2>) -> ()
         return
+    }
+
+    // CHECK-LABEL: func.func @two_qubit_measurement(
+    func.func @two_qubit_measurement() -> (tensor<2xi1>) {
+        // CHECK-DAG: %[[Q1:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
+        // CHECK-DAG: %[[Q2:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
+        %q = "quantum.alloc" () : () -> (!quantum.qubit<2>)
+        // CHECK-DAG: %[[M1:.+]], %[[Q3:.+]] = "quantum.measure"(%[[Q1]]) : (!quantum.qubit<1>) -> (tensor<1xi1>, !quantum.qubit<1>)
+        // CHECK-DAG: %[[M2:.+]], %[[Q4:.+]] = "quantum.measure"(%[[Q2]]) : (!quantum.qubit<1>) -> (tensor<1xi1>, !quantum.qubit<1>)
+        // CHECK-DAG: %[[M:.+]] = tensor.concat dim(0) %[[M1]], %[[M2]] : (tensor<1xi1>, tensor<1xi1>) -> tensor<2xi1> 
+        %m, %qm = "quantum.measure" (%q) : (!quantum.qubit<2>) -> (tensor<2xi1>, !quantum.qubit<2>)
+        // CHECK-DAG: "quantum.deallocate"(%[[Q3]]) : (!quantum.qubit<1>) -> ()
+        // CHECK-DAG: "quantum.deallocate"(%[[Q4]]) : (!quantum.qubit<1>) -> ()
+        "quantum.deallocate" (%qm) : (!quantum.qubit<2>) -> ()
+        // CHECK-DAG: return %[[M]]
+        return %m : tensor<2xi1>
     }
 
 }
