@@ -18,4 +18,15 @@ def QuantumOptimise : Pass<"quantum-optimise", "ModuleOp"> {
   let constructor = "mlir::quantum::createQuantumOptimisePass()";
 }
 
+def MultiQubitLegalization : Pass<"quantum-multi-qubit-legalize", "ModuleOp"> {
+  let summary = "Legalize multi-qubit registers in the `quantum` dialect";
+
+  let description = [{
+  This pass legalizes multi-qubit quantum registers in the quantum dialect
+  such that they can be amenable to further lowerings.
+  }];
+
+  let constructor = "mlir::quantum::createMultiQubitLegalizationPass()";
+}
+
 #endif // QUANTUM_PASSES

@@ -16,7 +16,8 @@ def ConvertQuantumToQIR : Pass<"convert-quantum-to-qir"> {
 
     let dependentDialects = [
         "quantum::QuantumDialect",
-        "qir::QIRDialect"
+        "qir::QIRDialect",
+        "tensor::TensorDialect"
     ];
 }
 

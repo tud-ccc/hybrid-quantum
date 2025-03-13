@@ -8,6 +8,9 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
 
+#include <memory>
+#include <mlir/Transforms/OneToNTypeConversion.h>
+
 namespace mlir {
 
 //===- Generated includes -------------------------------------------------===//
@@ -22,8 +25,17 @@ namespace quantum {
 /// Adds the quantum optimise pass patterns to @p patterns .
 void populateQuantumOptimisePatterns(RewritePatternSet &patterns);
 
+/// Adds the legalization pass patterns to @p patterns .
+void populateMultiQubitLegalizationPatterns(
+    OneToNTypeConverter converter,
+    RewritePatternSet &patterns);
+
 /// Constructs the lower-funnel-shift pass.
 std::unique_ptr<Pass> createQuantumOptimisePass();
+
+/// Pass that legalizes multi-qubit quantum programs
+/// such that they can be lowered to QIR
+std::unique_ptr<Pass> createMultiQubitLegalizationPass();
 
 //===----------------------------------------------------------------------===//
 // Registration
