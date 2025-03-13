@@ -21,7 +21,7 @@ namespace mlir {
 
 namespace qir {
 struct QubitMapping;
-
+struct Analysis;
 void populateConvertQIRToLLVMPatterns(
     LLVMTypeConverter &typeConverter,
     RewritePatternSet &patterns,

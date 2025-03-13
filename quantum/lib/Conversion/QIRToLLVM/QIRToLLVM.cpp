@@ -78,6 +78,18 @@ private:
     llvm::DenseMap<AllocResultOp, int64_t> resultMapping;
 };
 
+struct mlir::qir::Analysis {
+    QubitMapping mapping;
+    explicit Analysis(Operation* op) : mapping(op) {}
+
+    // ensure that the counts are non-zero if there are any allocations
+    bool verify() const
+    {
+        return (mapping.getQubitCount() >= 0)
+               && (mapping.getResultCount() >= 0);
+    }
+};
+
 namespace {
 struct ConvertQIRToLLVMPass
         : mlir::impl::ConvertQIRToLLVMBase<ConvertQIRToLLVMPass> {
@@ -526,19 +538,6 @@ struct MeasureOpPattern : public ConvertOpToLLVMPattern<MeasureOp> {
             qirResetName,
             resetFuncType);
 
-        // Declare the __quantum__rt__result_record_output function: (ptr, i8*)
-        // -> void.
-        StringRef qirRecordName = "__quantum__rt__result_record_output";
-        // We use the same opaque pointer type for i8*.
-        Type i8PtrType = LLVM::LLVMPointerType::get(ctx);
-        Type recordFuncType =
-            LLVM::LLVMFunctionType::get(voidType, {ptrType, i8PtrType}, false);
-        LLVM::LLVMFuncOp recordFnDecl = ensureFunctionDeclaration(
-            rewriter,
-            op,
-            qirRecordName,
-            recordFuncType);
-
         // Now, use the allocated qubit pointer (i.e. the operand) in all calls.
         rewriter.create<LLVM::CallOp>(
             loc,
@@ -550,11 +549,6 @@ struct MeasureOpPattern : public ConvertOpToLLVMPattern<MeasureOp> {
             TypeRange{},
             resetFnDecl.getSymName(),
             ValueRange{qubit});
-        rewriter.create<LLVM::CallOp>(
-            loc,
-            TypeRange{},
-            recordFnDecl.getSymName(),
-            ValueRange{resultPtr, resultPtr});
 
         // Erase the original measure op.
         rewriter.eraseOp(op);
@@ -575,9 +569,14 @@ void ConvertQIRToLLVMPass::runOnOperation()
         return LLVM::LLVMPointerType::get(type.getContext());
     });
 
-    // Run the QubitMapping analysis to compute the mapping.
-    QubitMapping qubitMapping(getOperation());
-
+    // Retrieve the analysis and test the mapping and verify method.
+    auto &analysis = getAnalysis<Analysis>();
+    if (!analysis.verify()) {
+        llvm::errs() << "QubitMapping analysis verification failed!\n";
+        signalPassFailure();
+        return;
+    }
+    auto &qubitMapping = analysis.mapping;
     ConversionTarget target(getContext());
     RewritePatternSet patterns(&getContext());
 
