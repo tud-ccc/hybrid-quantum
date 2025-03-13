@@ -14,9 +14,13 @@
 
 #include <complex>
 #include <iostream>
+#include <llvm/ADT/ArrayRef.h>
+#include <llvm/ADT/STLExtras.h>
 #include <llvm/ADT/SmallVector.h>
+#include <llvm/ADT/SmallVectorExtras.h>
 #include <llvm/Support/Casting.h>
 #include <mlir/Dialect/Func/Transforms/OneToNFuncConversions.h>
+#include <mlir/IR/ValueRange.h>
 #include <mlir/Support/LogicalResult.h>
 #include <mlir/Transforms/DialectConversion.h>
 #include <optional>
@@ -97,6 +101,77 @@ struct TransformDeallocate : public OneToNOpConversionPattern<DeallocateOp> {
     }
 };
 
+struct TransformHOp : public OneToNOpConversionPattern<HOp> {
+    using OneToNOpConversionPattern::OneToNOpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        HOp op,
+        OpAdaptor adaptor,
+        OneToNPatternRewriter &rewriter) const override
+    {
+        const int64_t size = op.getInput().getType().getSize();
+        if (size == 1)
+            return rewriter.notifyMatchFailure(
+                op,
+                "Only multi-qubit allocations are transformed");
+
+        auto loc = op.getLoc();
+        llvm::SmallVector<Value> qubits;
+        for (int64_t i = 0; i < size; ++i) {
+            auto inQubit = adaptor.getOperands().front()[i];
+            auto genQubit = rewriter.create<HOp>(
+                loc,
+                QubitType::get(getContext(), 1),
+                inQubit);
+            qubits.push_back(genQubit.getResult());
+        }
+        rewriter.replaceOp(op, qubits, adaptor.getResultMapping());
+        return success();
+    }
+};
+
+struct TransformSplitOp : public OneToNOpConversionPattern<SplitOp> {
+    using OneToNOpConversionPattern::OneToNOpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        SplitOp op,
+        OpAdaptor adaptor,
+        OneToNPatternRewriter &rewriter) const override
+    {
+        // auto loc = op.getLoc();
+        //  llvm::SmallVector<Type> resultType{QubitType::get(getContext(), 1)};
+        //  llvm::SmallVector<Value> qubits;
+        //  for (int64_t i = 0; i < size; ++i) {
+        //      auto inQubit = adaptor.getOperands().front()[i];
+        //      auto genQubit = rewriter.create<SplitOp>(loc, resultType,
+        //      inQubit); auto results = genQubit.getResults();
+        //      qubits.append(results.begin(), results.end());
+        //  }
+        //  rewriter.replaceOp(op, qubits, adaptor.getResultMapping());
+        auto qubits = adaptor.getOperands().front();
+        rewriter.replaceOp(op, qubits, adaptor.getResultMapping());
+        return success();
+    }
+};
+
+struct TransformMergeOp : public OneToNOpConversionPattern<MergeOp> {
+    using OneToNOpConversionPattern::OneToNOpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        MergeOp op,
+        OpAdaptor adaptor,
+        OneToNPatternRewriter &rewriter) const override
+    {
+        auto lhs = adaptor.getOperands()[0];
+        auto rhs = adaptor.getOperands()[1];
+        SmallVector<Value> vals;
+        vals.append(lhs.begin(), lhs.end());
+        vals.append(rhs.begin(), rhs.end());
+        rewriter.replaceOp(op, vals, adaptor.getResultMapping());
+        return success();
+    }
+};
+
 } // namespace
 
 void MultiQubitLegalizationPass::runOnOperation()
@@ -132,9 +207,12 @@ void mlir::quantum::populateMultiQubitLegalizationPatterns(
     OneToNTypeConverter converter,
     RewritePatternSet &patterns)
 {
-    patterns.add<TransformMultiQubitAllocation, TransformDeallocate>(
-        converter,
-        patterns.getContext());
+    patterns.add<
+        TransformMultiQubitAllocation,
+        TransformDeallocate,
+        TransformHOp,
+        TransformSplitOp,
+        TransformMergeOp>(converter, patterns.getContext());
 }
 
 std::unique_ptr<Pass> mlir::quantum::createMultiQubitLegalizationPass()

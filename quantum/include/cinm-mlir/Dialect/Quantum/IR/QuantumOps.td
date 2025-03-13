@@ -86,7 +86,7 @@ def Quantum_MergeOp : Memory_Op<"merge", [MemoryEffects<[MemRead,MemWrite]>]> {
     );
 
     let results = (outs
-        Quantum_QubitType:$output
+        Quantum_QubitType:$result
     );
     let hasVerifier = 0;
 }
@@ -116,10 +116,6 @@ s
 
   let arguments = (ins Quantum_QubitType:$input);
   let results = (outs Quantum_QubitType:$result);
-
-  let assemblyFormat = [{
-    $input attr-dict `:` type($input)
-  }];
 }
 
 
@@ -231,10 +227,6 @@ def Quantum_ZOp : PrimitiveGate_Op<"Z", [Pure, AllTypesMatch<["input", "result"]
 
   let arguments = (ins Quantum_QubitType:$input);
   let results = (outs Quantum_QubitType:$result);
-
-  let assemblyFormat = [{
-    $input attr-dict `:` type($input)
-  }];
 }
 
 //Custom R operation for x, y, z attributes
