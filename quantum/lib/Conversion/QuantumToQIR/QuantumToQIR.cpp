@@ -15,14 +15,12 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "mlir/Transforms/OneToNTypeConversion.h"
 
 #include <cstdint>
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/Support/Casting.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
-#include <mlir/Dialect/Index/IR/IndexOps.h>
 #include <mlir/Dialect/Tensor/IR/Tensor.h>
 #include <mlir/IR/BuiltinTypes.h>
 #include <mlir/IR/Types.h>
@@ -44,22 +42,6 @@ namespace mlir {
 
 //===----------------------------------------------------------------------===//
 
-struct mlir::quantum::QuantumToQirQubitTypeMapping {
-public:
-    QuantumToQirQubitTypeMapping() : map() {}
-
-    // Map a `quantum.Qubit` to (possible many) `qir.qubit`
-    void allocate(Value quantumQubit, ValueRange qirQubits)
-    {
-        for (auto qirQubit : qirQubits) map[quantumQubit].push_back(qirQubit);
-    }
-
-    llvm::ArrayRef<Value> find(Value quantum) { return map[quantum]; }
-
-private:
-    llvm::DenseMap<Value, llvm::SmallVector<Value>> map;
-};
-
 namespace {
 
 struct ConvertQuantumToQIRPass
@@ -69,23 +51,8 @@ struct ConvertQuantumToQIRPass
     void runOnOperation() override;
 };
 
-template<typename Op>
-struct QuantumToQIROpConversion : OpConversionPattern<Op> {
-    explicit QuantumToQIROpConversion(
-        TypeConverter* typeConverter,
-        MLIRContext* context,
-        QuantumToQirQubitTypeMapping* mapping)
-            : OpConversionPattern<Op>(context, /* benefit */ 1),
-              mapping(mapping),
-              typeConverter(typeConverter)
-    {}
-
-    QuantumToQirQubitTypeMapping* mapping;
-    TypeConverter* typeConverter;
-};
-
-struct ConvertAlloc : public QuantumToQIROpConversion<quantum::AllocOp> {
-    using QuantumToQIROpConversion::QuantumToQIROpConversion;
+struct ConvertAlloc : public OpConversionPattern<quantum::AllocOp> {
+    using OpConversionPattern::OpConversionPattern;
 
     LogicalResult matchAndRewrite(
         AllocOp op,
@@ -106,8 +73,8 @@ struct ConvertAlloc : public QuantumToQIROpConversion<quantum::AllocOp> {
     }
 }; // struct ConvertAllocOp
 
-struct ConvertMeasure : public QuantumToQIROpConversion<quantum::MeasureOp> {
-    using QuantumToQIROpConversion::QuantumToQIROpConversion;
+struct ConvertMeasure : public OpConversionPattern<quantum::MeasureOp> {
+    using OpConversionPattern::OpConversionPattern;
 
     LogicalResult matchAndRewrite(
         MeasureOp op,
@@ -142,8 +109,8 @@ struct ConvertMeasure : public QuantumToQIROpConversion<quantum::MeasureOp> {
     }
 }; // struct ConvertMeasure
 
-struct ConvertDealloc : public QuantumToQIROpConversion<quantum::DeallocateOp> {
-    using QuantumToQIROpConversion::QuantumToQIROpConversion;
+struct ConvertDealloc : public OpConversionPattern<quantum::DeallocateOp> {
+    using OpConversionPattern::OpConversionPattern;
 
     LogicalResult matchAndRewrite(
         DeallocateOp op,
@@ -155,8 +122,8 @@ struct ConvertDealloc : public QuantumToQIROpConversion<quantum::DeallocateOp> {
     }
 }; // struct ConvertDealloc
 
-struct ConvertFunc : public QuantumToQIROpConversion<func::FuncOp> {
-    using QuantumToQIROpConversion::QuantumToQIROpConversion;
+struct ConvertFunc : public OpConversionPattern<func::FuncOp> {
+    using OpConversionPattern::OpConversionPattern;
 
     LogicalResult matchAndRewrite(
         func::FuncOp op,
@@ -183,8 +150,8 @@ struct ConvertFunc : public QuantumToQIROpConversion<func::FuncOp> {
     }
 }; // struct ConvertFunc
 
-struct ConvertH : public QuantumToQIROpConversion<quantum::HOp> {
-    using QuantumToQIROpConversion::QuantumToQIROpConversion;
+struct ConvertH : public OpConversionPattern<quantum::HOp> {
+    using OpConversionPattern::OpConversionPattern;
 
     LogicalResult matchAndRewrite(
         HOp op,
@@ -201,7 +168,7 @@ struct ConvertH : public QuantumToQIROpConversion<quantum::HOp> {
 
 void ConvertQuantumToQIRPass::runOnOperation()
 {
-    OneToNTypeConverter typeConverter;
+    TypeConverter typeConverter;
     auto context = &getContext();
     ConversionTarget target(*context);
     RewritePatternSet patterns(context);
@@ -222,12 +189,7 @@ void ConvertQuantumToQIRPass::runOnOperation()
         return FunctionType::get(fty.getContext(), argTypes, resTypes);
     });
 
-    QuantumToQirQubitTypeMapping mapping;
-
-    quantum::populateConvertQuantumToQIRPatterns(
-        typeConverter,
-        mapping,
-        patterns);
+    quantum::populateConvertQuantumToQIRPatterns(typeConverter, patterns);
 
     target.addIllegalDialect<quantum::QuantumDialect>();
     target.markUnknownOpDynamicallyLegal([](Operation* op) { return true; });
@@ -246,7 +208,6 @@ void ConvertQuantumToQIRPass::runOnOperation()
 
 void mlir::quantum::populateConvertQuantumToQIRPatterns(
     TypeConverter &typeConverter,
-    QuantumToQirQubitTypeMapping &mapping,
     RewritePatternSet &patterns)
 {
     patterns.add<
@@ -254,7 +215,7 @@ void mlir::quantum::populateConvertQuantumToQIRPatterns(
         ConvertMeasure,
         ConvertH,
         ConvertFunc,
-        ConvertDealloc>(&typeConverter, patterns.getContext(), &mapping);
+        ConvertDealloc>(typeConverter, patterns.getContext(), /* benefit*/ 1);
 }
 
 std::unique_ptr<Pass> mlir::createConvertQuantumToQIRPass()
