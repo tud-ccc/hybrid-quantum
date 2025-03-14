@@ -105,12 +105,15 @@ def QIR_RzOp : Gate_Op<"Rz"> {
 }
 
 // Swap: a two-qubit gate that exchanges the states of its inputs.
-def QIR_SwapOp : Gate_Op<"Swap"> {
+def QIR_SwapOp : Gate_Op<"swap"> {
   let summary = "Swap gate operation";
   let description = [{
-    The Swap gate exchanges the quantum states of two qubits.
+    The swap gate exchanges the quantum states of two qubits.
   }];
-  let arguments = (ins QIR_QubitType:$input1, QIR_QubitType:$input2);
+  let arguments = (ins
+    QIR_QubitType:$lhs,
+    QIR_QubitType:$rhs
+  );
 }
 
 def QIR_MeasureOp : QIR_Op<"measure", [MemoryEffects<[MemRead, MemWrite]>]> {
