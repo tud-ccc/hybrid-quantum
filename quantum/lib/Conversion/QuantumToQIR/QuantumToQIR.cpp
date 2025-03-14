@@ -6,6 +6,7 @@
 #include "cinm-mlir/Conversion/QuantumToQIR/QuantumToQIR.h"
 
 #include "cinm-mlir/Dialect/QIR/IR/QIR.h"
+#include "cinm-mlir/Dialect/QIR/IR/QIROps.h"
 #include "cinm-mlir/Dialect/QIR/IR/QIRTypes.h"
 #include "cinm-mlir/Dialect/Quantum/IR/Quantum.h"
 #include "cinm-mlir/Dialect/Quantum/IR/QuantumOps.h"
@@ -26,6 +27,7 @@
 #include <mlir/IR/BuiltinTypes.h>
 #include <mlir/IR/Types.h>
 #include <mlir/IR/Value.h>
+#include <mlir/IR/ValueRange.h>
 #include <mlir/Support/LogicalResult.h>
 
 using namespace mlir;
@@ -90,16 +92,16 @@ struct ConvertAlloc : public QuantumToQIROpConversion<quantum::AllocOp> {
         AllocOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        int64_t size = op.getType().getSize();
-        llvm::SmallVector<Value> qubits;
-        for (int64_t i = 0; i < size; i++) {
-            auto qubit = rewriter.create<qir::AllocOp>(
-                op.getLoc(),
-                qir::QubitType::get(getContext()));
-            qubits.push_back(qubit.getResult());
-        }
-        mapping->allocate(op.getResult(), qubits);
-        rewriter.eraseOp(op);
+        auto opType = op.getResult().getType();
+        if (!opType.isSingleQubit())
+            return rewriter.notifyMatchFailure(
+                op,
+                "Please run --quantum-multi-qubit-legalize to transform "
+                "multi-qubit into single-qubits.");
+
+        rewriter.replaceOpWithNewOp<qir::AllocOp>(
+            op,
+            qir::QubitType::get(getContext()));
         return success();
     }
 }; // struct ConvertAllocOp
@@ -112,62 +114,46 @@ struct ConvertMeasure : public QuantumToQIROpConversion<quantum::MeasureOp> {
         MeasureOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        auto inArg = op.getInput();
-        auto dim = inArg.getType().getSize();
-        auto inResult = op.getResult();
-        auto inMeasurement = op.getMeasurement();
         auto loc = op.getLoc();
 
-        // Create ralloc, measurement, read_measurement
-        // for each qubit in the qubit register
-        auto mapped = mapping->find(inArg);
-        // Map resulting qubit to qubit memory reference
-        mapping->allocate(inResult, mapped);
-        auto tensorType =
-            mlir::RankedTensorType::get({dim}, rewriter.getI1Type());
-        ArrayRef<int64_t> shape = {dim};
-        auto resultTensor =
-            rewriter
-                .create<mlir::tensor::EmptyOp>(loc, shape, rewriter.getI1Type())
-                .getResult();
-        int idx = 0;
-        for (auto &genInput : mapped) {
-            // Create new result type holding measurement value
-            auto genResultDef = rewriter
-                                    .create<qir::AllocResultOp>(
-                                        loc,
-                                        qir::ResultType::get(op.getContext()))
-                                    .getResult();
-            auto in =
-                llvm::dyn_cast<::mlir::TypedValue<::mlir::qir::QubitType>>(
-                    genInput);
-            rewriter.create<qir::MeasureOp>(loc, in, genResultDef);
+        // Create new result type holding measurement value
+        auto resultAlloc = rewriter.create<qir::AllocResultOp>(
+            loc,
+            qir::ResultType::get(op.getContext()));
 
-            auto genMeasurement = rewriter
-                                      .create<qir::ReadMeasurementOp>(
-                                          loc,
-                                          rewriter.getI1Type(),
-                                          genResultDef)
-                                      .getResult();
+        // Create new measure op with memory semantics; read from qubit
+        // reference, store to result reference
+        rewriter.create<qir::MeasureOp>(loc, adaptor.getInput(), resultAlloc);
 
-            auto genIndex =
-                rewriter.create<mlir::index::ConstantOp>(loc, idx).getResult();
+        auto i1Type = rewriter.getI1Type();
+        auto tensorType = mlir::RankedTensorType::get({1}, i1Type);
 
-            rewriter.create<mlir::tensor::InsertOp>(
-                loc,
-                tensorType,
-                genMeasurement,
-                resultTensor,
-                genIndex);
+        // Read measurement in computational basis from result reference
+        auto readMeasurement = rewriter.create<qir::ReadMeasurementOp>(
+            loc,
+            tensorType,
+            resultAlloc.getResult());
 
-            // Replace direct uses of the measurement value with QIR
-            // values rewriter.replaceAllUsesWith(inResult, genInput);
-            // rewriter.replaceAllUsesWith(inMeasurement, genResult);
-            rewriter.replaceOp(op, {resultTensor, genInput});
-        }
+        ValueRange replacements = {
+            readMeasurement.getResult(),
+            adaptor.getInput()};
+        rewriter.replaceOp(op, replacements);
         return success();
     }
 }; // struct ConvertMeasure
+
+struct ConvertDealloc : public QuantumToQIROpConversion<quantum::DeallocateOp> {
+    using QuantumToQIROpConversion::QuantumToQIROpConversion;
+
+    LogicalResult matchAndRewrite(
+        DeallocateOp op,
+        DeallocateOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        rewriter.replaceOpWithNewOp<qir::ResetOp>(op, adaptor.getInput());
+        return success();
+    }
+}; // struct ConvertDealloc
 
 struct ConvertFunc : public QuantumToQIROpConversion<func::FuncOp> {
     using QuantumToQIROpConversion::QuantumToQIROpConversion;
@@ -205,12 +191,8 @@ struct ConvertH : public QuantumToQIROpConversion<quantum::HOp> {
         HOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        auto qirQubit = mapping->find(op.getInput())[0];
-        mapping->allocate(op.getResult(), qirQubit);
-
-        rewriter.create<qir::HOp>(op.getLoc(), qirQubit);
-        rewriter.eraseOp(op);
-
+        rewriter.create<qir::HOp>(op.getLoc(), adaptor.getInput());
+        rewriter.replaceOp(op, adaptor.getInput());
         return success();
     }
 }; // struct ConvertAllocOp
@@ -250,6 +232,7 @@ void ConvertQuantumToQIRPass::runOnOperation()
     target.addIllegalDialect<quantum::QuantumDialect>();
     target.markUnknownOpDynamicallyLegal([](Operation* op) { return true; });
     target.addLegalDialect<qir::QIRDialect>();
+    target.addLegalDialect<tensor::TensorDialect>();
     target.addDynamicallyLegalOp<func::FuncOp>([&](func::FuncOp op) {
         return typeConverter.isLegal(op.getFunctionType());
     });
@@ -266,10 +249,12 @@ void mlir::quantum::populateConvertQuantumToQIRPatterns(
     QuantumToQirQubitTypeMapping &mapping,
     RewritePatternSet &patterns)
 {
-    patterns.add<ConvertAlloc, ConvertMeasure, ConvertH, ConvertFunc>(
-        &typeConverter,
-        patterns.getContext(),
-        &mapping);
+    patterns.add<
+        ConvertAlloc,
+        ConvertMeasure,
+        ConvertH,
+        ConvertFunc,
+        ConvertDealloc>(&typeConverter, patterns.getContext(), &mapping);
 }
 
 std::unique_ptr<Pass> mlir::createConvertQuantumToQIRPass()

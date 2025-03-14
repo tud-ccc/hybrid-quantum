@@ -21,4 +21,6 @@ def QIR_ResultType : QIR_Type<"Result"> {
     let summary = "A quantum measurement result.";
 }
 
+def QIR_MeasurementType : 1DTensorOf<[I1]>;
+
 #endif
