@@ -503,7 +503,6 @@ struct SwapOpPattern : public ConvertOpToLLVMPattern<qir::SwapOp> {
         qir::SwapOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        Location loc = op.getLoc();
         MLIRContext* ctx = getContext();
 
         // Create the LLVM function type for the swap function: (ptr, ptr) ->
@@ -518,16 +517,15 @@ struct SwapOpPattern : public ConvertOpToLLVMPattern<qir::SwapOp> {
 
         // Retrieve the two input qubits from the adaptor.
         // Assuming your QIR_SwapOp defines arguments "input1" and "input2".
-        Value input1 = adaptor.getInput1();
-        Value input2 = adaptor.getInput2();
+        Value input1 = adaptor.getLhs();
+        Value input2 = adaptor.getRhs();
 
         // Create the call operation to invoke the runtime swap function.
-        rewriter.create<LLVM::CallOp>(
-            loc,
+        rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+            op,
             TypeRange{},
             fnDecl.getSymName(),
             ValueRange{input1, input2});
-        rewriter.eraseOp(op);
         return success();
     }
 };

@@ -196,14 +196,14 @@ struct ConvertSwap : public QuantumToQIROpConversion<quantum::SWAPOp> {
         ConversionPatternRewriter &rewriter) const override
     {
         // Retrieve the two input qubits from the adaptor.
-        Value qubit1 = adaptor.getQubit1();
-        Value qubit2 = adaptor.getQubit2();
+        Value qubit1 = adaptor.getLhs();
+        Value qubit2 = adaptor.getRhs();
         auto qirQubit1 = mapping->find(qubit1)[0];
         auto qirQubit2 = mapping->find(qubit2)[0];
-        mapping->allocate(op.getQubit1Out(), qirQubit1);
-        mapping->allocate(op.getQubit2Out(), qirQubit2);
+        mapping->allocate(op.getResult1(), qirQubit1);
+        mapping->allocate(op.getResult2(), qirQubit2);
         rewriter.create<qir::SwapOp>(op.getLoc(), qirQubit1, qirQubit2);
-        rewriter.eraseOp(op);
+        rewriter.replaceOp(op, {qubit1, qubit2});
         return success();
     }
 };

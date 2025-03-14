@@ -10,7 +10,7 @@ module {
     %const2 = arith.constant 0.735 : f64
     "qir.H" (%q0) : (!qir.qubit) -> ()
     "qir.Rz" (%q0, %const1) : (!qir.qubit, f64) -> ()
-    "qir.Swap"(%q0, %q1) : (!qir.qubit, !qir.qubit) -> ()
+    "qir.swap"(%q0, %q1) : (!qir.qubit, !qir.qubit) -> ()
     "qir.measure" (%q0, %r0) : (!qir.qubit, !qir.result) -> ()
     return
   }
