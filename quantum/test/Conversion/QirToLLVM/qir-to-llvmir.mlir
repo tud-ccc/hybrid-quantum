@@ -13,7 +13,6 @@
     return
   }
 
-// CHECK: llvm.func @__quantum__rt__result_record_output(!llvm.ptr, !llvm.ptr)
 // CHECK: llvm.func @__quantum__qis__reset__body(!llvm.ptr)
 // CHECK: llvm.func @__quantum__qis__mz__body(!llvm.ptr, !llvm.ptr)
 // CHECK: llvm.func @__quantum__qis__rz__body(f64, !llvm.ptr)
@@ -32,6 +31,5 @@
 // CHECK:   llvm.call @__quantum__qis__rz__body(%7, %1) : (f64, !llvm.ptr) -> ()
 // CHECK:   llvm.call @__quantum__qis__mz__body(%1, %5) : (!llvm.ptr, !llvm.ptr) -> ()
 // CHECK:   llvm.call @__quantum__qis__reset__body(%1) : (!llvm.ptr) -> ()
-// CHECK:   llvm.call @__quantum__rt__result_record_output(%5, %5) : (!llvm.ptr, !llvm.ptr) -> ()
 // CHECK:   llvm.return
 // CHECK: }
