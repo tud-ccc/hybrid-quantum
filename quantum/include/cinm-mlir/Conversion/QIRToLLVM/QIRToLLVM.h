@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "cinm-mlir/Dialect/QIR/IR/QIROps.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -20,9 +21,12 @@ namespace mlir {
 
 namespace qir {
 
+struct AllocationAnalysis;
+
 void populateConvertQIRToLLVMPatterns(
     LLVMTypeConverter &typeConverter,
-    RewritePatternSet &patterns);
+    RewritePatternSet &patterns,
+    AllocationAnalysis &analysis);
 
 } // namespace qir
 

@@ -44,4 +44,15 @@ module {
         // CHECK-NEXT: return
         return
     }
+
+    // CHECK-LABEL: func.func @convertSwap(
+    func.func @convertSwap() -> () {
+      // CHECK-NEXT: %[[Q1:[0]+]] = "qir.alloc"() : () -> !qir.qubit
+      // CHECK-NEXT: %[[Q2:[1]+]] = "qir.alloc"() : () -> !qir.qubit
+      %q1 = "quantum.alloc"() : () -> (!quantum.qubit<1>)
+      %q2 = "quantum.alloc"() : () -> (!quantum.qubit<1>)
+      // CHECK-NEXT: "qir.swap"(%[[Q1]], %[[Q2]]) : (!qir.qubit, !qir.qubit) -> ()
+      %q1_out, %q2_out = "quantum.SWAP"(%q1, %q2) : (!quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>)
+      return
+    }
 }

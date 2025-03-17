@@ -364,14 +364,20 @@ def Quantum_CZOp : PrimitiveGate_Op<"CZ", [Pure]> {
   let assemblyFormat = [{ $control `,` $target attr-dict `:`  type($control) `,` type($target) `->` type($control_out) `,` type($target_out) }];
 }
 
-def Quantum_SWAPOp : PrimitiveGate_Op<"SWAP", [Pure]> {
+def Quantum_SWAPOp : PrimitiveGate_Op<"SWAP", [AllTypesMatch<["lhs", "rhs", "result1", "result2"]>]> {
   let summary = "SWAP gate";
   let description = [{
     Swaps the states of two qubits.
   }];
-  let arguments = (ins Quantum_QubitType:$qubit1, Quantum_QubitType:$qubit2);
-  let results = (outs Quantum_QubitType:$qubit1_out, Quantum_QubitType:$qubit2_out);
-  let assemblyFormat = [{ $qubit1 `,` $qubit2 attr-dict `:` type($qubit1) `,` type($qubit2) `->` type($qubit1_out) `,` type($qubit2_out)}];
+  let arguments = (ins
+    Quantum_QubitType:$lhs,
+    Quantum_QubitType:$rhs
+  );
+  let results = (outs
+    Quantum_QubitType:$result1,
+    Quantum_QubitType:$result2
+  );
+  //let assemblyFormat = [{ $qubit1 `,` $qubit2 attr-dict `:` type($qubit1) `,` type($qubit2) `->` type($qubit1_out) `,` type($qubit2_out)}];
 }
 
 def Quantum_CCXOp : PrimitiveGate_Op<"CCX", [Pure]> { // AllTypesMatch<["input", "result"]>

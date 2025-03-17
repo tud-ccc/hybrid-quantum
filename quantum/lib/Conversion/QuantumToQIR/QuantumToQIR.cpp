@@ -164,6 +164,26 @@ struct ConvertH : public OpConversionPattern<quantum::HOp> {
     }
 }; // struct ConvertAllocOp
 
+struct ConvertSwap : public QuantumToQIROpConversion<quantum::SWAPOp> {
+    using QuantumToQIROpConversion::QuantumToQIROpConversion;
+
+    LogicalResult matchAndRewrite(
+        SWAPOp op,
+        SWAPOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        // Retrieve the two input qubits from the adaptor.
+        Value qubit1 = adaptor.getLhs();
+        Value qubit2 = adaptor.getRhs();
+        auto qirQubit1 = mapping->find(qubit1)[0];
+        auto qirQubit2 = mapping->find(qubit2)[0];
+        mapping->allocate(op.getResult1(), qirQubit1);
+        mapping->allocate(op.getResult2(), qirQubit2);
+        rewriter.create<qir::SwapOp>(op.getLoc(), qirQubit1, qirQubit2);
+        rewriter.replaceOp(op, {qubit1, qubit2});
+        return success();
+    }
+};
 } // namespace
 
 void ConvertQuantumToQIRPass::runOnOperation()
@@ -215,6 +235,7 @@ void mlir::quantum::populateConvertQuantumToQIRPatterns(
         ConvertMeasure,
         ConvertH,
         ConvertFunc,
+        ConvertSwap,
         ConvertDealloc>(typeConverter, patterns.getContext(), /* benefit*/ 1);
 }
 
