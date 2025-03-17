@@ -20,12 +20,13 @@ namespace mlir {
 //===----------------------------------------------------------------------===//
 
 namespace qir {
-struct QubitMapping;
-struct Analysis;
+
+struct AllocationAnalysis;
+
 void populateConvertQIRToLLVMPatterns(
     LLVMTypeConverter &typeConverter,
     RewritePatternSet &patterns,
-    const QubitMapping &mapping);
+    AllocationAnalysis &analysis);
 
 } // namespace qir
 

@@ -19,6 +19,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
+#include <cstdint>
 #include <mlir/IR/Types.h>
 
 using namespace mlir;
@@ -34,29 +35,35 @@ namespace mlir {
 } // namespace mlir
 //===----------------------------------------------------------------------===//
 
-struct mlir::qir::QubitMapping {
-public:
-    explicit QubitMapping(Operation* op)
+struct mlir::qir::AllocationAnalysis {
+
+    AllocationAnalysis(Operation* op)
     {
         int64_t allocOpId = 0;
         int64_t allocResultOpId = 0;
 
         // Walk through all operations in the module and find AllocOp
-        op->walk([&](AllocOp allocOp) { mapping[allocOp] = allocOpId++; });
+        op->walk([&](AllocOp allocOp) { allocMapping[allocOp] = allocOpId++; });
 
         // Walk through all operations in the module and find AllocResultOp
         op->walk([&](AllocResultOp allocResultOp) {
             resultMapping[allocResultOp] = allocResultOpId++;
         });
-
-        qubitCount = allocOpId;
-        resultCount = allocResultOpId;
     }
+
+    // ensure that the counts are non-zero if there are any allocations
+    bool verify() const
+    {
+        return (getQubitCount() >= 0) && (getResultCount() >= 0);
+    }
+
+    int64_t getQubitCount() const { return allocMapping.size(); }
+    int64_t getResultCount() const { return resultMapping.size(); }
 
     int64_t getQubitId(AllocOp allocOp) const
     {
-        auto it = mapping.find(allocOp);
-        assert(it != mapping.end() && "AllocOp not found in mapping!");
+        auto it = allocMapping.find(allocOp);
+        assert(it != allocMapping.end() && "AllocOp not found in mapping!");
         return it->second;
     }
 
@@ -68,29 +75,13 @@ public:
         return it->second;
     }
 
-    int64_t getQubitCount() const { return qubitCount; }
-    int64_t getResultCount() const { return resultCount; }
-
 private:
-    int64_t qubitCount = 0;
-    int64_t resultCount = 0;
-    llvm::DenseMap<AllocOp, int64_t> mapping;
+    llvm::DenseMap<AllocOp, int64_t> allocMapping;
     llvm::DenseMap<AllocResultOp, int64_t> resultMapping;
 };
 
-struct mlir::qir::Analysis {
-    QubitMapping mapping;
-    explicit Analysis(Operation* op) : mapping(op) {}
-
-    // ensure that the counts are non-zero if there are any allocations
-    bool verify() const
-    {
-        return (mapping.getQubitCount() >= 0)
-               && (mapping.getResultCount() >= 0);
-    }
-};
-
 namespace {
+
 struct ConvertQIRToLLVMPass
         : mlir::impl::ConvertQIRToLLVMBase<ConvertQIRToLLVMPass> {
     using ConvertQIRToLLVMBase::ConvertQIRToLLVMBase;
@@ -129,9 +120,9 @@ struct AllocOpPattern : public ConvertOpToLLVMPattern<AllocOp> {
 
     AllocOpPattern(
         LLVMTypeConverter &typeConverter,
-        const QubitMapping &mapping)
+        AllocationAnalysis &analysis)
             : ConvertOpToLLVMPattern(typeConverter),
-              qubitMapping(mapping)
+              analysis(analysis)
     {}
 
     LogicalResult matchAndRewrite(
@@ -143,7 +134,7 @@ struct AllocOpPattern : public ConvertOpToLLVMPattern<AllocOp> {
         MLIRContext* ctx = getContext();
 
         // Get the unique ID for this AllocOp from the analysis result
-        int64_t qubitId = qubitMapping.getQubitId(op);
+        int64_t qubitId = analysis.getQubitId(op);
 
         // Create an LLVM constant integer to represent the unique ID.
         Type i64Type = rewriter.getI64Type();
@@ -165,7 +156,7 @@ struct AllocOpPattern : public ConvertOpToLLVMPattern<AllocOp> {
     }
 
 private:
-    const QubitMapping &qubitMapping;
+    AllocationAnalysis &analysis;
 };
 
 struct ReadMeasurementOpPattern
@@ -206,9 +197,9 @@ struct AllocResultOpPattern : public ConvertOpToLLVMPattern<AllocResultOp> {
 
     AllocResultOpPattern(
         LLVMTypeConverter &typeConverter,
-        const QubitMapping &mapping)
+        AllocationAnalysis &analysis)
             : ConvertOpToLLVMPattern(typeConverter),
-              qubitMapping(mapping)
+              analysis(analysis)
     {}
 
     LogicalResult matchAndRewrite(
@@ -220,7 +211,7 @@ struct AllocResultOpPattern : public ConvertOpToLLVMPattern<AllocResultOp> {
         MLIRContext* ctx = getContext();
 
         // Get the unique ID for this AllocResultOp from the analysis result
-        int64_t resultId = qubitMapping.getResultId(op);
+        int64_t resultId = analysis.getResultId(op);
 
         // Create an LLVM constant integer to represent the unique ID.
         Type i64Type = rewriter.getI64Type();
@@ -242,7 +233,7 @@ struct AllocResultOpPattern : public ConvertOpToLLVMPattern<AllocResultOp> {
     }
 
 private:
-    const QubitMapping &qubitMapping;
+    AllocationAnalysis &analysis;
 };
 
 struct HOpPattern : public ConvertOpToLLVMPattern<HOp> {
@@ -605,20 +596,16 @@ void ConvertQIRToLLVMPass::runOnOperation()
     });
 
     // Retrieve the analysis and test the mapping and verify method.
-    auto &analysis = getAnalysis<Analysis>();
+    auto &analysis = getAnalysis<AllocationAnalysis>();
     if (!analysis.verify()) {
         llvm::errs() << "QubitMapping analysis verification failed!\n";
-        signalPassFailure();
-        return;
+        return signalPassFailure();
     }
-    auto &qubitMapping = analysis.mapping;
+
     ConversionTarget target(getContext());
     RewritePatternSet patterns(&getContext());
 
-    qir::populateConvertQIRToLLVMPatterns(
-        typeConverter,
-        patterns,
-        qubitMapping);
+    qir::populateConvertQIRToLLVMPatterns(typeConverter, patterns, analysis);
 
     target.addIllegalDialect<qir::QIRDialect>();
     target.addLegalDialect<LLVM::LLVMDialect>();
@@ -637,11 +624,9 @@ void ConvertQIRToLLVMPass::runOnOperation()
 void mlir::qir::populateConvertQIRToLLVMPatterns(
     LLVMTypeConverter &typeConverter,
     RewritePatternSet &patterns,
-    const QubitMapping &qubitMapping)
+    AllocationAnalysis &analysis)
 {
-    patterns.add<AllocOpPattern, AllocResultOpPattern>(
-        typeConverter,
-        qubitMapping);
+    patterns.add<AllocOpPattern, AllocResultOpPattern>(typeConverter, analysis);
 
     patterns.add<
         HOpPattern,
