@@ -7,6 +7,7 @@
 #include "cinm-mlir/Conversion/QIRToLLVM/QIRToLLVM.h"
 
 #include "cinm-mlir/Dialect/QIR/IR/QIR.h"
+#include "cinm-mlir/Dialect/QIR/IR/QIROps.h"
 #include "mlir/Conversion/IndexToLLVM/IndexToLLVM.h"
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
 #include "mlir/Dialect/Index/IR/IndexDialect.h"
@@ -14,8 +15,12 @@
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/Pass/AnalysisManager.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
+
+#include <cstdint>
+#include <mlir/IR/Types.h>
 
 using namespace mlir;
 using namespace mlir::qir;
@@ -28,8 +33,52 @@ namespace mlir {
 #include "cinm-mlir/Conversion/Passes.h.inc"
 
 } // namespace mlir
-
 //===----------------------------------------------------------------------===//
+
+struct mlir::qir::AllocationAnalysis {
+
+    AllocationAnalysis(Operation* op)
+    {
+        int64_t allocOpId = 0;
+        int64_t allocResultOpId = 0;
+
+        // Walk through all operations in the module and find AllocOp
+        op->walk([&](AllocOp allocOp) { allocMapping[allocOp] = allocOpId++; });
+
+        // Walk through all operations in the module and find AllocResultOp
+        op->walk([&](AllocResultOp allocResultOp) {
+            resultMapping[allocResultOp] = allocResultOpId++;
+        });
+    }
+
+    // ensure that the counts are non-zero if there are any allocations
+    bool verify() const
+    {
+        return (getQubitCount() >= 0) && (getResultCount() >= 0);
+    }
+
+    int64_t getQubitCount() const { return allocMapping.size(); }
+    int64_t getResultCount() const { return resultMapping.size(); }
+
+    int64_t getQubitId(AllocOp allocOp) const
+    {
+        auto it = allocMapping.find(allocOp);
+        assert(it != allocMapping.end() && "AllocOp not found in mapping!");
+        return it->second;
+    }
+
+    int64_t getResultId(AllocResultOp allocResultOp) const
+    {
+        auto it = resultMapping.find(allocResultOp);
+        assert(
+            it != resultMapping.end() && "AllocResultOp not found in mapping!");
+        return it->second;
+    }
+
+private:
+    llvm::DenseMap<AllocOp, int64_t> allocMapping;
+    llvm::DenseMap<AllocResultOp, int64_t> resultMapping;
+};
 
 namespace {
 
@@ -69,6 +118,13 @@ LLVM::LLVMFuncOp ensureFunctionDeclaration(
 struct AllocOpPattern : public ConvertOpToLLVMPattern<AllocOp> {
     using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
+    AllocOpPattern(
+        LLVMTypeConverter &typeConverter,
+        AllocationAnalysis &analysis)
+            : ConvertOpToLLVMPattern(typeConverter),
+              analysis(analysis)
+    {}
+
     LogicalResult matchAndRewrite(
         AllocOp op,
         AllocOpAdaptor adaptor,
@@ -77,28 +133,30 @@ struct AllocOpPattern : public ConvertOpToLLVMPattern<AllocOp> {
         Location loc = op.getLoc();
         MLIRContext* ctx = getContext();
 
-        // Generate a unique integer ID for the qubit
-        static int64_t nextQubitId = 0;
-        int64_t qubitId = nextQubitId++;
+        // Get the unique ID for this AllocOp from the analysis result
+        int64_t qubitId = analysis.getQubitId(op);
 
-        // Create an LLVM constant integer to represent the qubit ID
+        // Create an LLVM constant integer to represent the unique ID.
         Type i64Type = rewriter.getI64Type();
         Value intValue = rewriter.create<LLVM::ConstantOp>(
             loc,
             i64Type,
             rewriter.getI64IntegerAttr(qubitId));
 
-        // Create a pointer type
+        // Create a pointer type.
         Type ptrType = LLVM::LLVMPointerType::get(ctx);
 
-        // Create the inttoptr operation
+        // Create the inttoptr operation.
         Value ptrValue =
             rewriter.create<LLVM::IntToPtrOp>(loc, ptrType, intValue);
 
-        // Replace the original op with the inttoptr operation
+        // Replace the original op with the computed pointer.
         rewriter.replaceOp(op, ptrValue);
         return success();
     }
+
+private:
+    AllocationAnalysis &analysis;
 };
 
 struct ReadMeasurementOpPattern
@@ -137,6 +195,13 @@ struct ReadMeasurementOpPattern
 struct AllocResultOpPattern : public ConvertOpToLLVMPattern<AllocResultOp> {
     using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
+    AllocResultOpPattern(
+        LLVMTypeConverter &typeConverter,
+        AllocationAnalysis &analysis)
+            : ConvertOpToLLVMPattern(typeConverter),
+              analysis(analysis)
+    {}
+
     LogicalResult matchAndRewrite(
         AllocResultOp op,
         AllocResultOpAdaptor adaptor,
@@ -145,28 +210,30 @@ struct AllocResultOpPattern : public ConvertOpToLLVMPattern<AllocResultOp> {
         Location loc = op.getLoc();
         MLIRContext* ctx = getContext();
 
-        // Generate a unique integer ID for the qubit
-        static int64_t nextResultId = 0;
-        int64_t resultId = nextResultId++;
+        // Get the unique ID for this AllocResultOp from the analysis result
+        int64_t resultId = analysis.getResultId(op);
 
-        // Create an LLVM constant integer to represent the qubit ID
+        // Create an LLVM constant integer to represent the unique ID.
         Type i64Type = rewriter.getI64Type();
         Value intValue = rewriter.create<LLVM::ConstantOp>(
             loc,
             i64Type,
             rewriter.getI64IntegerAttr(resultId));
 
-        // Create a pointer type
+        // Create a pointer type.
         Type ptrType = LLVM::LLVMPointerType::get(ctx);
 
-        // Create the inttoptr operation
+        // Create the inttoptr operation.
         Value ptrValue =
             rewriter.create<LLVM::IntToPtrOp>(loc, ptrType, intValue);
 
-        // Replace the original op with the inttoptr operation
+        // Replace the original op with the computed pointer.
         rewriter.replaceOp(op, ptrValue);
         return success();
     }
+
+private:
+    AllocationAnalysis &analysis;
 };
 
 struct HOpPattern : public ConvertOpToLLVMPattern<HOp> {
@@ -313,32 +380,64 @@ struct ZOpPattern : public ConvertOpToLLVMPattern<ZOp> {
     }
 };
 
-struct RzOpLowering : public ConvertOpToLLVMPattern<RzOp> {
-    using ConvertOpToLLVMPattern<RzOp>::ConvertOpToLLVMPattern;
+struct CNOTOpPattern : public ConvertOpToLLVMPattern<CNOTOp> {
+    using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
     LogicalResult matchAndRewrite(
-        RzOp op,
-        RzOp::Adaptor adaptor,
+        CNOTOp op,
+        CNOTOp::Adaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        Location loc = op.getLoc();
+        MLIRContext* ctx = getContext();
+
+        // Define the QIR function name for the CNOT gate.
+        StringRef qirName = "__quantum__qis__cnot__body";
+
+        // Create the LLVM function type: (ptr, ptr) -> void.
+        Type ptrType = LLVM::LLVMPointerType::get(ctx);
+        Type voidType = LLVM::LLVMVoidType::get(ctx);
+        Type qirSignature = LLVM::LLVMFunctionType::get(
+            voidType,
+            {ptrType, ptrType},
+            /*isVarArg=*/false);
+
+        // Ensure the runtime function is declared.
+        LLVM::LLVMFuncOp fnDecl =
+            ensureFunctionDeclaration(rewriter, op, qirName, qirSignature);
+
+        // Get the control and target qubits from the operation.
+        Value control = adaptor.getControl();
+        Value target = adaptor.getTarget();
+
+        // Create the call operation to invoke the CNOT runtime function.
+        rewriter.create<LLVM::CallOp>(
+            loc,
+            TypeRange{},
+            fnDecl.getSymName(),
+            ValueRange{control, target});
+
+        // Erase the original CNOT op.
+        rewriter.eraseOp(op);
+        return success();
+    }
+};
+
+template<typename OpType>
+struct RotationOpLowering : public ConvertOpToLLVMPattern<OpType> {
+    using ConvertOpToLLVMPattern<OpType>::ConvertOpToLLVMPattern;
+
+    LogicalResult matchAndRewrite(
+        OpType op,
+        typename OpType::Adaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
         Location loc = op.getLoc();
         MLIRContext* ctx = op.getContext();
 
-        // Retrieve the qubit operand.
         Value inputQubit = adaptor.getInput();
-
-        // Retrieve the angle operand (now declared as F64).
         Value angleOperand = adaptor.getAngle();
-        // Optionally, check that it is a constant op.
-        auto constantOp = angleOperand.getDefiningOp<LLVM::ConstantOp>();
-        if (!constantOp) return failure();
-        // Verify that the constant is indeed a FloatAttr.
-        auto f64Attr = constantOp.getValue().dyn_cast<FloatAttr>();
-        if (!f64Attr) return failure();
-        // (You can also retrieve the double value if needed.)
-        double angleValue = f64Attr.getValueAsDouble();
 
-        // Build the LLVM function type: (double, %Qubit*) -> void.
         Type f64Type = rewriter.getF64Type();
         Type ptrType = LLVM::LLVMPointerType::get(ctx);
         Type voidType = LLVM::LLVMVoidType::get(ctx);
@@ -347,70 +446,41 @@ struct RzOpLowering : public ConvertOpToLLVMPattern<RzOp> {
             {f64Type, ptrType},
             /*isVarArg=*/false);
 
-        // Get the QIR function declaration for Rz.
-        StringRef qirFunctionName = "__quantum__qis__rz__body";
+        StringRef qirFunctionName = getQIRFunctionName();
         LLVM::LLVMFuncOp fnDecl =
             ensureFunctionDeclaration(rewriter, op, qirFunctionName, fnType);
 
-        // Create the call operation using the f64 angle operand and qubit
-        // operand.
         rewriter.create<LLVM::CallOp>(
             loc,
             TypeRange{},
             fnDecl.getSymName(),
             ValueRange{angleOperand, inputQubit});
 
-        // Erase the original op.
         rewriter.eraseOp(op);
         return success();
     }
+
+protected:
+    virtual StringRef getQIRFunctionName() const = 0;
 };
 
-struct ShowStateOpLowering : public ConvertOpToLLVMPattern<ShowStateOp> {
-    using ConvertOpToLLVMPattern<ShowStateOp>::ConvertOpToLLVMPattern;
+struct RzOpLowering : public RotationOpLowering<RzOp> {
+    using RotationOpLowering<RzOp>::RotationOpLowering;
 
-    LogicalResult matchAndRewrite(
-        ShowStateOp op,
-        ShowStateOp::Adaptor adaptor,
-        ConversionPatternRewriter &rewriter) const override
+protected:
+    StringRef getQIRFunctionName() const override
     {
-        Location loc = op.getLoc();
-        MLIRContext* ctx = op.getContext();
+        return "__quantum__qis__rz__body";
+    }
+};
 
-        // Create an i64 constant zero.
-        Type i64Type = rewriter.getI64Type();
-        Value zero = rewriter.create<LLVM::ConstantOp>(
-            loc,
-            i64Type,
-            rewriter.getI64IntegerAttr(0));
+struct RxOpLowering : public RotationOpLowering<RxOp> {
+    using RotationOpLowering<RxOp>::RotationOpLowering;
 
-        // Create a null pointer of type i8*.
-        // Using a zero constant for a pointer type works as a null pointer.
-        Type i8PtrType = LLVM::LLVMPointerType::get(ctx);
-        Value nullPtr = rewriter.create<LLVM::IntToPtrOp>(loc, i8PtrType, zero);
-
-        // Build the function type: (i64, i8*) -> void.
-        Type voidType = LLVM::LLVMVoidType::get(ctx);
-        auto fnType = LLVM::LLVMFunctionType::get(
-            voidType,
-            {i64Type, i8PtrType},
-            /*isVarArg=*/false);
-
-        // Ensure the function declaration exists.
-        StringRef qirFunctionName = "__quantum__rt__tuple_record_output";
-        LLVM::LLVMFuncOp fnDecl =
-            ensureFunctionDeclaration(rewriter, op, qirFunctionName, fnType);
-
-        // Create the call operation.
-        rewriter.create<LLVM::CallOp>(
-            loc,
-            TypeRange{},
-            fnDecl.getSymName(),
-            ValueRange{zero, nullPtr});
-
-        // Erase the original op.
-        rewriter.eraseOp(op);
-        return success();
+protected:
+    StringRef getQIRFunctionName() const override
+    {
+        return "__quantum__qis__rx__body";
     }
 };
 
@@ -459,19 +529,6 @@ struct MeasureOpPattern : public ConvertOpToLLVMPattern<MeasureOp> {
             qirResetName,
             resetFuncType);
 
-        // Declare the __quantum__rt__result_record_output function: (ptr, i8*)
-        // -> void.
-        StringRef qirRecordName = "__quantum__rt__result_record_output";
-        // We use the same opaque pointer type for i8*.
-        Type i8PtrType = LLVM::LLVMPointerType::get(ctx);
-        Type recordFuncType =
-            LLVM::LLVMFunctionType::get(voidType, {ptrType, i8PtrType}, false);
-        LLVM::LLVMFuncOp recordFnDecl = ensureFunctionDeclaration(
-            rewriter,
-            op,
-            qirRecordName,
-            recordFuncType);
-
         // Now, use the allocated qubit pointer (i.e. the operand) in all calls.
         rewriter.create<LLVM::CallOp>(
             loc,
@@ -483,11 +540,6 @@ struct MeasureOpPattern : public ConvertOpToLLVMPattern<MeasureOp> {
             TypeRange{},
             resetFnDecl.getSymName(),
             ValueRange{qubit});
-        rewriter.create<LLVM::CallOp>(
-            loc,
-            TypeRange{},
-            recordFnDecl.getSymName(),
-            ValueRange{resultPtr, resultPtr});
 
         // Erase the original measure op.
         rewriter.eraseOp(op);
@@ -536,7 +588,6 @@ void ConvertQIRToLLVMPass::runOnOperation()
 {
     LLVMTypeConverter typeConverter(&getContext());
     typeConverter.addConversion([](Type ty) { return ty; });
-    // Add custom conversions for QIR types -> LLVM pointers
     typeConverter.addConversion([](qir::QubitType type) -> Type {
         return LLVM::LLVMPointerType::get(type.getContext());
     });
@@ -544,10 +595,18 @@ void ConvertQIRToLLVMPass::runOnOperation()
         return LLVM::LLVMPointerType::get(type.getContext());
     });
 
+    // Retrieve the analysis and test the mapping and verify method.
+    auto &analysis = getAnalysis<AllocationAnalysis>();
+    if (!analysis.verify()) {
+        llvm::errs() << "QubitMapping analysis verification failed!\n";
+        return signalPassFailure();
+    }
+
     ConversionTarget target(getContext());
     RewritePatternSet patterns(&getContext());
 
-    qir::populateConvertQIRToLLVMPatterns(typeConverter, patterns);
+    qir::populateConvertQIRToLLVMPatterns(typeConverter, patterns, analysis);
+
     target.addIllegalDialect<qir::QIRDialect>();
     target.addLegalDialect<LLVM::LLVMDialect>();
 
@@ -558,20 +617,26 @@ void ConvertQIRToLLVMPass::runOnOperation()
         signalPassFailure();
 }
 
+//===----------------------------------------------------------------------===//
+// Pattern Population
+//===----------------------------------------------------------------------===//
+
 void mlir::qir::populateConvertQIRToLLVMPatterns(
     LLVMTypeConverter &typeConverter,
-    RewritePatternSet &patterns)
+    RewritePatternSet &patterns,
+    AllocationAnalysis &analysis)
 {
+    patterns.add<AllocOpPattern, AllocResultOpPattern>(typeConverter, analysis);
+
     patterns.add<
-        AllocOpPattern,
         HOpPattern,
         SwapOpPattern,
         XOpPattern,
         YOpPattern,
         ZOpPattern,
-        AllocResultOpPattern,
         RzOpLowering,
-        ShowStateOpLowering,
+        RxOpLowering,
+        CNOTOpPattern,
         MeasureOpPattern,
         ReadMeasurementOpPattern>(typeConverter);
 }

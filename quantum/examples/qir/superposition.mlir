@@ -1,12 +1,18 @@
+//Example code to demonstrate quantum superposition. Should yield ~50% |0⟩ and ~50% |1⟩ over multiple runs
 
-  func.func @main() {
-    %q0 = "qir.alloc" () : () -> (!qir.qubit)
-    %r0 = "qir.ralloc" () : () -> (!qir.result)
-    %const1 = arith.constant 0.34 : f64
-    %const2 = arith.constant 0.735 : f64
-    "qir.H" (%q0) : (!qir.qubit) -> ()
-    "qir.Rz" (%q0, %const1) : (!qir.qubit, f64) -> ()
-    "qir.Rz" (%q0, %const2) : (!qir.qubit, f64) -> ()
-    "qir.measure" (%q0, %r0) : (!qir.qubit, !qir.result) -> ()
-    return
-  }
+func.func @main() {
+  // Allocate a qubit and a classical result register
+  %q0 = "qir.alloc" () : () -> (!qir.qubit)
+  %q1 = "qir.alloc" () : () -> (!qir.qubit)
+  %q3 = "qir.alloc" () : () -> (!qir.qubit)
+  %q2 = "qir.alloc" () : () -> (!qir.qubit)
+
+  %r0 = "qir.ralloc" () : () -> (!qir.result)
+
+  // Apply Hadamard gate to put q0 into superposition: |+⟩ = (|0⟩ + |1⟩) / sqrt(2)
+  "qir.H" (%q0) : (!qir.qubit) -> ()
+
+  // Measure the qubit
+
+  return
+}

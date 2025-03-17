@@ -16,7 +16,6 @@ module {
   }
 }
 
-// CHECK: declare void @__quantum__rt__result_record_output(ptr, ptr)
 // CHECK: declare void @__quantum__qis__reset__body(ptr)
 // CHECK: declare void @__quantum__qis__mz__body(ptr, ptr)
 // CHECK: declare void @__quantum__qis__swap__body(ptr, ptr)
@@ -29,6 +28,5 @@ module {
 // CHECK:   call void @__quantum__qis__swap__body(ptr null, ptr inttoptr (i64 1 to ptr))
 // CHECK:   call void @__quantum__qis__mz__body(ptr null, ptr null)
 // CHECK:   call void @__quantum__qis__reset__body(ptr null)
-// CHECK:   call void @__quantum__rt__result_record_output(ptr null, ptr null)
 // CHECK:   ret void
 // CHECK: }

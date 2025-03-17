@@ -78,14 +78,21 @@ def QIR_YOp : PrimitiveGate_Op<"Y"> {
   }];
 }
 
+def QIR_CNOTOp : Gate_Op<"CNOT"> {
+  let summary = "CNOT gate operation";
+  let description = [{
+    The controlled-NOT (CNOT) gate flips the target qubit if the control qubit is in the |1> state.
+  }];
+  let arguments = (ins QIR_QubitType:$control, QIR_QubitType:$target);
+}
 
-def QIR_RXOp : Gate_Op<"RX"> {
-  let summary = "RX gate operation";
+def QIR_RxOp : Gate_Op<"Rx"> {
+  let summary = "Rx gate operation";
   let description = [{
     The X gate negates a qubit value.
   }];
 
-  let arguments = (ins QIR_QubitType:$input, F32:$theta);
+  let arguments = (ins QIR_QubitType:$input, F64:$angle);
 }
 
 // Rz: a single-qubit rotation with an angle parameter.

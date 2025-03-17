@@ -50,7 +50,17 @@ process_file() {
 
     # Step 1: Lower QUANTUM to LLVMIR
     run_test "QUANTUM TO LLVMIR" \
-        "$CINM --convert-scf-to-cf --canonicalize --convert-arith-to-llvm --convert-qir-to-llvm --convert-func-to-llvm --reconcile-unrealized-casts $full_path -o $llvm_mlir_file --mlir-print-ir-after-all"
+        "$CINM \
+          --convert-scf-to-cf \
+          --canonicalize \
+          --finalize-memref-to-llvm \
+          --convert-func-to-llvm   \
+          --convert-arith-to-llvm  \
+          --convert-cf-to-llvm     \
+          --convert-index-to-llvm  \
+          --convert-qir-to-llvm \
+          --reconcile-unrealized-casts \
+           $full_path -o $llvm_mlir_file"
 
     # Step 2: Convert LLVMIR to LLVM
     run_test "LLVMIR TO LLVM" \
