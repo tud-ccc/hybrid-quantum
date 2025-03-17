@@ -15,11 +15,8 @@ namespace mlir {
 
 namespace quantum {
 
-struct QuantumToQirQubitTypeMapping;
-
 void populateConvertQuantumToQIRPatterns(
     TypeConverter &typeConverter,
-    QuantumToQirQubitTypeMapping &mapping,
     RewritePatternSet &patterns);
 
 } // namespace quantum

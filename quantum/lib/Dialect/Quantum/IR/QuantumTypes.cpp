@@ -13,6 +13,8 @@
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/ErrorHandling.h"
 
+#include <mlir/Support/LogicalResult.h>
+
 #define DEBUG_TYPE "quantum-types"
 
 using namespace mlir;
@@ -24,6 +26,18 @@ using namespace mlir::quantum;
 #include "cinm-mlir/Dialect/Quantum/IR/QuantumTypes.cpp.inc"
 
 //===----------------------------------------------------------------------===//
+
+bool QubitType::isSingleQubit() const { return getSize() == 1; }
+
+LogicalResult QubitType::verify(
+    ::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError,
+    int64_t size)
+{
+    if (size < 1)
+        return emitError() << "expected integer value greater equals 1";
+
+    return success();
+}
 
 //===----------------------------------------------------------------------===//
 // QuantumDialect
