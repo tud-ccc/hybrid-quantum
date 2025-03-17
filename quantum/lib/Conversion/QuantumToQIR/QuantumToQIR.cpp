@@ -162,10 +162,24 @@ struct ConvertH : public OpConversionPattern<quantum::HOp> {
         rewriter.replaceOp(op, adaptor.getInput());
         return success();
     }
-}; // struct ConvertAllocOp
+}; // struct ConvertHOp
 
-struct ConvertSwap : public QuantumToQIROpConversion<quantum::SWAPOp> {
-    using QuantumToQIROpConversion::QuantumToQIROpConversion;
+struct ConvertNot : public OpConversionPattern<quantum::XOp> {
+    using OpConversionPattern::OpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        XOp op,
+        XOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        rewriter.create<qir::XOp>(op.getLoc(), adaptor.getInput());
+        rewriter.replaceOp(op, adaptor.getInput());
+        return success();
+    }
+}; // struct ConvertXOp
+
+struct ConvertSwap : public OpConversionPattern<quantum::SWAPOp> {
+    using OpConversionPattern::OpConversionPattern;
 
     LogicalResult matchAndRewrite(
         SWAPOp op,
@@ -175,11 +189,7 @@ struct ConvertSwap : public QuantumToQIROpConversion<quantum::SWAPOp> {
         // Retrieve the two input qubits from the adaptor.
         Value qubit1 = adaptor.getLhs();
         Value qubit2 = adaptor.getRhs();
-        auto qirQubit1 = mapping->find(qubit1)[0];
-        auto qirQubit2 = mapping->find(qubit2)[0];
-        mapping->allocate(op.getResult1(), qirQubit1);
-        mapping->allocate(op.getResult2(), qirQubit2);
-        rewriter.create<qir::SwapOp>(op.getLoc(), qirQubit1, qirQubit2);
+        rewriter.create<qir::SwapOp>(op.getLoc(), qubit1, qubit2);
         rewriter.replaceOp(op, {qubit1, qubit2});
         return success();
     }
@@ -234,6 +244,7 @@ void mlir::quantum::populateConvertQuantumToQIRPatterns(
         ConvertAlloc,
         ConvertMeasure,
         ConvertH,
+        ConvertNot,
         ConvertFunc,
         ConvertSwap,
         ConvertDealloc>(typeConverter, patterns.getContext(), /* benefit*/ 1);

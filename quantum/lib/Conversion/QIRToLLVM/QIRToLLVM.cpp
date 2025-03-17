@@ -20,6 +20,8 @@
 #include "mlir/Transforms/DialectConversion.h"
 
 #include <cstdint>
+#include <mlir/Dialect/Tensor/IR/Tensor.h>
+#include <mlir/IR/BuiltinTypes.h>
 #include <mlir/IR/Types.h>
 
 using namespace mlir;
@@ -180,13 +182,17 @@ struct ReadMeasurementOpPattern
         Value inputResult = adaptor.getInput();
 
         // Create the call operation to apply the Hadamard gate
-        auto callOp = rewriter.create<LLVM::CallOp>(
+        auto measureOp = rewriter.create<LLVM::CallOp>(
             op.getLoc(),
             i1Type,
             fnDecl.getSymName(),
             ValueRange{inputResult});
 
-        rewriter.replaceOp(op, callOp);
+        auto tensor = rewriter.create<mlir::tensor::FromElementsOp>(
+            op.getLoc(),
+            ValueRange{measureOp.getResult()});
+
+        rewriter.replaceOp(op, tensor);
 
         return success();
     }
@@ -301,13 +307,14 @@ struct XOpPattern : public ConvertOpToLLVMPattern<XOp> {
 
         LLVM::LLVMFuncOp fnDecl =
             ensureFunctionDeclaration(rewriter, op, qirName, qirSignature);
+
         Value inputQubit = adaptor.getInput();
-        rewriter.create<LLVM::CallOp>(
-            loc,
+        rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+            op,
             TypeRange{},
             fnDecl.getSymName(),
             ValueRange{inputQubit});
-        rewriter.eraseOp(op);
+
         return success();
     }
 };
@@ -492,57 +499,30 @@ struct MeasureOpPattern : public ConvertOpToLLVMPattern<MeasureOp> {
         MeasureOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        // Get location and context.
-        Location loc = op.getLoc();
         MLIRContext* ctx = getContext();
 
-        // Define common LLVM types.
         Type ptrType = LLVM::LLVMPointerType::get(ctx);
         Type voidType = LLVM::LLVMVoidType::get(ctx);
 
-        // Instead of creating a new constant pointer, use the qubit operand
-        // from the measure op.
-        Value qubit = adaptor.getInput();
-
-        // For the second argument to record_output, if a null is desired, you
-        // can create one. However, if you also want to use the allocated qubit
-        // pointer, just reuse it. Here we assume that both operands should be
-        // the qubit pointer.
-        Value resultPtr =
-            adaptor.getResult(); // Or, if the runtime expects a null pointer,
-                                 // create one accordingly.
-
-        // Declare the __quantum__qis__mz__body function: (ptr, ptr) -> void.
-        StringRef qirMName = "__quantum__qis__mz__body";
-        Type mFuncType =
+        // Declare __quantum__qis__mz__body function: (ptr, ptr) -> void.
+        StringRef measureFnName = "__quantum__qis__mz__body";
+        Type measureFnType =
             LLVM::LLVMFunctionType::get(voidType, {ptrType, ptrType}, false);
-        LLVM::LLVMFuncOp mFnDecl =
-            ensureFunctionDeclaration(rewriter, op, qirMName, mFuncType);
-
-        // Declare the __quantum__qis__reset__body function: (ptr) -> void.
-        StringRef qirResetName = "__quantum__qis__reset__body";
-        Type resetFuncType =
-            LLVM::LLVMFunctionType::get(voidType, {ptrType}, false);
-        LLVM::LLVMFuncOp resetFnDecl = ensureFunctionDeclaration(
+        LLVM::LLVMFuncOp measureFnDecl = ensureFunctionDeclaration(
             rewriter,
             op,
-            qirResetName,
-            resetFuncType);
+            measureFnName,
+            measureFnType);
 
-        // Now, use the allocated qubit pointer (i.e. the operand) in all calls.
-        rewriter.create<LLVM::CallOp>(
-            loc,
+        Value qubit = adaptor.getInput();
+        Value resultPtr = adaptor.getResult();
+
+        rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+            op,
             TypeRange{},
-            mFnDecl.getSymName(),
+            measureFnDecl.getSymName(),
             ValueRange{qubit, resultPtr});
-        rewriter.create<LLVM::CallOp>(
-            loc,
-            TypeRange{},
-            resetFnDecl.getSymName(),
-            ValueRange{qubit});
 
-        // Erase the original measure op.
-        rewriter.eraseOp(op);
         return success();
     }
 };
@@ -582,6 +562,41 @@ struct SwapOpPattern : public ConvertOpToLLVMPattern<qir::SwapOp> {
     }
 };
 
+struct ResetOpPattern : public ConvertOpToLLVMPattern<ResetOp> {
+    using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+    LogicalResult matchAndRewrite(
+        ResetOp op,
+        ResetOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        MLIRContext* ctx = getContext();
+
+        Type ptrType = LLVM::LLVMPointerType::get(ctx);
+        Type voidType = LLVM::LLVMVoidType::get(ctx);
+
+        // Declare __quantum__qis__reset__body function: (ptr) -> void.
+        StringRef qirResetFnName = "__quantum__qis__reset__body";
+        Type resetFnType =
+            LLVM::LLVMFunctionType::get(voidType, {ptrType}, false);
+        LLVM::LLVMFuncOp resetFnDecl = ensureFunctionDeclaration(
+            rewriter,
+            op,
+            qirResetFnName,
+            resetFnType);
+
+        Value qubit = adaptor.getInput();
+
+        rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+            op,
+            TypeRange{},
+            resetFnDecl.getSymName(),
+            ValueRange{qubit});
+
+        return success();
+    }
+};
+
 } // namespace
 
 void ConvertQIRToLLVMPass::runOnOperation()
@@ -609,6 +624,7 @@ void ConvertQIRToLLVMPass::runOnOperation()
 
     target.addIllegalDialect<qir::QIRDialect>();
     target.addLegalDialect<LLVM::LLVMDialect>();
+    target.addLegalDialect<tensor::TensorDialect>();
 
     if (failed(applyPartialConversion(
             getOperation(),
@@ -638,7 +654,8 @@ void mlir::qir::populateConvertQIRToLLVMPatterns(
         RxOpLowering,
         CNOTOpPattern,
         MeasureOpPattern,
-        ReadMeasurementOpPattern>(typeConverter);
+        ReadMeasurementOpPattern,
+        ResetOpPattern>(typeConverter);
 }
 
 std::unique_ptr<Pass> mlir::createConvertQIRToLLVMPass()

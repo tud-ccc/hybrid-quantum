@@ -28,7 +28,8 @@ def ConvertQIRToLLVM : Pass<"convert-qir-to-llvm"> {
     
     let dependentDialects = [
         "qir::QIRDialect",
-        "LLVM::LLVMDialect"
+        "LLVM::LLVMDialect",
+        "tensor::TensorDialect"
     ];
 }
 
