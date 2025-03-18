@@ -2,6 +2,7 @@
 ///
 /// @file
 /// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
+/// @author     Washim Neupane (washim_sharma.neupane@mailbox.tu-dresden.de)
 
 #include "cinm-mlir/Dialect/Quantum/IR/Quantum.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -32,53 +33,57 @@ struct QuantumOptimisePass
     void runOnOperation() override;
 };
 
-// struct HermitianCancel : RewritePattern<quantum::HOp> {
-//    using RewritePattern::RewritePattern;
+struct CancelHadamardPairs : public OpRewritePattern<HOp> {
+    using OpRewritePattern<HOp>::OpRewritePattern;
 
-//   LogicalResult matchAndRewrite(
-//     quantum::HOp op,
-//     PatternRewriter &rewriter) const final
-//   {
-//     Location loc = op.getLoc();
-//     llvm::outs() << "Transforming quantum.H at location: " << loc << "\n";
+    LogicalResult
+    matchAndRewrite(HOp op, PatternRewriter &rewriter) const override
+    {
+        Operation* nextOp = op->getNextNode();
+        if (nextOp && isa<HOp>(nextOp)) {
+            HOp nextHadamard = cast<HOp>(nextOp);
+            // Check that the result of the first H is the input to the next H.
+            if (op.getResult() == nextHadamard.getInput()) {
+                // Replace the two H operations with the original input.
+                rewriter.replaceOp(nextHadamard, op.getInput());
+                rewriter.eraseOp(op);
+                return success();
+            }
+        }
+        return failure();
+    }
+};
 
-//     // Check if the operation has the Hermitian trait
-//     // if (op->hasTrait<mlir::OpTrait::Hermitian>()) {
-//     //   // Get the next operation in the block
-//     //   Block *block = op->getBlock();
-//     //   auto nextOpIt = std::next(Block::iterator(op));
+template<typename PauliOp>
+struct CancelPauliPairs : public OpRewritePattern<PauliOp> {
+    using OpRewritePattern<PauliOp>::OpRewritePattern;
 
-//     //   // Check if the next operation is also a Hermitian operation of the
-//     same type
-//     //   if (nextOpIt != block->end() &&
-//     //       nextOpIt->hasTrait<mlir::quantum::Hermitian>() &&
-//     //       op->getName() == nextOpIt->getName()) {
-//     //     // Both operations are identical Hermitian operations, cancel them
-//     //     rewriter.eraseOp(op);
-//     //     rewriter.eraseOp(*nextOpIt);
-//         return success();
-//   }
-// };
+    LogicalResult
+    matchAndRewrite(PauliOp op, PatternRewriter &rewriter) const override
+    {
+        Operation* nextOp = op->getNextNode();
+        if (!nextOp || !isa<PauliOp>(nextOp))
+            return failure(); // Ensure the next operation is the same type
 
-// struct AdjointCancel : public OpRewritePattern<quantum::HOp> {
-//   AdjointCancel(MLIRContext *context)
-//       : OpRewritePattern<AdjointCancel>(context, /*benefit=*/1) {}
+        PauliOp nextPauli = cast<PauliOp>(nextOp);
 
-//   LogicalResult matchAndRewrite(
-//     quantum::HOp op,
-//     PatternRewriter &rewriter) const final
-//   {
-//     // Implement adjoint cancellation logic here
-//     return success();
-//   }
-// };
+        // Ensure the result of the first Op is the input to the next Op
+        if (op.getResult() != nextPauli.getOperand())
+            return failure(); // They must act on the same qubit
+
+        // Replace the second Pauli Op with the original qubit input
+        rewriter.replaceOp(nextPauli, op.getOperand());
+        rewriter.eraseOp(op);
+
+        return success();
+    }
+};
 
 } // namespace
 
 void QuantumOptimisePass::runOnOperation()
 {
     RewritePatternSet patterns(&getContext());
-
     populateQuantumOptimisePatterns(patterns);
 
     if (failed(
@@ -88,9 +93,8 @@ void QuantumOptimisePass::runOnOperation()
 
 void mlir::quantum::populateQuantumOptimisePatterns(RewritePatternSet &patterns)
 {
-    // patterns.add<
-    //   HermitianCancel,
-    //   AdjointCancel>(patterns.getContext());
+    patterns.add<CancelHadamardPairs>(patterns.getContext());
+    patterns.add<CancelPauliPairs<XOp>>(patterns.getContext());
 }
 
 std::unique_ptr<Pass> mlir::quantum::createQuantumOptimisePass()

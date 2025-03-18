@@ -4,3 +4,4 @@ llvm
 upmem
 .env
 qir-runner
+test.sh
