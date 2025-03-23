@@ -9,6 +9,10 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 
+#include <llvm/ADT/SmallVector.h>
+#include <mlir/IR/OpDefinition.h>
+#include <mlir/Support/LogicalResult.h>
+
 #define DEBUG_TYPE "quantum-ops"
 
 using namespace mlir;
@@ -36,30 +40,23 @@ using namespace mlir::quantum;
 //   return success();
 // }
 
-// //Verfiers
-// LogicalResult XOp::verify() {
-//   if (getInput().getType() != getResult().getType())
-//     return emitOpError("input and result must have the same type");
-//   return success();
-// }
+// Folders
+// In QuantumOps.cpp
+OpFoldResult HOp::fold(FoldAdaptor adaptor)
+{
+    // If the input to this H gate was another H gate, remove both.
+    if (auto parent = getOperand().getDefiningOp<HOp>())
+        return parent.getOperand();
+    return nullptr;
+}
 
-// LogicalResult CNOTOp::verify() {
-//   return success();
-// }
-
-// LogicalResult InsertOp::verify()
-// {
-//     if (!(getIdx() || getIdxAttr().has_value())) {
-//         return emitOpError() << "expected op to have a non-null index";
-//     }
-//     return success();
-// }
-
-// LogicalResult ExtractOp::verify()
-// {
-//     return success();
-// }
-
+OpFoldResult XOp::fold(FoldAdaptor adaptor)
+{
+    // If the input to this H gate was another H gate, remove both.
+    if (auto parent = getOperand().getDefiningOp<XOp>())
+        return parent.getOperand();
+    return nullptr;
+}
 //===----------------------------------------------------------------------===//
 // QuantumDialect
 //===----------------------------------------------------------------------===//
