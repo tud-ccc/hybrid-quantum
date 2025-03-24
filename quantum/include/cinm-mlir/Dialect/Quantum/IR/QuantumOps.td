@@ -92,6 +92,27 @@ def Quantum_MergeOp : Memory_Op<"merge", [MemoryEffects<[MemRead,MemWrite]>]> {
 }
 
 //===----------------------------------------------------------------------===//
+// Define a region.
+//===----------------------------------------------------------------------===//
+def Quantum_RegionOp : Quantum_Op<"region", [IsolatedFromAbove, AutomaticAllocationScope]>  {
+  let summary = "Isolated section containing quantum operations";
+  let description = [{
+    Contains a region with CNOT and Rz operations that can be expanded.
+    The region is isolated from above and must explicitly declare all inputs.
+  }];
+
+  let arguments = (ins Variadic<Quantum_QubitType>:$qubits);
+  let results = (outs Variadic<Quantum_QubitType>:$output_qubits);
+  let regions = (region AnyRegion:$body);
+}
+
+def Quantum_YieldOp : Quantum_Op<"yield",
+    [HasParent<"RegionOp">, Terminator]> {
+  let summary = "Yield operation for circuit sections";
+  let arguments = (ins Variadic<Quantum_QubitType>:$results);
+}
+
+//===----------------------------------------------------------------------===//
 // Quantum gate operations.
 //===----------------------------------------------------------------------===//
 class PrimitiveGate_Op<string mnemonic, list<Trait> traits = []> :
@@ -139,9 +160,6 @@ def Quantum_CNOTOp : PrimitiveGate_Op<"CNOT", [Pure]> {
     Quantum_QubitType:$control_out,
     Quantum_QubitType:$target_out
   );
-
-  let assemblyFormat = [{ $input `,` $target attr-dict `:`  type($input) `,` type($target)  `->` type($control_out) `,` type($target_out)}];
-  let hasVerifier = 0;
 }
 
 def Quantum_XOp : PrimitiveGate_Op<"X", [Pure, AllTypesMatch<["input", "result"]>, Hermitian]> {
@@ -167,12 +185,6 @@ def Quantum_XOp : PrimitiveGate_Op<"X", [Pure, AllTypesMatch<["input", "result"]
 
   let arguments = (ins Quantum_QubitType:$input);
   let results = (outs Quantum_QubitType:$result);
-
-  let assemblyFormat = [{
-    $input attr-dict `:` type($input)
-  }];
-
-  let hasVerifier = 0;
 }
 
 def Quantum_YOp : PrimitiveGate_Op<"Y", [Pure, AllTypesMatch<["input", "result"]>, Hermitian]> {
@@ -230,28 +242,16 @@ def Quantum_ZOp : PrimitiveGate_Op<"Z", [Pure, AllTypesMatch<["input", "result"]
 }
 
 //Custom R operation for x, y, z attributes
-//def Quantum_ROp : PrimitiveGate_Op<"R", [Pure]> {
-//  let summary = "Rotation gate operation around a principal axis (X, Y, or Z)";
-//  let description = [{
-//    The R gate applies a rotation around the X, Y, or Z axis by an angle θ.
-//    Example:
-//    ```mlir
-//     // Apply a rotation around the X-axis to a qubit with angle θ
-//     %1 = quantum.R(X, 2.4) %qubit : !quantum.qubit
-//     ```
-//   }];
+def Quantum_RzOp : PrimitiveGate_Op<"Rz", [Pure]> {
+ let summary = "Rotation gate operation around a principal Z axis";
+ let description = [{
+    %cst = arith.constant 2.4 : f32 
+    %1 = "quantum.Rz"(%qubit, %cst) : (!quantum.qubit, f32) -> !quantum.qubit
+  }];
 
-//   // Define the arguments: axis (as an enum), angle, and input qubit
-//   let arguments = (ins QuantumAxisAttr:$axis, F32:$theta, Quantum_QubitType:$input);
-
-//   // Define the result type
-//   let results = (outs Quantum_QubitType:$result);
-
-//   // Define the assembly format
-//   let assemblyFormat = [{
-//     `(`$input `,` $axis `,` $theta`)` attr-dict `:` type($input) `->` type($result)
-//   }];
-// }
+  let arguments = (ins Quantum_QubitType:$input, F32:$theta);
+  let results = (outs Quantum_QubitType:$result);
+}
 
 // 1-qubit gates
 def Quantum_SOp : PrimitiveGate_Op<"S", [Pure, AllTypesMatch<["input", "result"]>]> {
