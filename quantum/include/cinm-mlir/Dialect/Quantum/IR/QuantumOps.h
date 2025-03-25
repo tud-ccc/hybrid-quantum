@@ -35,13 +35,11 @@ template<typename ConcreteType>
 class Kernel : public TraitBase<ConcreteType, Kernel> {};
 
 } // namespace OpTrait
+
 } // namespace mlir
 
-class QuantumMemory : public mlir::SideEffects::Resource::Base<QuantumMemory> {
-    llvm::StringRef getName() final { return "QuantumMemory"; }
-};
-
-//===- Generated includes -------------------------------------------------===//
+//===- Generated includes
+//-------------------------------------------------===//
 
 #define GET_OP_CLASSES
 #include "cinm-mlir/Dialect/Quantum/IR/QuantumOps.h.inc"
