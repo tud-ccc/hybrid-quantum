@@ -3,7 +3,7 @@
 /// @file
 /// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
 
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumOps.h"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/OpImplementation.h"
@@ -21,7 +21,7 @@ using namespace mlir::quantum;
 //===- Generated implementation -------------------------------------------===//
 
 #define GET_OP_CLASSES
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumOps.cpp.inc"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.cpp.inc"
 
 //===----------------------------------------------------------------------===//
 
@@ -67,6 +67,6 @@ void QuantumDialect::registerOps()
 {
     addOperations<
 #define GET_OP_LIST
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumOps.cpp.inc"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.cpp.inc"
         >();
 }

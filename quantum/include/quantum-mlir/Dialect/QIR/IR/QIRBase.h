@@ -10,6 +10,6 @@
 
 //===- Generated includes -------------------------------------------------===//
 
-#include "cinm-mlir/Dialect/QIR/IR/QIRBase.h.inc"
+#include "quantum-mlir/Dialect/QIR/IR/QIRBase.h.inc"
 
 //===----------------------------------------------------------------------===//

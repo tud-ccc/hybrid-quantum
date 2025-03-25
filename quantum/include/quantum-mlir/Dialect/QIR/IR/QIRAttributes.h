@@ -4,12 +4,12 @@
 
 #pragma once
 
-#include "cinm-mlir/Dialect/QIR/IR/QIRBase.h"
 #include "mlir/IR/Attributes.h"
+#include "quantum-mlir/Dialect/QIR/IR/QIRBase.h"
 
 //===- Generated includes -------------------------------------------------===//
 
 #define GET_ATTRDEF_CLASSES
-#include "cinm-mlir/Dialect/QIR/IR/QIRAttributes.h.inc"
+#include "quantum-mlir/Dialect/QIR/IR/QIRAttributes.h.inc"
 
 //===----------------------------------------------------------------------===//

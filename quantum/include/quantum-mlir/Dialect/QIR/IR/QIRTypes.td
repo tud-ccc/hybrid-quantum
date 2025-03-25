@@ -7,7 +7,7 @@
 #ifndef QIR_TYPES
 #define QIR_TYPES
 
-include "cinm-mlir/Dialect/QIR/IR/QIRAttributes.td"
+include "quantum-mlir/Dialect/QIR/IR/QIRAttributes.td"
 include "mlir/IR/BuiltinTypeInterfaces.td"
 
 def QIR_QubitType : QIR_Type<"Qubit"> {

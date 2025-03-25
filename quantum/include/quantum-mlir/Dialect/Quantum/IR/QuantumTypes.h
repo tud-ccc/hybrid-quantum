@@ -5,12 +5,12 @@
 
 #pragma once
 
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumAttributes.h"
 #include "mlir/IR/Types.h"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumAttributes.h"
 
 //===- Generated includes -------------------------------------------------===//
 
 #define GET_TYPEDEF_CLASSES
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumTypes.h.inc"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h.inc"
 
 //===----------------------------------------------------------------------===//

@@ -9,7 +9,7 @@ namespace mlir {
 //===- Generated includes -------------------------------------------------===//
 
 #define GEN_PASS_DECL_CONVERTQUANTUMTOQIR
-#include "cinm-mlir/Conversion/Passes.h.inc"
+#include "quantum-mlir/Conversion/Passes.h.inc"
 
 //===----------------------------------------------------------------------===//
 

@@ -11,7 +11,7 @@
 
 //===- Generated includes -------------------------------------------------===//
 
-#include "cinm-mlir/Dialect/Quantum/QuantumEnums.h.inc"
+#include "quantum-mlir/Dialect/Quantum/QuantumEnums.h.inc"
 
 //===----------------------------------------------------------------------===//
 

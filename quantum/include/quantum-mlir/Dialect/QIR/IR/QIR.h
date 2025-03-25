@@ -5,4 +5,4 @@
 
 #pragma once
 
-#include "cinm-mlir/Dialect/QIR/IR/QIROps.h"
+#include "quantum-mlir/Dialect/QIR/IR/QIROps.h"

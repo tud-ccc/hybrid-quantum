@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumBase.h"
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumTypes.h"
 #include "mlir/Bytecode/BytecodeOpInterface.h"
 #include "mlir/Dialect/DLTI/Traits.h"
 #include "mlir/IR/Builders.h"
@@ -20,6 +18,8 @@
 #include "mlir/Interfaces/InferIntRangeInterface.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumBase.h"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h"
 
 #include "llvm/ADT/STLExtras.h"
 
@@ -42,7 +42,7 @@ class Kernel : public TraitBase<ConcreteType, Kernel> {};
 //-------------------------------------------------===//
 
 #define GET_OP_CLASSES
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumOps.h.inc"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h.inc"
 
 // namespace mlir::Quantum
 //===----------------------------------------------------------------------===//

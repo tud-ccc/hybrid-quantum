@@ -3,15 +3,15 @@
 /// @file
 /// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
 
-#include "cinm-mlir/Dialect/Quantum/IR/Quantum.h"
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumOps.h"
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumTypes.h"
-#include "cinm-mlir/Dialect/Quantum/Transforms/Passes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/OneToNTypeConversion.h"
+#include "quantum-mlir/Dialect/Quantum/IR/Quantum.h"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h"
+#include "quantum-mlir/Dialect/Quantum/Transforms/Passes.h"
 
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/ADT/STLExtras.h>
@@ -34,7 +34,7 @@ using namespace mlir::quantum;
 namespace mlir::quantum {
 
 #define GEN_PASS_DEF_MULTIQUBITLEGALIZATION
-#include "cinm-mlir/Dialect/Quantum/Transforms/Passes.h.inc"
+#include "quantum-mlir/Dialect/Quantum/Transforms/Passes.h.inc"
 
 } // namespace mlir::quantum
 

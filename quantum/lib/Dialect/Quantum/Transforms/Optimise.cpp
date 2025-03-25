@@ -4,11 +4,11 @@
 /// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
 /// @author     Washim Neupane (washim_sharma.neupane@mailbox.tu-dresden.de)
 
-#include "cinm-mlir/Dialect/Quantum/IR/Quantum.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "quantum-mlir/Dialect/Quantum/IR/Quantum.h"
 
 using namespace mlir;
 using namespace mlir::quantum;
@@ -18,7 +18,7 @@ using namespace mlir::quantum;
 namespace mlir::quantum {
 
 #define GEN_PASS_DEF_QUANTUMOPTIMISE
-#include "cinm-mlir/Dialect/Quantum/Transforms/Passes.h.inc"
+#include "quantum-mlir/Dialect/Quantum/Transforms/Passes.h.inc"
 
 } // namespace mlir::quantum
 

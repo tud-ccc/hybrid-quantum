@@ -4,10 +4,8 @@
 /// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
 /// @author     Washim Neupane (washim_sharma.neupane@mailbox.tu-dresden.de)
 
-#include "cinm-mlir/Conversion/QIRToLLVM/QIRToLLVM.h"
+#include "quantum-mlir/Conversion/QIRToLLVM/QIRToLLVM.h"
 
-#include "cinm-mlir/Dialect/QIR/IR/QIR.h"
-#include "cinm-mlir/Dialect/QIR/IR/QIROps.h"
 #include "mlir/Conversion/IndexToLLVM/IndexToLLVM.h"
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
 #include "mlir/Dialect/Index/IR/IndexDialect.h"
@@ -18,6 +16,8 @@
 #include "mlir/Pass/AnalysisManager.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "quantum-mlir/Dialect/QIR/IR/QIR.h"
+#include "quantum-mlir/Dialect/QIR/IR/QIROps.h"
 
 #include <cstdint>
 #include <mlir/Dialect/Tensor/IR/Tensor.h>
@@ -32,7 +32,7 @@ using namespace mlir::qir;
 namespace mlir {
 
 #define GEN_PASS_DEF_CONVERTQIRTOLLVM
-#include "cinm-mlir/Conversion/Passes.h.inc"
+#include "quantum-mlir/Conversion/Passes.h.inc"
 
 } // namespace mlir
 //===----------------------------------------------------------------------===//

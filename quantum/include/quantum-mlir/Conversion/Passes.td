@@ -1,6 +1,6 @@
 //===- Passes.td - Quantum dialect passes ---------------------*- tablegen -*-===//
 //
-// This is the definitions file for the cinm-mlir dialect conversion passes.
+// This is the definitions file for the quantum-mlir dialect conversion passes.
 //
 //===----------------------------------------------------------------------===//
 

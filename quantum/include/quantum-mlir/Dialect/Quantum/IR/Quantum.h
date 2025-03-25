@@ -5,5 +5,5 @@
 
 #pragma once
 
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumOps.h"
-#include "cinm-mlir/Dialect/Quantum/Transforms/Passes.h"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
+#include "quantum-mlir/Dialect/Quantum/Transforms/Passes.h"

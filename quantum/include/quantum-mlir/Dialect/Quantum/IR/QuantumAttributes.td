@@ -7,6 +7,6 @@
 #ifndef QUANTUM_ATTRIBUTES
 #define QUANTUM_ATTRIBUTES
 
-include "cinm-mlir/Dialect/Quantum/IR/QuantumBase.td"
+include "quantum-mlir/Dialect/Quantum/IR/QuantumBase.td"
 
 #endif // QUANTUM_ATTRIBUTES

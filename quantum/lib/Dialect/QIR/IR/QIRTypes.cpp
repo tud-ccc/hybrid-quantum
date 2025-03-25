@@ -3,7 +3,7 @@
 /// @file
 /// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
 
-#include "cinm-mlir/Dialect/QIR/IR/QIRTypes.h"
+#include "quantum-mlir/Dialect/QIR/IR/QIRTypes.h"
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
@@ -19,7 +19,7 @@ using namespace mlir::qir;
 //===- Generated implementation -------------------------------------------===//
 
 #define GET_TYPEDEF_CLASSES
-#include "cinm-mlir/Dialect/QIR/IR/QIRTypes.cpp.inc"
+#include "quantum-mlir/Dialect/QIR/IR/QIRTypes.cpp.inc"
 
 //===----------------------------------------------------------------------===//
 
@@ -31,6 +31,6 @@ void QIRDialect::registerTypes()
 {
     addTypes<
 #define GET_TYPEDEF_LIST
-#include "cinm-mlir/Dialect/QIR/IR/QIRTypes.cpp.inc"
+#include "quantum-mlir/Dialect/QIR/IR/QIRTypes.cpp.inc"
         >();
 }

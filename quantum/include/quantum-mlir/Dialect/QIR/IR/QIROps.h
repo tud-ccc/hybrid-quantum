@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include "cinm-mlir/Dialect/QIR/IR/QIRBase.h"
-#include "cinm-mlir/Dialect/QIR/IR/QIRTypes.h"
 #include "mlir/Bytecode/BytecodeOpInterface.h"
 #include "mlir/Dialect/DLTI/Traits.h"
 #include "mlir/IR/Builders.h"
@@ -20,12 +18,14 @@
 #include "mlir/Interfaces/InferIntRangeInterface.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
+#include "quantum-mlir/Dialect/QIR/IR/QIRBase.h"
+#include "quantum-mlir/Dialect/QIR/IR/QIRTypes.h"
 
 #include "llvm/ADT/STLExtras.h"
 
 //===- Generated includes -------------------------------------------------===//
 
 #define GET_OP_CLASSES
-#include "cinm-mlir/Dialect/QIR/IR/QIROps.h.inc"
+#include "quantum-mlir/Dialect/QIR/IR/QIROps.h.inc"
 
 //===----------------------------------------------------------------------===//

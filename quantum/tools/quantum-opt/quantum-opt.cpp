@@ -1,18 +1,18 @@
-/// Main entry point for the cinm-mlir optimizer driver.
+/// Main entry point for the quantum-mlir optimizer driver.
 ///
 /// @file
 /// @author      Karl F. A. Friebel (karl.friebel@tu-dresden.de)
 /// @author      Clément Fournier (clement.fournier@tu-dresden.de)
 /// @author      Lars Schütze (lars.schuetze@tu-dresden.de)
 
-#include "cinm-mlir/Conversion/Passes.h"
-#include "cinm-mlir/Dialect/QIR/IR/QIR.h"
-#include "cinm-mlir/Dialect/Quantum/IR/Quantum.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/InitAllPasses.h"
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
+#include "quantum-mlir/Conversion/Passes.h"
+#include "quantum-mlir/Dialect/QIR/IR/QIR.h"
+#include "quantum-mlir/Dialect/Quantum/IR/Quantum.h"
 
 using namespace mlir;
 

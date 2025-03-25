@@ -7,7 +7,7 @@
 #ifndef QUANTUM_OPS
 #define QUANTUM_OPS
 
-include "cinm-mlir/Dialect/Quantum/IR/QuantumTypes.td"
+include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.td"
 include "mlir/Interfaces/CastInterfaces.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"

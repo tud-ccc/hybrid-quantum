@@ -7,6 +7,6 @@
 #ifndef QIR_ATTRIBUTES
 #define QIR_ATTRIBUTES
 
-include "cinm-mlir/Dialect/QIR/IR/QIRBase.td"
+include "quantum-mlir/Dialect/QIR/IR/QIRBase.td"
 
 #endif

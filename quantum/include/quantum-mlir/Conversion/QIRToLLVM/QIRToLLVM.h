@@ -5,17 +5,17 @@
 
 #pragma once
 
-#include "cinm-mlir/Dialect/QIR/IR/QIROps.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "quantum-mlir/Dialect/QIR/IR/QIROps.h"
 
 namespace mlir {
 
 //===- Generated includes -------------------------------------------------===//
 
 #define GEN_PASS_DECL_CONVERTQIRTOLLVM
-#include "cinm-mlir/Conversion/Passes.h.inc"
+#include "quantum-mlir/Conversion/Passes.h.inc"
 
 //===----------------------------------------------------------------------===//
 

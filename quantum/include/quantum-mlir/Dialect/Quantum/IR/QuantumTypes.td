@@ -7,7 +7,7 @@
 #ifndef QUANTUM_TYPES
 #define QUANTUM_TYPES
 
-include "cinm-mlir/Dialect/Quantum/IR/QuantumAttributes.td"
+include "quantum-mlir/Dialect/Quantum/IR/QuantumAttributes.td"
 include "mlir/IR/EnumAttr.td"
 include "mlir/IR/BuiltinTypeInterfaces.td"
 

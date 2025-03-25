@@ -86,4 +86,4 @@ llc *ARGS:
     {{llvm_prefix}}/bin/llc {{ARGS}}
 
 addNewDialect DIALECT_NAME DIALECT_NS:
-    just --justfile ./dialectTemplate/justfile applyTemplate {{DIALECT_NAME}} {{DIALECT_NS}} "cinm-mlir" {{justfile_directory()}}
+    just --justfile ./dialectTemplate/justfile applyTemplate {{DIALECT_NAME}} {{DIALECT_NS}} "quantum-mlir" {{justfile_directory()}}

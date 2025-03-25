@@ -3,7 +3,7 @@
 /// @file
 /// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
 
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumTypes.h"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h"
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
@@ -23,7 +23,7 @@ using namespace mlir::quantum;
 //===- Generated implementation -------------------------------------------===//
 
 #define GET_TYPEDEF_CLASSES
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumTypes.cpp.inc"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.cpp.inc"
 
 //===----------------------------------------------------------------------===//
 
@@ -47,6 +47,6 @@ void QuantumDialect::registerTypes()
 {
     addTypes<
 #define GET_TYPEDEF_LIST
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumTypes.cpp.inc"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.cpp.inc"
         >();
 }

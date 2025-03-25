@@ -3,18 +3,18 @@
 /// @file
 /// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
 
-#include "cinm-mlir/Conversion/QuantumToQIR/QuantumToQIR.h"
+#include "quantum-mlir/Conversion/QuantumToQIR/QuantumToQIR.h"
 
-#include "cinm-mlir/Dialect/QIR/IR/QIR.h"
-#include "cinm-mlir/Dialect/QIR/IR/QIROps.h"
-#include "cinm-mlir/Dialect/QIR/IR/QIRTypes.h"
-#include "cinm-mlir/Dialect/Quantum/IR/Quantum.h"
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumOps.h"
-#include "cinm-mlir/Dialect/Quantum/IR/QuantumTypes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "quantum-mlir/Dialect/QIR/IR/QIR.h"
+#include "quantum-mlir/Dialect/QIR/IR/QIROps.h"
+#include "quantum-mlir/Dialect/QIR/IR/QIRTypes.h"
+#include "quantum-mlir/Dialect/Quantum/IR/Quantum.h"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h"
 
 #include <cstdint>
 #include <llvm/ADT/ArrayRef.h>
@@ -36,7 +36,7 @@ using namespace mlir::quantum;
 namespace mlir {
 
 #define GEN_PASS_DEF_CONVERTQUANTUMTOQIR
-#include "cinm-mlir/Conversion/Passes.h.inc"
+#include "quantum-mlir/Conversion/Passes.h.inc"
 
 } // namespace mlir
 
