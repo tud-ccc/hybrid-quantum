@@ -105,6 +105,7 @@ def Quantum_HOp : PrimitiveGate_Op<"H", [NoMemoryEffect, AllTypesMatch<["input",
 
   let arguments = (ins Quantum_QubitType:$input);
   let results = (outs Quantum_QubitType:$result);
+  let hasFolder = 1;
 }
 
 def Quantum_CNOTOp : PrimitiveGate_Op<"CNOT", [NoMemoryEffect]> {
@@ -131,6 +132,7 @@ def Quantum_XOp : PrimitiveGate_Op<"X", [NoMemoryEffect, AllTypesMatch<["input",
   let description = [{%out = "quantum.X"(%qubit) : !quantum.qubit<1> -> !quantum.qubit<1>}]; 
   let arguments = (ins Quantum_QubitType:$input);
   let results = (outs Quantum_QubitType:$result);
+  let hasFolder = 1;
 }
 
 def Quantum_YOp : PrimitiveGate_Op<"Y", [NoMemoryEffect, AllTypesMatch<["input", "result"]>, Hermitian]> {
