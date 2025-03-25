@@ -116,6 +116,7 @@ s
 
   let arguments = (ins Quantum_QubitType:$input);
   let results = (outs Quantum_QubitType:$result);
+  let hasFolder = 1;
 }
 
 
@@ -167,12 +168,7 @@ def Quantum_XOp : PrimitiveGate_Op<"X", [Pure, AllTypesMatch<["input", "result"]
 
   let arguments = (ins Quantum_QubitType:$input);
   let results = (outs Quantum_QubitType:$result);
-
-  let assemblyFormat = [{
-    $input attr-dict `:` type($input)
-  }];
-
-  let hasVerifier = 0;
+  let hasFolder = 1;
 }
 
 def Quantum_YOp : PrimitiveGate_Op<"Y", [Pure, AllTypesMatch<["input", "result"]>, Hermitian]> {
