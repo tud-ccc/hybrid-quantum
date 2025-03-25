@@ -25,6 +25,8 @@ using namespace mlir::quantum;
 
 //===----------------------------------------------------------------------===//
 
+//===- Verifier -----------------------------------------------------------===//
+
 // LogicalResult QuantumDialect::verifyOperationAttribute(Operation *op,
 //                                                      NamedAttribute attr) {
 //   if (!llvm::isa<UnitAttr>(attr.getValue()) ||
@@ -40,8 +42,8 @@ using namespace mlir::quantum;
 //   return success();
 // }
 
-// Folders
-// In QuantumOps.cpp
+//===- Folders ------------------------------------------------------------===//
+
 OpFoldResult HOp::fold(FoldAdaptor adaptor)
 {
     // If the input to this H gate was another H gate, remove both.
