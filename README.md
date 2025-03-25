@@ -59,7 +59,7 @@ The script file test.sh runs a script to check all operation implementation, opt
 
 <!-- LICENSE -->
 ## License
-Distributed under the BSD 2-claues License. See `LICENSE.txt` for more information.
+Distributed under the BSD 3-clause "Clear" License. See `LICENSE.txt` for more information.
 
 <!-- CONTACT -->
 ## Contributors
