@@ -8,11 +8,41 @@ The project aims to develop a comprehensive framework for hybrid quantum-classic
 
 ## Building
 
-The `hybrid-quantum` project is built using CMAKE (version 3.20 or newer).
 Make sure to provide all dependencies required by the project, either by installing them to the system-default locations, or by setting the search location hints.
 
+### Dependencies
+
 The project depends on a [patched version](https://github.com/oowekyala/llvm-project) of `LLVM 18.1.6` (`6f89431c3d4de87df6d76cf7ffa73bfa881607b7`).
+
+```sh
+# Configure LLVM
+cmake -S $LLVM_PREFIX/../llvm -B $LLVM_PREFIX \
+   -G Ninja \
+   -DLLVM_ENABLE_PROJECTS="mlir;llvm;clang" \
+   -DLLVM_TARGETS_TO_BUILD="host" \
+   -DLLVM_ENABLE_ASSERTIONS=ON \
+   -DMLIR_ENABLE_BINDINGS_PYTHON=OFF \
+   -DLLVM_BUILD_TOOLS=OFF \
+   -DCMAKE_BUILD_TYPE=Release \
+   -DBUILD_SHARED_LIBS=ON \
+   -DLLVM_OPTIMIZED_TABLEGEN=ON
+
+# Build LLVM
+ninja -C $LLVM_PREFIX
+ninja -C $LLVM_PREFIX llc
+ninja -C $LLVM_PREFIX opt
+```
+
 As a backend it supports [QIR Runner](https://github.com/qir-alliance/qir-runner) in version `0.7.5`.
+QIR runner is a Rust library providing an implementation of the QIR spec.
+
+```sh
+cargo build -Znext-lockfile-bump --release
+```
+
+### quantum-mlir
+
+The `hybrid-quantum` project is built using CMAKE (version 3.20 or newer).
 
 ```sh
 # Configure
@@ -20,8 +50,8 @@ cmake -S . -B build \
    -G Ninja \
    -DLLVM_DIR=$LLVM_PREFIX/lib/cmake/llvm \
    -DMLIR_DIR=$MLIR_PREFIX/lib/cmake/mlir \
-   -DQIR \
-   -DQIR_DIR=$QIR_PREFIX/target
+   -DBACKEND_QIR=1 \
+   -DQIR_DIR=$QIR_PREFIX
 
 # Build
 cmake --build build
@@ -33,14 +63,9 @@ The following CMAKE variables can be configured:
 | --- | --- | --- |
 | LLVM_DIR  | STRING  | Path to the CMake directory of an LLVM installation, e.g. `~/tools/llvm-15/lib/cmake/llvm` |
 | MLIR_DIR  | STRING  | Path to the CMake directory of an MLIR installation, e.g. `~/tools/llvm-15/lib/cmake/mlir` |
-| QIR | BOOL | Set whether the QIR runner backend should be enabled. If set `QIR_SOURCE_PATH` must be set. |
-| QIR_DIR | STRING  | Path to the SOURCE directory of QIR runner, e.g. `~/tools/qir-runner` |
+| QIR | BOOL | Set whether the QIR runner backend should be enabled. If `true` the `QIR_DIR` must be set. |
+| QIR_DIR | STRING  | Path to the target directory of QIR runner, e.g. `~/tools/qir-runner/target/release` |
 
 ## License
 
 Distributed under the BSD 3-clause "Clear" License. See `LICENSE.txt` for more information.
-
-## Contributors
-
-* Lars Schütze (<lars.schuetze@tu-dresden.de>)
-* Washim S. Neupane (<washim_sharma.neupane@mailbox.tu-dresden.de>)

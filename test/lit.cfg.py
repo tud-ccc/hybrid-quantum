@@ -31,7 +31,7 @@ config.test_exec_root = os.path.join(config.quantum_obj_root, 'test')
 # excludes: A list of directories to exclude from the testsuite. The 'Inputs'
 # subdirectories contain auxiliary inputs for various tests in their parent
 # directories.
-config.excludes = ['Inputs', 'CMakeLists.txt', 'README.md', 'LICENSE']
+config.excludes = ['Inputs', 'CMakeLists.txt', 'README.md', 'LICENSE.txt']
 
 config.substitutions.append(('%PATH%', config.environment['PATH']))
 config.substitutions.append(('%shlibext', config.llvm_shlib_ext))
