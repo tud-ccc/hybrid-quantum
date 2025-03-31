@@ -1,90 +1,46 @@
+# hybrid-quantum
 
-<br />
-<div align="center">
-  
-  <h3 align="center"> QUMIN: A Compilation Infrastructure for Heterogeneous Quantum Computer </h3>
+This repository contains a set of MLIR dialects for hybrid quantum-classical computations.
 
-  <p align="center">
-    An MLIR Based Compiler Framework for Quantum Classical Computation (based on Cinnamon)
-    <br />
-    <a href="https://arxiv.org/abs/2301.07486"><strong>Paper Link»</strong></a>
-    <br />
-  </p>
-</div>
-
-<!-- ABOUT THE PROJECT -->
 ## About The Project
 
-The project aims to develop a comprehensive framework for quantum computing that includes a collection of quantum-specific dialects, enabling targeted backends and progressive lowering to Quantum Intermediate Representation (QIR) and LLVM IR. By implementing optimization passes tailored for the quantum dialect, we seek to enhance the performance and efficiency of quantum algorithms. Additionally, this framework will facilitate the integration of classical dialects, allowing for seamless collaboration between quantum and classical computing paradigms. These features are essential for improving the programmability and usability of quantum architectures, making them more accessible to researchers and developers while promoting interoperability across various quantum platforms.
+The project aims to develop a comprehensive framework for hybrid quantum-classical computing that includes a collection of quantum-specific dialects, enabling a progressive lowering to targeted backends such as the Quantum Intermediate Representation (QIR) and LLVM IR. By implementing optimization passes tailored for the quantum dialect, we seek to enhance the performance and efficiency of quantum algorithms. Additionally, this framework will facilitate the integration of classical dialects, allowing for seamless collaboration between quantum and classical computing paradigms. These features are essential for improving the programmability and usability of quantum architectures, making them more accessible to researchers and developers while promoting interoperability across various quantum platforms.
 
-<!-- 
-### Built With
+## Building
 
-The CINM framework depends on a patched version of LLVM 18.1.6.
-Additionally, a number of software packages are required to build it, like CMake.  -->
-<!-- 
-* [![MLIR][mlir]][Mlir-url]
-* [![CMake][CMake]][React-url] -->
+The `hybrid-quantum` project is built using CMAKE (version 3.20 or newer).
+Make sure to provide all dependencies required by the project, either by installing them to the system-default locations, or by setting the search location hints.
 
-<!-- GETTING STARTED -->
-## Getting Started
+The project depends on a [patched version](https://github.com/oowekyala/llvm-project) of `LLVM 18.1.6` (`6f89431c3d4de87df6d76cf7ffa73bfa881607b7`).
+As a backend it supports [QIR Runner](https://github.com/qir-alliance/qir-runner) in version `0.7.5`.
 
-This is an example of how you can build the framework locally.
+```sh
+# Configure
+cmake -S . -B build \
+   -G Ninja \
+   -DLLVM_DIR=$LLVM_PREFIX/lib/cmake/llvm \
+   -DMLIR_DIR=$MLIR_PREFIX/lib/cmake/mlir \
+   -DQIR \
+   -DQIR_DIR=$QIR_PREFIX/target
 
-### Prerequisites
-
-QUMIN depends on a patched version of `LLVM 18.1.6`.
-Additionally, a number of software packages are required to build it, like `CMake`. 
-
-### Download and Build 
-
-The repository contains a script, `build.sh` that installs all needed dependencies and builds the sources.
-
-* Clone the repo
-   ```sh
-   git clone https://github.com/tud-ccc/Cinnamon.git
-   ```
-* Build the sources
-   ```sh
-   cd Cinnamon
-   chmod +x build.sh
-   ./build.sh
-   ```
-
-
-# Setup instructions
-
-- Create a file named `.env` in the clone directory
-- In this file, write `LLVM_BUILD_DIR="<path/to/llvm-project/build"` with an absolute path, eg
-```shell
-LLVM_BUILD_DIR="/home/clem/Documents/CCC/cinnamon-oot/llvm/build"
-```
-It should point to the build directory, whatever it is named.
-
-Your LLVM version should be
-```
-6f89431c3d4de87df6d76cf7ffa73bfa881607b7
-```
-which you need to fetch from https://github.com/oowekyala/llvm-project
-
-### Linker config
-
-To reduce link times, install the `mold` linker and
-```shell
-echo "CMAKE_LINKER_TYPE=MOLD\n" >> .env
+# Build
+cmake --build build
 ```
 
-<!-- USAGE EXAMPLES -->
-## Usage
-Run build.sh when running first time. 
-Use run.sh when you want to recompile the code after changes. 
-The script file test.sh runs a script to check all operation implementation, optimisation pass, lowering to llvm ir etc.  
+The following CMAKE variables can be configured:
 
-<!-- LICENSE -->
+| NAME | TYPE | DESCRIPTION |
+| --- | --- | --- |
+| LLVM_DIR  | STRING  | Path to the CMake directory of an LLVM installation, e.g. `~/tools/llvm-15/lib/cmake/llvm` |
+| MLIR_DIR  | STRING  | Path to the CMake directory of an MLIR installation, e.g. `~/tools/llvm-15/lib/cmake/mlir` |
+| QIR | BOOL | Set whether the QIR runner backend should be enabled. If set `QIR_SOURCE_PATH` must be set. |
+| QIR_DIR | STRING  | Path to the SOURCE directory of QIR runner, e.g. `~/tools/qir-runner` |
+
 ## License
+
 Distributed under the BSD 3-clause "Clear" License. See `LICENSE.txt` for more information.
 
-<!-- CONTACT -->
 ## Contributors
-- Washim S. Neupane (washim_sharma.neupane@mailbox.tu-dresden.de)
 
+* Lars Schütze (<lars.schuetze@tu-dresden.de>)
+* Washim S. Neupane (<washim_sharma.neupane@mailbox.tu-dresden.de>)
