@@ -1,6 +1,7 @@
 ################################################################################
 # quantum-mlir
 #
+# MLIR dialect implementing hybrid quantum-classical representations.
 ################################################################################
 
 cmake_minimum_required(VERSION 3.22)
@@ -16,6 +17,9 @@ project(quantum-mlir
 # Set global language standard to C++20.
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to conform to")
 
+# Set backend variables
+set(BACKEND_QIR "true" CACHE STRING "Use QIR runner backend")
+
 # Detect if this is a stand-alone build.
 if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
     # Set shared output directories.
@@ -24,6 +28,9 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
     set(LLVM_LIBRARY_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/lib)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
     set(LLVM_RUNTIME_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/bin)
+
+    # Documentation will be output here.
+    set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
 endif()
 
 # Fix for MLIR:
@@ -33,6 +40,8 @@ if(POLICY CMP0116)
     cmake_policy(SET CMP0116 OLD)
 endif()
 
+# Find LLVM
+find_package(LLVM REQUIRED CONFIG)
 # Find MLIR.
 find_package(MLIR REQUIRED CONFIG)
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
@@ -63,15 +72,11 @@ add_compile_options(
     -Wno-ambiguous-reversed-operator
     # NOTE: GDB < 10.x can't handle DWARFv5 correctly.
     $<$<CXX_COMPILER_ID:Clang>:-fdebug-default-version=4>
-    $<$<CXX_COMPILER_ID:Clang>:-fcolor-diagnostics>
 )
 
-get_property(LTY GLOBAL PROPERTY LINKER_TYPE)
-if (LTY STREQUAL "LLD")
-    add_link_options(--for-linker --color-diagnostics=always)
-endif()
-
+add_subdirectory(docs)
 add_subdirectory(include)
 add_subdirectory(lib)
-add_subdirectory(tools)
 add_subdirectory(test)
+add_subdirectory(tools)
+enable_testing()
