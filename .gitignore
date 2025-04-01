@@ -77,3 +77,5 @@ CMakeUserPresets.json
 
 docs
 build
+.cache
+CMakePresets.json

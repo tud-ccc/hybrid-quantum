@@ -40,6 +40,8 @@ if(POLICY CMP0116)
     cmake_policy(SET CMP0116 OLD)
 endif()
 
+# Find LLVM
+find_package(LLVM REQUIRED CONFIG)
 # Find MLIR.
 find_package(MLIR REQUIRED CONFIG)
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
