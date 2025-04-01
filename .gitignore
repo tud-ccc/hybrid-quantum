@@ -75,7 +75,6 @@ CMakeUserPresets.json
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,cmake,c++
 
-docs
 build
 .cache
 CMakePresets.json
