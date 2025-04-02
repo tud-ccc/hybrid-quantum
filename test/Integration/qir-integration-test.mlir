@@ -11,7 +11,7 @@
 // RUN:       convert-index-to-llvm, \
 // RUN:       convert-arith-to-llvm, \
 // RUN:       reconcile-unrealized-casts)" | \
-// RUN: mlir-cpu-runner -e entry -entry-point-result=void \
+// RUN: mlir-runner -e entry -entry-point-result=void \
 // RUN:     --shared-libs=%qir_shlibs,%mlir_c_runner_utils | \
 // RUN: FileCheck %s --match-full-lines
 

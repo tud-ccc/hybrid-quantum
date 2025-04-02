@@ -23,7 +23,7 @@ configure_lit_site_cfg(
 
 set(TEST_DEPENDS
     FileCheck count not
-    mlir-cpu-runner
+    mlir-runner
     quantum-opt
 )
 
