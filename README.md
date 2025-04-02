@@ -12,7 +12,7 @@ Make sure to provide all dependencies required by the project, either by install
 
 ### Dependencies
 
-The project depends on a [patched version](https://github.com/oowekyala/llvm-project) of `LLVM 18.1.6` (`6f89431c3d4de87df6d76cf7ffa73bfa881607b7`).
+The project depends on [LLVM](https://github.com/llvm/llvm-project) version `20.1.1` (`424c2d9`).
 
 ```sh
 # Configure LLVM
