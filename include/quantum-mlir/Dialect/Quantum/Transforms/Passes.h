@@ -27,7 +27,7 @@ void populateQuantumOptimisePatterns(RewritePatternSet &patterns);
 
 /// Adds the legalization pass patterns to @p patterns .
 void populateMultiQubitLegalizationPatterns(
-    OneToNTypeConverter converter,
+    TypeConverter converter,
     RewritePatternSet &patterns);
 
 /// Constructs the lower-funnel-shift pass.

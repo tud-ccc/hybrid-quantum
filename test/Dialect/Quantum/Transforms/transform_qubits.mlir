@@ -1,5 +1,4 @@
-// RUN: quantum-opt %s --debug --debug-only=greedy-rewriter,dialect-conversion --quantum-multi-qubit-legalize | FileCheck %s
-// --debug-only=dialect-conversion
+// RUN: quantum-opt %s --quantum-multi-qubit-legalize | FileCheck %s
 
 module {
     
