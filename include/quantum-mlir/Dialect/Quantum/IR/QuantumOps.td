@@ -13,6 +13,28 @@ include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
 //===----------------------------------------------------------------------===//
+// Quantum OP templates
+//===----------------------------------------------------------------------===//
+
+class Gate_Op<string mnemonic, list<Trait> traits = []>
+        : Quantum_Op<mnemonic, traits>;
+
+class Memory_Op<string mnemonic, list<Trait> traits = []> :
+        Quantum_Op<mnemonic, traits # [ConditionallySpeculatable]> {
+    let extraClassDeclaration = [{
+        ::mlir::Speculation::Speculatability getSpeculatability() const {
+            return ::mlir::Speculation::NotSpeculatable;
+        }
+    }];
+}
+
+class Observable_Op<string mnemonic, list<Trait> traits = []> :
+        Quantum_Op<mnemonic, traits # [Pure]>;
+
+class Measurement_Op<string mnemonic, list<Trait> traits = []> :
+        Quantum_Op<mnemonic, traits>; 
+
+//===----------------------------------------------------------------------===//
 // Quantum dialect traits.
 //===----------------------------------------------------------------------===//
 
