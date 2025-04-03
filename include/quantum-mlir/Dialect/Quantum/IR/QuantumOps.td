@@ -19,20 +19,21 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 class Gate_Op<string mnemonic, list<Trait> traits = []>
         : Quantum_Op<mnemonic, traits>;
 
-class Memory_Op<string mnemonic, list<Trait> traits = []> :
-        Quantum_Op<mnemonic, traits # [ConditionallySpeculatable]> {
-    let extraClassDeclaration = [{
+class Memory_Op<string mnemonic, list<Trait> traits = []>
+        : Quantum_Op<mnemonic, traits # [ConditionallySpeculatable]>
+{
+    code extraClassDeclaration = [{
         ::mlir::Speculation::Speculatability getSpeculatability() const {
             return ::mlir::Speculation::NotSpeculatable;
         }
     }];
 }
 
-class Observable_Op<string mnemonic, list<Trait> traits = []> :
-        Quantum_Op<mnemonic, traits # [Pure]>;
+class Observable_Op<string mnemonic, list<Trait> traits = []>
+        : Quantum_Op<mnemonic, traits # [Pure]>;
 
-class Measurement_Op<string mnemonic, list<Trait> traits = []> :
-        Quantum_Op<mnemonic, traits>; 
+class Measurement_Op<string mnemonic, list<Trait> traits = []>
+        : Quantum_Op<mnemonic, traits>; 
 
 //===----------------------------------------------------------------------===//
 // Quantum dialect traits.
@@ -47,7 +48,14 @@ def NoClone : NativeOpTrait<"NoClone"> {
 //===----------------------------------------------------------------------===//
 // Quantum memory operations.
 //===----------------------------------------------------------------------===//
-def Quantum_AllocOp : Memory_Op<"alloc", [MemoryEffects<[MemRead]>, NoClone]> {
+
+def Quantum_AllocOp : Memory_Op<
+        "alloc",
+        [
+          MemoryEffects<[
+            MemRead
+          ]>,
+          NoClone]> {
   let summary = "Allocate n qubits into a quantum register.";
   let description = [{
     Allocates a fixed number of N qubits into a single quantum register.
@@ -61,7 +69,14 @@ def Quantum_AllocOp : Memory_Op<"alloc", [MemoryEffects<[MemRead]>, NoClone]> {
 
   let results = (outs Quantum_QubitType:$result);
 }
-def Quantum_DeallocateOp : Memory_Op<"deallocate", [MemoryEffects<[MemRead,MemWrite]>]> {
+
+def Quantum_DeallocateOp : Memory_Op<
+        "deallocate",
+        [
+          MemoryEffects<[
+            MemRead,
+            MemWrite
+          ]>]> {
     let summary = "Deallocate a quantum register.";
     let description = [{
     Use this operation on all qubit registers that are not measured.
@@ -78,7 +93,14 @@ def Quantum_DeallocateOp : Memory_Op<"deallocate", [MemoryEffects<[MemRead,MemWr
     let arguments = (ins Quantum_QubitType:$input);
 }
 
-def Quantum_SplitOp : Memory_Op<"split", [MemoryEffects<[MemRead,MemWrite]>, NoClone]> {
+def Quantum_SplitOp : Memory_Op<
+        "split",
+        [
+          MemoryEffects<[
+            MemRead,
+            MemWrite
+          ]>,
+          NoClone]> {
     let summary = "Split a qubit register into two sub-registers.";
     let description = [{
     Example: 
@@ -89,19 +111,23 @@ def Quantum_SplitOp : Memory_Op<"split", [MemoryEffects<[MemRead,MemWrite]>, NoC
     ```
     }];
 
-    let arguments = (ins
-        Quantum_QubitType:$input
-    );
+    let arguments = (ins Quantum_QubitType:$input);
     let results = (outs
-        Variadic<Quantum_QubitType>:$result
+      Variadic<Quantum_QubitType>:$result
     );
     let hasVerifier = 0;
 }
 
-def Quantum_MergeOp : Memory_Op<"merge", [MemoryEffects<[MemRead,MemWrite]>, NoClone]> {
+def Quantum_MergeOp : Memory_Op<
+        "merge",
+        [
+          MemoryEffects<[
+            MemRead,
+            MemWrite
+          ]>,
+          NoClone]> {
     let summary = "Combine qubit registers into a single one.";
     let description = [{
-
     Example:
 
     ```mlir
@@ -116,19 +142,23 @@ def Quantum_MergeOp : Memory_Op<"merge", [MemoryEffects<[MemRead,MemWrite]>, NoC
         Quantum_QubitType:$rhs
     );
 
-    let results = (outs
-        Quantum_QubitType:$result
-    );
+    let results = (outs Quantum_QubitType:$result);
+
     let hasVerifier = 0;
 }
 
 //===----------------------------------------------------------------------===//
 // Quantum gate operations.
 //===----------------------------------------------------------------------===//
+
 class PrimitiveGate_Op<string mnemonic, list<Trait> traits = []> :
         Gate_Op<mnemonic, traits # [NoClone]>;
         
-def Quantum_HOp : PrimitiveGate_Op<"H", [NoMemoryEffect, AllTypesMatch<["input", "result"]>]> {
+def Quantum_HOp : PrimitiveGate_Op<
+        "H",
+        [
+          NoMemoryEffect,
+          AllTypesMatch<["input", "result"]>]> {
   let summary = "Hadamard gate operation";
   let description = [{
     Example:
@@ -140,7 +170,10 @@ def Quantum_HOp : PrimitiveGate_Op<"H", [NoMemoryEffect, AllTypesMatch<["input",
   let hasFolder = 1;
 }
 
-def Quantum_CNOTOp : PrimitiveGate_Op<"CNOT", [NoMemoryEffect]> {
+def Quantum_CNOTOp : PrimitiveGate_Op<
+        "CNOT",
+        [
+          NoMemoryEffect]> {
   let summary = "CNOT gate operation";
   let description = [{
     Example:
@@ -159,7 +192,11 @@ def Quantum_CNOTOp : PrimitiveGate_Op<"CNOT", [NoMemoryEffect]> {
   );
 }
 
-def Quantum_XOp : PrimitiveGate_Op<"X", [NoMemoryEffect, AllTypesMatch<["input", "result"]>]> {
+def Quantum_XOp : PrimitiveGate_Op<
+        "X",
+        [
+          NoMemoryEffect,
+          AllTypesMatch<["input", "result"]>]> {
   let summary = "X gate operation (NOT gate)";
   let description = [{%out = "quantum.X"(%qubit) : !quantum.qubit<1> -> !quantum.qubit<1>}]; 
   let arguments = (ins Quantum_QubitType:$input);
@@ -167,21 +204,32 @@ def Quantum_XOp : PrimitiveGate_Op<"X", [NoMemoryEffect, AllTypesMatch<["input",
   let hasFolder = 1;
 }
 
-def Quantum_YOp : PrimitiveGate_Op<"Y", [NoMemoryEffect, AllTypesMatch<["input", "result"]>]> {
+def Quantum_YOp : PrimitiveGate_Op<
+        "Y",
+        [
+          NoMemoryEffect,
+          AllTypesMatch<["input", "result"]>]> {
   let summary = "Y gate operation (Pauli-Y gate)";
   let description = [{%out = "quantum.Y"(%qubit) : !quantum.qubit<1> -> !quantum.qubit<1>}];
   let arguments = (ins Quantum_QubitType:$input);
   let results = (outs Quantum_QubitType:$result);
 }
 
-def Quantum_ZOp : PrimitiveGate_Op<"Z", [NoMemoryEffect, AllTypesMatch<["input", "result"]>]> {
+def Quantum_ZOp : PrimitiveGate_Op<
+        "Z",
+        [
+          NoMemoryEffect,
+          AllTypesMatch<["input", "result"]>]> {
   let summary = "Z gate operation (Pauli-Z gate)";
   let description = [{%out = "quantum.Z"(%qubit) : !quantum.qubit<1> -> !quantum.qubit<1>}];
   let arguments = (ins Quantum_QubitType:$input);
   let results = (outs Quantum_QubitType:$result);
 }
 
-def Quantum_SWAPOp : PrimitiveGate_Op<"SWAP", [AllTypesMatch<["lhs", "rhs", "result1", "result2"]>]> {
+def Quantum_SWAPOp : PrimitiveGate_Op<
+        "SWAP",
+        [
+          AllTypesMatch<["lhs", "rhs", "result1", "result2"]>]> {
   let summary = "SWAP gate";
   let description = [{
     Swaps the states of two qubits.
@@ -196,7 +244,14 @@ def Quantum_SWAPOp : PrimitiveGate_Op<"SWAP", [AllTypesMatch<["lhs", "rhs", "res
   );
 }
 
-def Quantum_MeasureSingleOp : Memory_Op<"measure_single", [MemoryEffects<[MemRead]>, AllTypesMatch<["input", "result"]>, NoClone]> {
+def Quantum_MeasureSingleOp : Memory_Op<
+        "measure_single",
+        [
+          MemoryEffects<[
+            MemRead
+          ]>,
+          AllTypesMatch<["input", "result"]>,
+          NoClone]> {
     let summary = "Measure a single qubit.";
     let description = [{ 
       Return the measurement outcome of a single quibit in the basis dimension.
@@ -216,7 +271,14 @@ def Quantum_MeasureSingleOp : Memory_Op<"measure_single", [MemoryEffects<[MemRea
     );
 }
 
-def Quantum_MeasureOp : Memory_Op<"measure", [MemoryEffects<[MemRead]>, AllTypesMatch<["input", "result"]>, NoClone]> {
+def Quantum_MeasureOp : Memory_Op<
+        "measure",
+        [
+          MemoryEffects<[
+            MemRead
+          ]>,
+          AllTypesMatch<["input", "result"]>,
+          NoClone]> {
     let summary = "Measure a qubit register of size N.";
     let description = [{
       %q0 = quantum.allocate : !quantum.qubit<2>
