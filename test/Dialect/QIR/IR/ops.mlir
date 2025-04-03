@@ -1,4 +1,4 @@
-// RUN: quantum-opt %s --mlir-print-ir-after-all | FileCheck %s
+// RUN: quantum-opt %s | FileCheck %s
 
 func.func @main() {
   // Allocate qubits and results.

@@ -59,6 +59,29 @@ OpFoldResult XOp::fold(FoldAdaptor adaptor)
         return parent.getOperand();
     return nullptr;
 }
+
+template<typename ConcreteType>
+LogicalResult NoClone<ConcreteType>::verifyTrait(Operation* op)
+{
+    for (auto value : op->getOpResults()) {
+        if (!llvm::isa<quantum::QubitType>(value.getType())) continue;
+
+        auto uses = value.getUses();
+        // Check if a qubit is used more than once in the same block
+        for (auto it = uses.begin(); it != uses.end(); ++it) {
+            auto parent = it->getOwner()->getBlock()->getParent();
+            for (auto jt = std::next(it); jt != uses.end(); ++jt) {
+                if (parent == jt->getOwner()->getBlock()->getParent()) {
+                    return op->emitOpError()
+                           << "result qubit #" << value.getResultNumber()
+                           << " used more than once within the same block";
+                }
+            }
+        }
+        return success();
+    }
+}
+
 //===----------------------------------------------------------------------===//
 // QuantumDialect
 //===----------------------------------------------------------------------===//

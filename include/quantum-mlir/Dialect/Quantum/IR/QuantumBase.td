@@ -38,13 +38,16 @@ def Quantum_Dialect : Dialect {
     // let useDefaultTypePrinterParser = 1;
 }
 
+//===----------------------------------------------------------------------===//
+// Quantum ops.
+//===----------------------------------------------------------------------===//
+
 class Quantum_Op<string mnemonic, list<Trait> traits = []>
         : Op<Quantum_Dialect, mnemonic, traits>;
 
 class Quantum_Type<string name, list<Trait> traits = []>
     : TypeDef<Quantum_Dialect, name, traits> {
 }
-
 
 class Gate_Op<string mnemonic, list<Trait> traits = []>
         : Quantum_Op<mnemonic, traits>;
@@ -63,12 +66,5 @@ class Observable_Op<string mnemonic, list<Trait> traits = []> :
 
 class Measurement_Op<string mnemonic, list<Trait> traits = []> :
         Quantum_Op<mnemonic, traits>; 
-        
-
-//===----------------------------------------------------------------------===//
-// Quantum dialect traits.
-//===----------------------------------------------------------------------===//
-def Unitary : NativeOpTrait<"Unitary">;
-def Hermitian : NativeOpTrait<"Hermitian">;
         
 #endif // QUANTUM_BASE

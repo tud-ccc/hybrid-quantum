@@ -23,18 +23,20 @@
 
 #include "llvm/ADT/STLExtras.h"
 
+#include <algorithm>
+#include <iterator>
+#include <llvm/Support/Casting.h>
+
 namespace mlir {
-namespace quantum {} // namespace quantum
+namespace quantum {
 
-namespace OpTrait {
 template<typename ConcreteType>
-class Unitary : public TraitBase<ConcreteType, Unitary> {};
-template<typename ConcreteType>
-class Hermitian : public TraitBase<ConcreteType, Hermitian> {};
-template<typename ConcreteType>
-class Kernel : public TraitBase<ConcreteType, Kernel> {};
+class NoClone : public OpTrait::TraitBase<ConcreteType, NoClone> {
+public:
+    static LogicalResult verifyTrait(Operation* op);
+};
 
-} // namespace OpTrait
+} // namespace quantum
 
 } // namespace mlir
 
