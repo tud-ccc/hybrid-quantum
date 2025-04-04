@@ -9,9 +9,13 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 
+#include <bits/ranges_base.h>
 #include <llvm/ADT/SmallVector.h>
+#include <llvm/Support/Error.h>
+#include <llvm/Support/raw_ostream.h>
 #include <mlir/IR/OpDefinition.h>
 #include <mlir/Support/LogicalResult.h>
+#include <ostream>
 
 #define DEBUG_TYPE "quantum-ops"
 
@@ -67,11 +71,14 @@ LogicalResult NoClone<ConcreteType>::verifyTrait(Operation* op)
         if (!llvm::isa<quantum::QubitType>(value.getType())) continue;
 
         auto uses = value.getUses();
+        int i = 0;
         // Check if a qubit is used more than once in the same block
         for (auto it = uses.begin(); it != uses.end(); ++it) {
-            auto parent = it->getOwner()->getBlock()->getParent();
+            llvm::errs() << i++;
+            llvm::errs() << it->getOwner()->getName();
+            auto parent = it->getOwner()->getParentRegion();
             for (auto jt = std::next(it); jt != uses.end(); ++jt) {
-                if (parent == jt->getOwner()->getBlock()->getParent()) {
+                if (parent == jt->getOwner()->getParentRegion()) {
                     return op->emitOpError()
                            << "result qubit #" << value.getResultNumber()
                            << " used more than once within the same block";
