@@ -117,6 +117,76 @@ LLVM::LLVMFuncOp ensureFunctionDeclaration(
     return cast<LLVM::LLVMFuncOp>(fnDecl);
 };
 
+struct InitOpPattern : public ConvertOpToLLVMPattern<InitOp> {
+    using ConvertOpToLLVMPattern<InitOp>::ConvertOpToLLVMPattern;
+
+    LogicalResult matchAndRewrite(
+        InitOp op,
+        InitOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        Location loc = op.getLoc();
+        MLIRContext* ctx = op.getContext();
+
+        // Create null pointer for initialize call
+        Type ptrType = LLVM::LLVMPointerType::get(ctx);
+        Value nullPtr = rewriter.create<LLVM::ZeroOp>(loc, ptrType);
+
+        // Define QIR initialization function
+        StringRef fnName = "__quantum__rt__initialize";
+        Type voidType = LLVM::LLVMVoidType::get(ctx);
+        auto fnType = LLVM::LLVMFunctionType::get(
+            voidType,
+            {ptrType},
+            /*isVarArg=*/false);
+
+        LLVM::LLVMFuncOp fnDecl =
+            ensureFunctionDeclaration(rewriter, op, fnName, fnType);
+
+        rewriter.create<LLVM::CallOp>(
+            loc,
+            TypeRange{},
+            fnDecl.getSymName(),
+            ValueRange{nullPtr});
+
+        rewriter.eraseOp(op);
+        return success();
+    }
+};
+
+struct SeedOpPattern : public ConvertOpToLLVMPattern<SeedOp> {
+    using ConvertOpToLLVMPattern<SeedOp>::ConvertOpToLLVMPattern;
+
+    LogicalResult matchAndRewrite(
+        SeedOp op,
+        SeedOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        Location loc = op.getLoc();
+        Value seedArg = adaptor.getSeed();
+
+        // Define RNG seed function
+        StringRef fnName = "set_rng_seed";
+        Type voidType = LLVM::LLVMVoidType::get(op.getContext());
+        auto fnType = LLVM::LLVMFunctionType::get(
+            voidType,
+            {rewriter.getI64Type()},
+            /*isVarArg=*/false);
+
+        LLVM::LLVMFuncOp fnDecl =
+            ensureFunctionDeclaration(rewriter, op, fnName, fnType);
+
+        rewriter.create<LLVM::CallOp>(
+            loc,
+            TypeRange{},
+            fnDecl.getSymName(),
+            ValueRange{seedArg});
+
+        rewriter.eraseOp(op);
+        return success();
+    }
+};
+
 struct AllocOpPattern : public ConvertOpToLLVMPattern<AllocOp> {
     using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
@@ -645,6 +715,8 @@ void mlir::qir::populateConvertQIRToLLVMPatterns(
     patterns.add<AllocOpPattern, AllocResultOpPattern>(typeConverter, analysis);
 
     patterns.add<
+        InitOpPattern,
+        SeedOpPattern,
         HOpPattern,
         SwapOpPattern,
         XOpPattern,
