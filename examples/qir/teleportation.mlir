@@ -20,11 +20,16 @@ module {
     // 2. Measure q0 and q1 to obtain classical bits m0 and m1.
     %r0 = "qir.ralloc"() : () -> (!qir.result)
     "qir.measure"(%q0, %r0) : (!qir.qubit, !qir.result) -> ()
-    %m0 = "qir.read_measurement"(%r0) : (!qir.result) -> (i1)
-
+    %m0_tensor = "qir.read_measurement"(%r0) : (!qir.result) -> tensor<1xi1>
+    
     %r1 = "qir.ralloc"() : () -> (!qir.result)
     "qir.measure"(%q1, %r1) : (!qir.qubit, !qir.result) -> ()
-    %m1 = "qir.read_measurement"(%r1) : (!qir.result) -> (i1)
+    %m1_tensor = "qir.read_measurement"(%r1) : (!qir.result) -> tensor<1xi1>
+
+    // Create an index constant for extraction
+    %c0 = arith.constant 0 : index
+    %m0 = tensor.extract %m0_tensor[%c0] : tensor<1xi1>
+    %m1 = tensor.extract %m1_tensor[%c0] : tensor<1xi1>
 
     // 3. Based on the measurement outcomes, correct the state on q2.
     // If m1 is true, apply an X gate.
@@ -37,10 +42,11 @@ module {
       "qir.Z"(%q2) : (!qir.qubit) -> ()
     }
 
-    // Optionally, measure the corrected qubit (q2_final) to verify teleportation.
+    // Measure the corrected qubit (q2_final) to verify teleportation.
     %r2 = "qir.ralloc"() : () -> (!qir.result)
     "qir.measure"(%q2, %r2) : (!qir.qubit, !qir.result) -> ()
-    %final = "qir.read_measurement"(%r2) : (!qir.result) -> (i1)
+    %final_tensor = "qir.read_measurement"(%r2) : (!qir.result) -> tensor<1xi1>
+    %final = tensor.extract %final_tensor[%c0] : tensor<1xi1>
 
     // Return two classical bits for demonstration:
     // Here we return the measurement outcome m0 (from q0) and the final state from q2.
