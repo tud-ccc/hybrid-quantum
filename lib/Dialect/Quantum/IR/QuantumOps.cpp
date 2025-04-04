@@ -5,17 +5,10 @@
 
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
 
-#include "mlir/IR/Builders.h"
-#include "mlir/IR/OpImplementation.h"
-#include "mlir/IR/PatternMatch.h"
-
-#include <bits/ranges_base.h>
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/Support/Error.h>
-#include <llvm/Support/raw_ostream.h>
 #include <mlir/IR/OpDefinition.h>
 #include <mlir/Support/LogicalResult.h>
-#include <ostream>
 
 #define DEBUG_TYPE "quantum-ops"
 

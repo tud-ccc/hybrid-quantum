@@ -8,9 +8,14 @@ project(check-quantum-mlir)
 
 if (${BACKEND_QIR})
     # Explicitly set the variable for substitution
-    set(QIR_SHLIBS "${QIR_DIR}/libqir_backend.so,${QIR_DIR}/libqir_stdlib.so")
+    if (APPLE)
+        set(QIR_SHLIBS "${QIR_DIR}/libqir_backend.dylib,${QIR_DIR}/libqir_stdlib.dylib")
+    elseif (UNIX)
+        set(QIR_SHLIBS "${QIR_DIR}/libqir_backend.so,${QIR_DIR}/libqir_stdlib.so")
+    endif()
 
     message(STATUS "Using backend QIR libs in: ${QIR_DIR}")
+    message(STATUS "Using libraries: ${QIR_SHLIBS}")
 endif()
 
 # Configure the testing site configuration.
