@@ -1,3 +1,4 @@
+//Example code to demonstrate basic parameter update in a naive vqa with no cost updates
 module {
   // Main function for VQE, iteratively passing theta values stored in memrefs
   func.func @main() -> i32 {
@@ -27,7 +28,7 @@ module {
       memref.store %new_theta2, %theta_memref[%c5] : memref<2xf64>
 
       // Yield the result and the updated theta for the next iteration
-      scf.yield %result, %theta_memref: i32, memref<2xf64>
+      scf.yield %result, %theta_memref : i32, memref<2xf64>
     }
 
     // Return 0 exit code (needed for tests to pass)
@@ -60,12 +61,18 @@ module {
     // Measure the qubits and get the results
     "qir.measure"(%q0, %r0) : (!qir.qubit, !qir.result) -> ()
     "qir.measure"(%q1, %r1) : (!qir.qubit, !qir.result) -> ()
-    %m_out0 = "qir.read_measurement"(%r0) : (!qir.result) -> (i1)
-    %m_out1 = "qir.read_measurement"(%r1) : (!qir.result) -> (i1)
+    
+    // Read measurements (returns a tensor<1xi1>) and extract the scalar value.
+    %m_out0_tensor = "qir.read_measurement"(%r0) : (!qir.result) -> tensor<1xi1>
+    %m_out1_tensor = "qir.read_measurement"(%r1) : (!qir.result) -> tensor<1xi1>
+    %c_index = arith.constant 0 : index
+    %m_out0 = tensor.extract %m_out0_tensor[%c_index] : tensor<1xi1>
+    %m_out1 = tensor.extract %m_out1_tensor[%c_index] : tensor<1xi1>
 
-    // Count the number of 1's from the measurements
-    %count0 = arith.select %m_out0, %zero, %one : i32
-    %count1 = arith.select %m_out1, %zero, %one : i32
+    // Count the number of 1's from the measurements.
+    // If the measurement result is true (1), count it as 1; otherwise, 0.
+    %count0 = arith.select %m_out0, %one, %zero : i32
+    %count1 = arith.select %m_out1, %one, %zero : i32
     %total_count = arith.addi %count0, %count1 : i32
 
     // Return the total count of measured 1's

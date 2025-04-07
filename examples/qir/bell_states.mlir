@@ -53,11 +53,14 @@ module {
       "qir.measure"(%q0, %res0) : (!qir.qubit, !qir.result) -> ()
       "qir.measure"(%q1, %res1) : (!qir.qubit, !qir.result) -> ()
 
-      // Convert measurement results to classical bits
-      %m_out0 = "qir.read_measurement"(%res0) : (!qir.result) -> (i1)
-      %m_out1 = "qir.read_measurement"(%res1) : (!qir.result) -> (i1)
+      // Convert measurement results to classical bits via tensor extraction
+      %m_out0_tensor = "qir.read_measurement"(%res0) : (!qir.result) -> tensor<1xi1>
+      %m_out1_tensor = "qir.read_measurement"(%res1) : (!qir.result) -> tensor<1xi1>
+      %idx = arith.constant 0 : index
+      %m_out0 = tensor.extract %m_out0_tensor[%idx] : tensor<1xi1>
+      %m_out1 = tensor.extract %m_out1_tensor[%idx] : tensor<1xi1>
 
-      // Yield results to accumulate them across iterations
+      // Yield results to accumulate them across iterations (keeping r2 and r3 unchanged)
       scf.yield %m_out0, %m_out1, %r2, %r3 : i1, i1, i1, i1
     }
 
