@@ -19,6 +19,20 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 include "quantum-mlir/Dialect/QIR/IR/QIRBase.td"
 include "quantum-mlir/Dialect/QIR/IR/QIRTypes.td"
 
+
+//===----------------------------------------------------------------------===//
+// QIR device operations.
+//===----------------------------------------------------------------------===//
+def QIR_InitOp : QIR_Op<"init">{
+  let summary = "Allocates a qubit.";
+  let description = [{  }];
+}
+
+def QIR_SeedOp : QIR_Op<"seed">{
+  let summary = "Set a seed for deterministic measurements.";
+  let description = [{  }];
+ let arguments = (ins I64:$seed);
+}
 //===----------------------------------------------------------------------===//
 // QIR memory operations.
 //===----------------------------------------------------------------------===//
@@ -144,5 +158,6 @@ def QIR_ResetOp : QIR_Op<"reset", [MemoryEffects<[MemRead]>]> {
   
   let arguments = (ins QIR_QubitType:$input);
 }
+
 
 #endif

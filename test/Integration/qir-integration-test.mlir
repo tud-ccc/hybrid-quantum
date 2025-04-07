@@ -29,10 +29,44 @@ module {
     return
   }
 
+    // Function to allocate a qubit, apply an X gate, measure and read the result
+  func.func @test_shots_based_simulation() -> ()  {
+    %numShots = arith.constant 10 : index
+    %zeroIdx = arith.constant 0 : index
+    %oneIdx = arith.constant 1 : index
+    %accum0 = arith.constant 0 : i32
+
+    //Seed 23 always results in 7/10 shots measurement to return 1. so accumulated result is always 7. 
+    %seed = arith.constant 23 : i64
+    "qir.seed"(%seed): (i64) -> () 
+    %finalCount = scf.for %i = %zeroIdx to %numShots step %oneIdx iter_args(%curr = %accum0) -> i32 {
+      //Initialise the simulator on each shot. 
+      "qir.init"() : () -> () 
+      %q = "qir.alloc"() : () -> (!qir.qubit)
+      %r = "qir.ralloc"() : () -> (!qir.result)
+
+      "qir.H"(%q) : (!qir.qubit) -> ()
+      "qir.measure"(%q, %r) : (!qir.qubit, !qir.result) -> ()
+      %m_tensor = "qir.read_measurement"(%r) : (!qir.result) -> tensor<1xi1>
+      %idx = arith.constant 0 : index
+      %m = tensor.extract %m_tensor[%idx] : tensor<1xi1>
+
+      %oneInt = arith.constant 1 : i32
+      %zeroInt = arith.constant 0 : i32
+      %shotVal = arith.select %m, %oneInt, %zeroInt : i32
+      %newAccum = arith.addi %curr, %shotVal : i32
+      scf.yield %newAccum : i32
+    }
+    vector.print %finalCount : i32
+    return 
+  }
+
   func.func @entry() {
     // CHECK: 1
     func.call @test_0_X_returns_1() : () -> ()
     
+    // CHECK: 7
+    func.call @test_shots_based_simulation() : () -> ()
     return
   }
 }
