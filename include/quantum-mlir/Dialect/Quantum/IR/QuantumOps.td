@@ -9,6 +9,7 @@
 
 include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.td"
 include "mlir/Interfaces/CastInterfaces.td"
+include "mlir/Interfaces/ControlFlowInterfaces.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
@@ -146,6 +147,144 @@ def Quantum_MergeOp : Memory_Op<
 
     let hasVerifier = 0;
 }
+
+//===----------------------------------------------------------------------===//
+// Quantum control flow operations.
+//===----------------------------------------------------------------------===//
+
+def Quantum_YieldOp : Quantum_Op<
+  "yield",
+  [
+    Pure,
+    ReturnLike,
+    Terminator,
+    ParentOneOf
+    <[
+      "quantum::IfOp"
+    ]>]> {
+  
+  let summary = "Loop yield and terminator operation.";
+
+  let description = [{
+  }];
+
+  let arguments = (ins 
+    Variadic<AnyType>:$results
+  );
+
+  let builders = [
+    OpBuilder<(ins), [{ /* nothing to do */ }]>
+  ];
+
+  let assemblyFormat =
+      [{  attr-dict ($results^ `:` type($results))? }];
+}
+
+def Quantum_IfOp : Quantum_Op<
+  "if",
+  [
+    DeclareOpInterfaceMethods<RegionBranchOpInterface,
+    [
+      "getNumRegionInvocations",
+      "getRegionInvocationBounds",
+      "getEntrySuccessorRegions"
+    ]>,
+    SingleBlockImplicitTerminator<"quantum::YieldOp">,
+    RecursiveMemoryEffects,
+    RecursivelySpeculatable,
+    NoClone]> {
+
+  let summary = "Conditional execution. Regions must capture each value defined outside the region that shall be used.";
+
+  let description = [{
+  This operation represents a conditional operation. Based on the conditional `condition` either the `thenBranch` or
+  the `elseBranch` will be executed.
+
+  Values which are defined outside the region must be captured. This operation represents the Gamma operation from
+  the Regionalized Value State Dependence Graph (RVSDG).
+
+  Example:
+
+  ```mlir
+  %qr = quantum.if %b qubits(%qin = %q) -> (!quantum.qubit<1>) {
+    %qH = quantum.H (%qin)
+    quantum.yield %qH
+  } else {
+    %qX = quantum.X (%qin)
+    quantum.yield %qX
+  }
+  ```
+
+  }];
+
+  let arguments = (ins
+    I1:$condition,
+    Variadic<AnyType>:$capturedArgs
+  );
+
+  let results = (outs
+    Variadic<AnyType>:$result
+  );
+
+  let regions = (region
+    SizedRegion<1>:$thenRegion,
+    MaxSizedRegion<1>:$elseRegion
+  );
+
+  let skipDefaultBuilders = 1;
+  let builders = [
+    OpBuilder<(ins "Value":$condition,
+      CArg<"ValueRange", "std::nullopt">:$capturedArgs,
+      CArg<"function_ref<void(OpBuilder &, Location, Value, ValueRange)>",
+           "buildTerminatedBody">:$thenBuilder,
+      CArg<"function_ref<void(OpBuilder &, Location, Value, ValueRange)>",
+           "nullptr">:$elseBuilder)>
+  ];
+
+  let extraClassDeclaration = [{
+    OpBuilder getThenBodyBuilder(OpBuilder::Listener *listener = nullptr) {
+      Block *body = getBody(0);
+      return getResults().empty() ? OpBuilder::atBlockTerminator(body, listener)
+                                  : OpBuilder::atBlockEnd(body, listener);
+    }
+
+    OpBuilder getElseBodyBuilder(OpBuilder::Listener *listener = nullptr) {
+      Block *body = getBody(1);
+      return getResults().empty() ? OpBuilder::atBlockTerminator(body, listener)
+                                  : OpBuilder::atBlockEnd(body, listener);
+    }
+
+    Block *thenBlock();
+    quantum::YieldOp thenYield();
+    Block *elseBlock();
+    quantum::YieldOp elseYield();  
+
+    /// Number of conditions variables, always 1 for quantum::IfOp.
+    unsigned getNumConditionVars() { return 1; }
+
+    /// Return the captured region arguments
+    Block::BlockArgListType getRegionCapturedArgs() {
+      return getBody()->getArguments().drop_front(getNumConditionVars());
+    }
+
+    /// Return the `index`-th captured region argument.
+    BlockArgument getRegionCapturedArg(unsigned index) {
+      assert(index < getNumRegionCapturedArgs() &&
+        "expected an index less than the number of captured region args");
+      return getBody()->getArguments().drop_front(getNumConditionVars())[index];
+    }
+
+    /// Number of region arguments for captured values
+    unsigned getNumRegionCapturedArgs() {
+      return getBody()->getNumArguments() - getNumConditionVars();
+    }
+  }];
+
+  let hasVerifier = 1;
+  let hasCustomAssemblyFormat = 1;
+}
+
+
 
 //===----------------------------------------------------------------------===//
 // Quantum gate operations.

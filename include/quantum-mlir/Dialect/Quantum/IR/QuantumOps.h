@@ -23,12 +23,16 @@
 
 #include "llvm/ADT/STLExtras.h"
 
-#include <algorithm>
-#include <iterator>
 #include <llvm/Support/Casting.h>
 
 namespace mlir {
 namespace quantum {
+
+void buildTerminatedBody(
+    OpBuilder &builder,
+    Location loc,
+    Value condition,
+    ValueRange capturedArgs);
 
 template<typename ConcreteType>
 class NoClone : public OpTrait::TraitBase<ConcreteType, NoClone> {
