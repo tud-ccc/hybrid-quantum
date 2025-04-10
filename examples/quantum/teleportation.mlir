@@ -28,19 +28,19 @@ module {
 
     // --- Classical Correction on Bob's qubit ---
     // Correction 1: If mB is 1, apply X gate on Bob's qubit.
-    %qC_afterX = scf.if %mB -> (!quantum.qubit<1>) {
-      %qC_corr = "quantum.X"(%qC_epr) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
-      scf.yield %qC_corr : !quantum.qubit<1>
+    %qC_afterX = quantum.if %mB qubits(%qC_epr_in = %qC_epr) -> (!quantum.qubit<1>) {
+      %qC_corr = "quantum.X"(%qC_epr_in) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
+      "quantum.yield" (%qC_corr) : (!quantum.qubit<1>) -> ()
     } else {
-      scf.yield %qC_epr : !quantum.qubit<1>
+      "quantum.yield" (%qC_epr_in) : (!quantum.qubit<1>) -> ()
     }
 
     // Correction 2: If mA is 1, apply Z gate on Bob's qubit.
-    %qC_corrected = scf.if %mA -> (!quantum.qubit<1>) {
-      %qC_corr2 = "quantum.Z"(%qC_afterX) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
-      scf.yield %qC_corr2 : !quantum.qubit<1>
+    %qC_corrected = quantum.if %mA qubits(%qC_afterX_in = %qC_afterX) -> (!quantum.qubit<1>) {
+      %qC_corr2 = "quantum.Z"(%qC_afterX_in) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
+      "quantum.yield" (%qC_corr2) : (!quantum.qubit<1>) -> ()
     } else {
-      scf.yield %qC_afterX : !quantum.qubit<1>
+      "quantum.yield" (%qC_afterX_in) : (!quantum.qubit<1>) -> ()
     }
 
     // --- Verification ---

@@ -21,7 +21,6 @@ module {
     // Apply Hadamard to the first qubit to complete interference. Leave the second qubit unchanged.
     %q0_split, %q1_split = "quantum.split"(%q_postOracle) : (!quantum.qubit<2>) -> (!quantum.qubit<1>, !quantum.qubit<1>)
     %q0_final = "quantum.H"(%q0_split) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
-    %q_final = "quantum.merge"(%q0_final, %q1_split) : (!quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<2>)
 
     // Measure the first qubit using quantum.measure_single.
     %m, %q0_measured = "quantum.measure_single"(%q0_final) : (!quantum.qubit<1>) -> (i1, !quantum.qubit<1>)
