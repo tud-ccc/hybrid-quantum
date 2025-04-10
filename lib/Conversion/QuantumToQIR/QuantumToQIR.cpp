@@ -101,10 +101,9 @@ struct ConvertMeasure : public OpConversionPattern<quantum::MeasureOp> {
             tensorType,
             resultAlloc.getResult());
 
-        ValueRange replacements = {
-            readMeasurement.getResult(),
-            adaptor.getInput()};
-        rewriter.replaceOp(op, replacements);
+        rewriter.replaceOp(
+            op,
+            {readMeasurement.getResult(), adaptor.getInput()});
         return success();
     }
 }; // struct ConvertMeasure

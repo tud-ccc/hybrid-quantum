@@ -1,5 +1,4 @@
-// RUN: quantum-opt %s --convert-quantum-to-qir --debug --debug-only=greedy-rewriter,dialect-conversion | FileCheck %s
-// --debug-only=dialect-conversion
+// RUN: quantum-opt %s --convert-quantum-to-qir | FileCheck %s
 
 module {
 

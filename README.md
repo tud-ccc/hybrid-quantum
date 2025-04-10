@@ -30,11 +30,9 @@ cmake -S $LLVM_PREFIX/../llvm -B $LLVM_PREFIX \
 
 # Build LLVM
 ninja -C $LLVM_PREFIX
-ninja -C $LLVM_PREFIX llc
-ninja -C $LLVM_PREFIX opt
 ```
 
-As a backend it supports [QIR Runner](https://github.com/qir-alliance/qir-runner) in version `0.7.5`.
+As a backend it supports [QIR Runner](https://github.com/qir-alliance/qir-runner) in version `0.7.6`.
 QIR runner is a Rust library providing an implementation of the QIR spec.
 
 ```sh
@@ -55,7 +53,10 @@ cmake -S . -B build \
    -DQIR_DIR=$QIR_PREFIX
 
 # Build
-cmake --build build
+ninja -C build
+
+# Tests
+ninja -C build check-quantum-mlir
 ```
 
 The following CMAKE variables can be configured:

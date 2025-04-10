@@ -11,7 +11,6 @@ include "mlir/IR/BuiltinAttributes.td"
 include "mlir/IR/BuiltinTypes.td"
 include "mlir/IR/OpBase.td"
 include "mlir/IR/EnumAttr.td"
-include "mlir/Interfaces/SideEffectInterfaces.td"
 
 
 def Quantum_Dialect : Dialect {
@@ -38,37 +37,13 @@ def Quantum_Dialect : Dialect {
     // let useDefaultTypePrinterParser = 1;
 }
 
-class Quantum_Op<string mnemonic, list<Trait> traits = []>
-        : Op<Quantum_Dialect, mnemonic, traits>;
-
+// Template for Types
 class Quantum_Type<string name, list<Trait> traits = []>
     : TypeDef<Quantum_Dialect, name, traits> {
 }
 
-
-class Gate_Op<string mnemonic, list<Trait> traits = []>
-        : Quantum_Op<mnemonic, traits>;
-
-class Memory_Op<string mnemonic, list<Trait> traits = []> :
-        Quantum_Op<mnemonic, traits # [ConditionallySpeculatable]> {
-    let extraClassDeclaration = [{
-        ::mlir::Speculation::Speculatability getSpeculatability() const {
-            return ::mlir::Speculation::NotSpeculatable;
-        }
-    }];
-}
-
-class Observable_Op<string mnemonic, list<Trait> traits = []> :
-        Quantum_Op<mnemonic, traits # [Pure]>;
-
-class Measurement_Op<string mnemonic, list<Trait> traits = []> :
-        Quantum_Op<mnemonic, traits>; 
-        
-
-//===----------------------------------------------------------------------===//
-// Quantum dialect traits.
-//===----------------------------------------------------------------------===//
-def Unitary : NativeOpTrait<"Unitary">;
-def Hermitian : NativeOpTrait<"Hermitian">;
-        
+// Template for Ops
+class Quantum_Op<string mnemonic, list<Trait> traits = []>
+        : Op<Quantum_Dialect, mnemonic, traits>;
+      
 #endif // QUANTUM_BASE

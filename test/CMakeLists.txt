@@ -11,6 +11,7 @@ if (${BACKEND_QIR})
     set(QIR_SHLIBS "${QIR_DIR}/libqir_backend${CMAKE_SHARED_LIBRARY_SUFFIX},${QIR_DIR}/libqir_stdlib${CMAKE_SHARED_LIBRARY_SUFFIX}")
 
     message(STATUS "Using backend QIR libs in: ${QIR_DIR}")
+    message(STATUS "Using libraries: ${QIR_SHLIBS}")
 endif()
 
 # Configure the testing site configuration.
