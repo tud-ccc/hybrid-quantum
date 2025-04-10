@@ -5,8 +5,10 @@
 
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
 
+#include <iterator>
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/ADT/SmallVector.h>
+#include <llvm/Support/Casting.h>
 #include <llvm/Support/Error.h>
 #include <llvm/Support/LogicalResult.h>
 #include <llvm/TableGen/Record.h>
@@ -52,43 +54,54 @@ OpFoldResult XOp::fold(FoldAdaptor adaptor)
 // Verifier
 //===----------------------------------------------------------------------===//
 
-// LogicalResult QuantumDialect::verifyOperationAttribute(Operation *op,
-//                                                      NamedAttribute attr) {
-//   if (!llvm::isa<UnitAttr>(attr.getValue()) ||
-//       attr.getName() != getContainerModuleAttrName())
-//     return success();
-
-//   auto module = dyn_cast<ModuleOp>(op);
-//   if (!module)
-//     return op->emitError("expected '")
-//            << getContainerModuleAttrName() << "' attribute to be attached to
-//            '"
-//            << ModuleOp::getOperationName() << '\'';
-//   return success();
-// }
-
 template<typename ConcreteType>
 LogicalResult NoClone<ConcreteType>::verifyTrait(Operation* op)
 {
-    for (auto value : op->getOpResults()) {
-        if (!llvm::isa<quantum::QubitType>(value.getType())) continue;
+    // Check whether the qubits capured by the IfOp
+    // are used more than a single time in each region
+    if (auto ifOp = llvm::dyn_cast_or_null<quantum::IfOp>(op)) {
+        // Check `thenRegion`
+        Region &thenRegion = ifOp.getThenRegion();
+        Block &thenBlock = thenRegion.getBlocks().front();
+        for (auto value : thenBlock.getArguments()) {
+            auto uses = value.getUses();
+            int numUses = std::distance(uses.begin(), uses.end());
+            if (numUses > 1) {
+                return op->emitOpError()
+                       << "captured qubit #" << value.getArgNumber()
+                       << " used more than once within the same block";
+            }
+        }
 
-        auto uses = value.getUses();
-        int i = 0;
-        // Check if a qubit is used more than once in the same block
-        for (auto it = uses.begin(); it != uses.end(); ++it) {
-            llvm::errs() << i++;
-            llvm::errs() << it->getOwner()->getName();
-            auto parent = it->getOwner()->getParentRegion();
-            for (auto jt = std::next(it); jt != uses.end(); ++jt) {
-                if (parent == jt->getOwner()->getParentRegion()) {
+        // Check optional `elseRegion`
+        Region &elseRegion = ifOp.getElseRegion();
+        if (!elseRegion.empty()) {
+            Block &elseBlock = elseRegion.getBlocks().front();
+            for (auto value : elseBlock.getArguments()) {
+                auto uses = value.getUses();
+                int numUses = std::distance(uses.begin(), uses.end());
+                if (numUses > 1) {
                     return op->emitOpError()
-                           << "result qubit #" << value.getResultNumber()
+                           << "captured qubit #" << value.getArgNumber()
                            << " used more than once within the same block";
                 }
             }
         }
     }
+
+    // Check whether the qubit values returned from an operation
+    // are uses more than a single time.
+    for (auto value : op->getOpResults()) {
+        if (!llvm::isa<quantum::QubitType>(value.getType())) continue;
+        auto uses = value.getUses();
+        int numUses = std::distance(uses.begin(), uses.end());
+        if (numUses > 1) {
+            return op->emitOpError()
+                   << "result qubit #" << value.getResultNumber()
+                   << " used more than once within the same block";
+        }
+    }
+
     return success();
 }
 
@@ -105,8 +118,8 @@ LogicalResult IfOp::verify()
 
 /// Prints the initialization list in the form of
 ///   <prefix>(%inner = %outer, %inner2 = %outer2, <...>)
-/// where 'inner' values are assumed to be region arguments and 'outer' values
-/// are regular SSA values.
+/// where 'inner' values are assumed to be region arguments and 'outer'
+/// values are regular SSA values.
 static void printInitializationList(
     OpAsmPrinter &p,
     Block::BlockArgListType blocksArgs,
@@ -325,8 +338,8 @@ void IfOp::getRegionInvocationBounds(
     SmallVectorImpl<InvocationBounds> &invocationBounds)
 {
     if (auto cond = llvm::dyn_cast_or_null<BoolAttr>(operands[0])) {
-        // If the condition is known, then one region is known to be executed
-        // once and the other zero times.
+        // If the condition is known, then one region is known to be
+        // executed once and the other zero times.
         invocationBounds.emplace_back(0, cond.getValue() ? 1 : 0);
         invocationBounds.emplace_back(0, cond.getValue() ? 0 : 1);
     } else {
