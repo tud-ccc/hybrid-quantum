@@ -10,6 +10,25 @@ The project aims to develop a comprehensive framework for hybrid quantum-classic
 
 Make sure to provide all dependencies required by the project, either by installing them to the system-default locations, or by setting the search location hints.
 
+### Development
+
+For the development of the project we pinned required Python packages in the `requirements.txt` file in the base project folder.
+To install the dependency you need `python3`.
+We recommend to install the dependencies via a [virtual environment](https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments/), for example in `bash/zsh`:
+
+```sh
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
+```
+
+To increase the quality of the code and rejections from CI verifiers please install the `pre-commit` hooks that we provide.
+`pre-commit` will be installed into the virtual environment.
+```sh
+pre-commit install
+```
+
 ### Dependencies
 
 The project depends on [LLVM](https://github.com/llvm/llvm-project) version `20.1.1` (`424c2d9`).
@@ -30,6 +49,12 @@ cmake -S $LLVM_PREFIX/../llvm -B $LLVM_PREFIX \
 
 # Build LLVM
 ninja -C $LLVM_PREFIX
+```
+
+We provide a [Qiskit](https://www.ibm.com/quantum/ecosystem) `OpenQASM` frontend tested with Qiskit version `2.0.0`.
+To use the frontend You can install the dependency to your virtual environment
+```sh
+python3 -m pip install -r ./frontend/qasm/requirements.txt
 ```
 
 As a backend it supports [QIR Runner](https://github.com/qir-alliance/qir-runner) in version `0.7.6`.
