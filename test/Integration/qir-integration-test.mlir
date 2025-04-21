@@ -61,12 +61,42 @@ module {
     return 
   }
 
+func.func @test_qasm_output_correctness() -> ()  {
+    %0 = "qir.alloc" () : () -> (!qir.qubit)
+    %1 = "qir.alloc" () : () -> (!qir.qubit)
+    %2 = "qir.ralloc" () : () -> (!qir.result)
+    %3 = "qir.ralloc" () : () -> (!qir.result)
+
+    "qir.H" (%0) : (!qir.qubit) -> ()
+    "qir.X" (%0) : (!qir.qubit) -> ()
+
+    %4 = arith.constant 3.141500 : f64
+    "qir.Rx" (%0, %4) : (!qir.qubit, f64) -> ()
+    "qir.CNOT" (%0, %1) : (!qir.qubit, !qir.qubit) -> ()
+    "qir.swap" (%0, %1) : (!qir.qubit, !qir.qubit) -> ()
+    "qir.measure" (%0, %2) : (!qir.qubit, !qir.result) -> ()
+    
+    %5 = "qir.read_measurement" (%2) : (!qir.result) -> (tensor<1xi1>)
+    "qir.measure" (%1, %3) : (!qir.qubit, !qir.result) -> ()
+    %6 = "qir.read_measurement" (%3) : (!qir.result) -> (tensor<1xi1>)
+
+    "qir.reset" (%0) : (!qir.qubit) -> ()
+    "qir.reset" (%1) : (!qir.qubit) -> ()
+    %i = "index.constant" () {value = 0 : index} : () -> (index)
+    %m = "tensor.extract" (%6, %i) : (tensor<1xi1>, index) -> (i1)
+    vector.print %m : i1
+    return
+  }
+
   func.func @entry() {
     // CHECK: 1
     func.call @test_0_X_returns_1() : () -> ()
     
     // CHECK: 7
     func.call @test_shots_based_simulation() : () -> ()
+
+    // CHECK: 1
+    func.call @test_qasm_output_correctness() : () -> ()
     return
   }
 }
