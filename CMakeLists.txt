@@ -47,6 +47,38 @@ find_package(MLIR REQUIRED CONFIG)
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
+# Python virtual environment setup
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
+# Get LLVM project source root from MLIR_DIR
+get_filename_component(MLIR_DIR_ABS "${MLIR_DIR}" ABSOLUTE)
+get_filename_component(LLVM_PROJECT_SRC_DIR "${MLIR_DIR_ABS}/../../../.." ABSOLUTE)
+
+# Set path to requirements.txt
+set(REQUIREMENTS_FILE "${LLVM_PROJECT_SRC_DIR}/mlir/python/requirements.txt")
+set(FRONTEND_REQ_FILE "${CMAKE_SOURCE_DIR}/frontend/requirements.txt")
+
+# Set virtualenv path
+set(PYTHON_VENV_PATH "$ENV{HOME}/.venv/mlirdev")
+set(PYTHON_VENV_BIN "${PYTHON_VENV_PATH}/bin")
+
+# Create virtual environment if it doesn't exist
+if(NOT EXISTS "${PYTHON_VENV_BIN}/activate")
+    message(STATUS "Creating Python virtualenv at ${PYTHON_VENV_PATH}")
+    execute_process(COMMAND "${Python3_EXECUTABLE}" -m venv "${PYTHON_VENV_PATH}")
+endif()
+
+# Upgrade pip and install requirements
+execute_process(COMMAND "${PYTHON_VENV_BIN}/python" -m pip install --upgrade pip)
+execute_process(COMMAND "${PYTHON_VENV_BIN}/pip" install -r "${REQUIREMENTS_FILE}")
+execute_process(COMMAND "${PYTHON_VENV_BIN}/pip" install -r "${FRONTEND_REQ_FILE}")
+
+# Rebind Python3 to venv
+unset(Python3_EXECUTABLE)
+set(ENV{VIRTUAL_ENV} "${PYTHON_VENV_PATH}")
+set(Python3_FIND_VIRTUALENV FIRST)
+find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+
 # Load LLVM and MLIR CMake modules.
 list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
