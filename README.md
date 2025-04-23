@@ -21,7 +21,7 @@ cmake -S $LLVM_PREFIX/../llvm -B $LLVM_PREFIX \
    -DLLVM_ENABLE_PROJECTS="mlir;llvm;clang" \
    -DLLVM_TARGETS_TO_BUILD="host" \
    -DLLVM_ENABLE_ASSERTIONS=ON \
-   -DMLIR_ENABLE_BINDINGS_PYTHON=OFF \
+   -DMLIR_ENABLE_BINDINGS_PYTHON=ON \
    -DMLIR_ENABLE_EXECUTION_ENGINE=ON \
    -DLLVM_BUILD_TOOLS=ON \
    -DCMAKE_BUILD_TYPE=Release \
@@ -49,8 +49,9 @@ cmake -S . -B build \
    -G Ninja \
    -DLLVM_DIR=$LLVM_PREFIX/lib/cmake/llvm \
    -DMLIR_DIR=$MLIR_PREFIX/lib/cmake/mlir \
-   -DBACKEND_QIR=1 \
-   -DQIR_DIR=$QIR_PREFIX
+   -DBACKEND_QIR=ON \
+   -DQIR_DIR=$QIR_PREFIX \
+   -DFRONTEND_QASM=ON
 
 # Build
 ninja -C build
@@ -65,8 +66,10 @@ The following CMAKE variables can be configured:
 | --- | --- | --- |
 | LLVM_DIR  | STRING  | Path to the CMake directory of an LLVM installation, e.g. `~/tools/llvm-15/lib/cmake/llvm` |
 | MLIR_DIR  | STRING  | Path to the CMake directory of an MLIR installation, e.g. `~/tools/llvm-15/lib/cmake/mlir` |
-| QIR | BOOL | Set whether the QIR runner backend should be enabled. If `true` the `QIR_DIR` must be set. |
+| BACKEND_QIR | BOOL | Set whether the QIR runner backend should be enabled. If `ON` the `QIR_DIR` must be set. |
 | QIR_DIR | STRING  | Path to the target directory of QIR runner, e.g. `~/tools/qir-runner/target/release` |
+| FRONTEND_QASM | BOOL | Set whether the Qiskit OpenQASM frontend should be enabled. If `ON` MLIR must be built with `MLIR_ENABLE_BINDINGS_PYTHON` must be set. |
+| PYTHON_VENV_DIR | STRING  | Path where the .venv directory will be created, e.g. `~/venv/mlirdev`. Defaults to `${PROJECT_ROOT}/.venv` |
 
 ## License
 

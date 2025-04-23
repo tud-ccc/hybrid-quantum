@@ -18,7 +18,9 @@ project(quantum-mlir
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to conform to")
 
 # Set backend variables
-set(BACKEND_QIR "true" CACHE STRING "Use QIR runner backend")
+option(BACKEND_QIR "Use QIR runner backend" ON)
+# Set frontend variables
+option(FRONTEND_QASM "Use Qiskit OpenQASM frontend" ON)
 
 # Detect if this is a stand-alone build.
 if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
@@ -47,37 +49,40 @@ find_package(MLIR REQUIRED CONFIG)
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
-# Python virtual environment setup
-find_package(Python3 COMPONENTS Interpreter REQUIRED)
+if(FRONTEND_QASM)
+    # Defined in MLIRConfig.cmake
+    if(NOT MLIR_ENABLE_BINDINGS_PYTHON)
+        message(FATAL_ERROR "ERROR: MLIR was not built with Python bindings enabled")
+    endif()
 
-# Get LLVM project source root from MLIR_DIR
-get_filename_component(MLIR_DIR_ABS "${MLIR_DIR}" ABSOLUTE)
-get_filename_component(LLVM_PROJECT_SRC_DIR "${MLIR_DIR_ABS}/../../../.." ABSOLUTE)
+    # Python virtual environment setup
+    find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
-# Set path to requirements.txt
-set(REQUIREMENTS_FILE "${LLVM_PROJECT_SRC_DIR}/mlir/python/requirements.txt")
-set(FRONTEND_REQ_FILE "${CMAKE_SOURCE_DIR}/frontend/requirements.txt")
+    # Set path to requirements.txt
+    set(MLIR_REQUIREMENTS_FILE "${LLVM_BUILD_MAIN_SRC_DIR}/../mlir/python/requirements.txt")
+    set(FRONTEND_REQ_FILE "${CMAKE_SOURCE_DIR}/frontend/requirements.txt")
 
-# Set virtualenv path
-set(PYTHON_VENV_PATH "$ENV{HOME}/.venv/mlirdev")
-set(PYTHON_VENV_BIN "${PYTHON_VENV_PATH}/bin")
+    # Set virtualenv path
+    set(PYTHON_VENV_DIR "${CMAKE_SOURCE_DIR}/.venv" CACHE STRING "venv directory")
+    set(PYTHON_VENV_BIN "${PYTHON_VENV_DIR}/bin" CACHE STRING "Binary directory of Python venv")
 
-# Create virtual environment if it doesn't exist
-if(NOT EXISTS "${PYTHON_VENV_BIN}/activate")
-    message(STATUS "Creating Python virtualenv at ${PYTHON_VENV_PATH}")
-    execute_process(COMMAND "${Python3_EXECUTABLE}" -m venv "${PYTHON_VENV_PATH}")
+    # Create virtual environment if it doesn't exist
+    if(NOT EXISTS "${PYTHON_VENV_BIN}/activate")
+        message(STATUS "Creating Python virtualenv at ${PYTHON_VENV_DIR}")
+        execute_process(COMMAND "${Python3_EXECUTABLE}" -m venv "${PYTHON_VENV_DIR}")
+    endif()
+
+    # Upgrade pip and install requirements
+    execute_process(COMMAND "${PYTHON_VENV_BIN}/python" -m pip install --upgrade pip)
+    execute_process(COMMAND "${PYTHON_VENV_BIN}/pip" install -r "${MLIR_REQUIREMENTS_FILE}")
+    execute_process(COMMAND "${PYTHON_VENV_BIN}/pip" install -r "${FRONTEND_REQ_FILE}")
+
+    # Rebind Python3 to venv
+    unset(Python3_EXECUTABLE)
+    set(ENV{VIRTUAL_ENV} "${PYTHON_VENV_PATH}")
+    set(Python3_FIND_VIRTUALENV FIRST)
+    find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 endif()
-
-# Upgrade pip and install requirements
-execute_process(COMMAND "${PYTHON_VENV_BIN}/python" -m pip install --upgrade pip)
-execute_process(COMMAND "${PYTHON_VENV_BIN}/pip" install -r "${REQUIREMENTS_FILE}")
-execute_process(COMMAND "${PYTHON_VENV_BIN}/pip" install -r "${FRONTEND_REQ_FILE}")
-
-# Rebind Python3 to venv
-unset(Python3_EXECUTABLE)
-set(ENV{VIRTUAL_ENV} "${PYTHON_VENV_PATH}")
-set(Python3_FIND_VIRTUALENV FIRST)
-find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 
 # Load LLVM and MLIR CMake modules.
 list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
