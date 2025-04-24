@@ -13,23 +13,35 @@ Make sure to provide all dependencies required by the project, either by install
 ### Dependencies
 
 The project depends on [LLVM](https://github.com/llvm/llvm-project) version `20.1.1` (`424c2d9`).
+You have to set `MLIR_ENABLE_BINDINGS_PYTHON` to build [MLIR Python bindings](https://github.com/llvm/llvm-project/blob/main/mlir/docs/Bindings/Python.md) if you want to use our Python frontend.
 
 ```sh
+# Setup the virtual environment for the MLIR Python bindings dependencies
+python3 -m venv .venv
+source .venv/bin/activate
+
+# It is recommended to upgrade pip:
+python3 -m pip install --upgrade pip
+
+# Install the Python bindings requirements
+python3 -m pip install -r $LLVM_PREFIX/mlir/python/requirements.txt
+
 # Configure LLVM
-cmake -S $LLVM_PREFIX/../llvm -B $LLVM_PREFIX \
+cmake -S $LLVM_PREFIX/llvm -B $LLVM_PREFIX/build \
    -G Ninja \
+   -DCMAKE_BUILD_TYPE=Debug \
    -DLLVM_ENABLE_PROJECTS="mlir;llvm;clang" \
    -DLLVM_TARGETS_TO_BUILD="host" \
    -DLLVM_ENABLE_ASSERTIONS=ON \
+   -DPython3_EXECUTABLE="$VENV_DIR/bin/python3" \
    -DMLIR_ENABLE_BINDINGS_PYTHON=ON \
    -DMLIR_ENABLE_EXECUTION_ENGINE=ON \
    -DLLVM_BUILD_TOOLS=ON \
-   -DCMAKE_BUILD_TYPE=Release \
    -DBUILD_SHARED_LIBS=ON \
    -DLLVM_OPTIMIZED_TABLEGEN=ON
 
 # Build LLVM
-ninja -C $LLVM_PREFIX
+ninja -C $LLVM_PREFIX/build
 ```
 
 As a backend it supports [QIR Runner](https://github.com/qir-alliance/qir-runner) in version `0.7.6`.
@@ -41,14 +53,20 @@ cargo build -Znext-lockfile-bump --release
 
 ### quantum-mlir
 
-The `hybrid-quantum` project is built using CMAKE (version 3.20 or newer).
+The `hybrid-quantum` project is built using CMAKE (version 3.22 or newer).
 
 ```sh
+
+# Install the frontend dependencies to the virtual environment
+python3 -m pip install -r frontend/requirements.txt
+
 # Configure
 cmake -S . -B build \
    -G Ninja \
-   -DLLVM_DIR=$LLVM_PREFIX/lib/cmake/llvm \
-   -DMLIR_DIR=$MLIR_PREFIX/lib/cmake/mlir \
+   -DLLVM_DIR=$LLVM_PREFIX/build/lib/cmake/llvm \
+   -DMLIR_DIR=$LLVM_PREFIX/build/lib/cmake/mlir \
+   -DPython3_EXECUTABLE="$VENV_DIR/bin/python3" \
+   -DMLIR_ENABLE_BINDINGS_PYTHON=ON \
    -DBACKEND_QIR=ON \
    -DQIR_DIR=$QIR_PREFIX \
    -DFRONTEND_QASM=ON
@@ -69,7 +87,6 @@ The following CMAKE variables can be configured:
 | BACKEND_QIR | BOOL | Set whether the QIR runner backend should be enabled. If `ON` the `QIR_DIR` must be set. |
 | QIR_DIR | STRING  | Path to the target directory of QIR runner, e.g. `~/tools/qir-runner/target/release` |
 | FRONTEND_QASM | BOOL | Set whether the Qiskit OpenQASM frontend should be enabled. If `ON` MLIR must be built with `MLIR_ENABLE_BINDINGS_PYTHON` must be set. |
-| PYTHON_VENV_DIR | STRING  | Path where the .venv directory will be created, e.g. `~/venv/mlirdev`. Defaults to `${PROJECT_ROOT}/.venv` |
 
 ## License
 
