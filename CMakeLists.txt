@@ -18,7 +18,9 @@ project(quantum-mlir
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to conform to")
 
 # Set backend variables
-set(BACKEND_QIR "true" CACHE STRING "Use QIR runner backend")
+option(BACKEND_QIR "Use QIR runner backend" ON)
+# Set frontend variables
+option(FRONTEND_QASM "Use Qiskit OpenQASM frontend" ON)
 
 # Detect if this is a stand-alone build.
 if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
@@ -46,6 +48,15 @@ find_package(LLVM REQUIRED CONFIG)
 find_package(MLIR REQUIRED CONFIG)
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+
+if(FRONTEND_QASM)
+    # Defined in MLIRConfig.cmake
+    if(NOT MLIR_ENABLE_BINDINGS_PYTHON)
+        message(FATAL_ERROR "ERROR: MLIR was not built with Python bindings enabled")
+    endif()
+
+    find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+endif()
 
 # Load LLVM and MLIR CMake modules.
 list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
