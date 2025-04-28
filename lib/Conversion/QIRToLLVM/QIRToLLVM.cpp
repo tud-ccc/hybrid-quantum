@@ -551,6 +551,16 @@ protected:
     }
 };
 
+struct RyOpLowering : public RotationOpLowering<RyOp> {
+    using RotationOpLowering<RyOp>::RotationOpLowering;
+
+protected:
+    StringRef getQIRFunctionName() const override
+    {
+        return "__quantum__qis__ry__body";
+    }
+};
+
 struct RxOpLowering : public RotationOpLowering<RxOp> {
     using RotationOpLowering<RxOp>::RotationOpLowering;
 
@@ -558,6 +568,79 @@ protected:
     StringRef getQIRFunctionName() const override
     {
         return "__quantum__qis__rx__body";
+    }
+};
+
+// Add to your existing patterns
+struct UOpLowering : public ConvertOpToLLVMPattern<UOp> {
+    using ConvertOpToLLVMPattern<UOp>::ConvertOpToLLVMPattern;
+
+    LogicalResult matchAndRewrite(
+        UOp op,
+        UOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        Location loc = op.getLoc();
+        MLIRContext* ctx = getContext();
+
+        Value qubit = adaptor.getInput();
+        Value theta = adaptor.getTheta();
+        Value phi = adaptor.getPhi();
+        Value lambda = adaptor.getLambda();
+
+        // Decompose U(theta, phi, lambda) = RZ(phi) → RY(theta) → RZ(lambda)
+        createRotationGate(
+            rewriter,
+            loc,
+            "__quantum__qis__rz__body",
+            phi,
+            qubit,
+            op);
+        createRotationGate(
+            rewriter,
+            loc,
+            "__quantum__qis__ry__body",
+            theta,
+            qubit,
+            op);
+        createRotationGate(
+            rewriter,
+            loc,
+            "__quantum__qis__rz__body",
+            lambda,
+            qubit,
+            op);
+
+        rewriter.eraseOp(op);
+        return success();
+    }
+
+private:
+    void createRotationGate(
+        ConversionPatternRewriter &rewriter,
+        Location loc,
+        StringRef qirFnName,
+        Value angle,
+        Value qubit,
+        Operation* op) const
+    {
+        Type f64Type = rewriter.getF64Type();
+        Type ptrType = LLVM::LLVMPointerType::get(getContext());
+        Type voidType = LLVM::LLVMVoidType::get(getContext());
+
+        auto fnType = LLVM::LLVMFunctionType::get(
+            voidType,
+            {f64Type, ptrType},
+            /*isVarArg=*/false);
+
+        LLVM::LLVMFuncOp fnDecl =
+            ensureFunctionDeclaration(rewriter, op, qirFnName, fnType);
+
+        rewriter.create<LLVM::CallOp>(
+            loc,
+            TypeRange{},
+            fnDecl.getSymName(),
+            ValueRange{angle, qubit});
     }
 };
 
@@ -724,6 +807,8 @@ void mlir::qir::populateConvertQIRToLLVMPatterns(
         ZOpPattern,
         RzOpLowering,
         RxOpLowering,
+        RyOpLowering,
+        UOpLowering,
         CNOTOpPattern,
         MeasureOpPattern,
         ReadMeasurementOpPattern,

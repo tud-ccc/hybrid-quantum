@@ -21,6 +21,16 @@ func.func @main() -> (i1) {
   %r0 = "qir.ralloc" () : () -> (!qir.result)
   // CHECK-DAG: %[[C034:.+]] = llvm.mlir.constant(3.400000e-01 : f64) : f64
   %const1 = arith.constant 0.34 : f64
+  // CHECK-DAG: %[[C735:.+]] = llvm.mlir.constant(7.350000e-01 : f64) : f64
+  %const2 = arith.constant 0.735 : f64
+  // CHECK-DAG: %[[C023:.+]] = llvm.mlir.constant(2.300000e-01 : f64) : f64
+  %const3 = arith.constant 0.23 : f64
+
+  "qir.U" (%q0, %const1, %const2, %const3) : (!qir.qubit, f64, f64, f64) -> ()
+  // CHECK-DAG: llvm.call @__quantum__qis__rz__body(%[[C735]], %[[C0PTR]]) : (f64, !llvm.ptr) -> ()
+  // CHECK-DAG: llvm.call @__quantum__qis__ry__body(%[[C034]], %[[C0PTR]]) : (f64, !llvm.ptr) -> ()
+  // CHECK-DAG: llvm.call @__quantum__qis__rz__body(%[[C023]], %[[C0PTR]]) : (f64, !llvm.ptr) -> ()
+
   // CHECK-DAG: llvm.call @__quantum__qis__h__body(%[[C0PTR]]) : (!llvm.ptr) -> ()
   "qir.H" (%q0) : (!qir.qubit) -> ()
   // CHECK-DAG: llvm.call @__quantum__qis__rz__body(%[[C034]], %[[C0PTR]]) : (f64, !llvm.ptr) -> ()

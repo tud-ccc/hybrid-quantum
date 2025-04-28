@@ -118,6 +118,24 @@ def QIR_RzOp : Gate_Op<"Rz"> {
   let arguments = (ins QIR_QubitType:$input, F64:$angle);
 }
 
+// Ry: a single-qubit rotation with an angle parameter.
+def QIR_RyOp : Gate_Op<"Ry"> {
+  let summary = "Ry gate operation";
+  let description = [{
+    The Ry gate rotates a qubit around the Y-axis by a specified angle.
+  }];
+  let arguments = (ins QIR_QubitType:$input, F64:$angle);
+}
+
+// U: a universal single-qubit gate with three angles.
+def QIR_UOp : Gate_Op<"U"> {
+  let summary = "U gate operation";
+  let description = [{
+    The U gate is a universal single-qubit gate that can represent any single-qubit operation.
+  }];
+  let arguments = (ins QIR_QubitType:$input, F64:$theta, F64:$phi, F64:$lambda);
+}
+
 // Swap: a two-qubit gate that exchanges the states of its inputs.
 def QIR_SwapOp : Gate_Op<"swap"> {
   let summary = "Swap gate operation";

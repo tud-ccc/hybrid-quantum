@@ -5,12 +5,14 @@ Usage: python QASM2MLIR.py -i input.qasm -o output.mlir
 import argparse
 import logging
 import sys
+import warnings
 from typing import Any, Optional
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Instruction, Measure, Reset
 from qiskit.circuit.controlflow import IfElseOp
-from qiskit.circuit.library import CXGate, HGate, RXGate, SwapGate, XGate
+from qiskit.circuit.library import CXGate, HGate, RXGate, RYGate, RZGate, SwapGate, U3Gate, XGate
+from qiskit.qasm2 import loads as qasm2_loads
 from qiskit.qasm3 import loads as qasm3_loads
 
 # === Logging Setup ===
@@ -207,6 +209,26 @@ class QIRRxOp(MLIROperation):
         self.add_operand(angle)
 
 
+class QIRRyOp(MLIROperation):
+    op_name = "Ry"
+    op_dialect = "qir"
+
+    def __init__(self, value_map: SSAValueMap, qubit: SSAValue, angle: SSAValue) -> None:
+        super().__init__(value_map)
+        self.add_operand(qubit)
+        self.add_operand(angle)
+
+
+class QIRRzOp(MLIROperation):
+    op_name = "Rz"
+    op_dialect = "qir"
+
+    def __init__(self, value_map: SSAValueMap, qubit: SSAValue, angle: SSAValue) -> None:
+        super().__init__(value_map)
+        self.add_operand(qubit)
+        self.add_operand(angle)
+
+
 class QIRSwapOp(MLIROperation):
     op_name = "swap"
     op_dialect = "qir"
@@ -215,6 +237,18 @@ class QIRSwapOp(MLIROperation):
         super().__init__(value_map)
         self.add_operand(lhs)
         self.add_operand(rhs)
+
+
+class QIRUOp(MLIROperation):
+    op_name = "U"
+    op_dialect = "qir"
+
+    def __init__(self, value_map: SSAValueMap, qubit: SSAValue, theta: SSAValue, phi: SSAValue, lambd: SSAValue) -> None:
+        super().__init__(value_map)
+        self.add_operand(qubit)
+        self.add_operand(theta)
+        self.add_operand(phi)
+        self.add_operand(lambd)
 
 
 class QIRResetOp(MLIROperation):
@@ -353,6 +387,12 @@ class QASMToMLIRVisitor:
             return self.visit_cx(instr_op, qargs, cargs)
         if isinstance(instr_op, RXGate):
             return self.visit_rx(instr_op, qargs, cargs)
+        if isinstance(instr_op, RYGate):
+            return self.visit_ry(instr_op, qargs, cargs)
+        if isinstance(instr_op, RZGate):
+            return self.visit_rz(instr_op, qargs, cargs)
+        if isinstance(instr_op, U3Gate):
+            return self.visit_u3(instr_op, qargs, cargs)
         if isinstance(instr_op, SwapGate):
             return self.visit_swap(instr_op, qargs, cargs)
         if isinstance(instr_op, Reset):
@@ -397,6 +437,36 @@ class QASMToMLIRVisitor:
         const = ConstFloatOp(self.func.value_map, angle, MLIRType("f64"))
         self.func.block.add_op(const)
         self.func.block.add_op(QIRRxOp(self.func.value_map, self.get_qubit(r, i), const.results[0]))
+
+    def visit_ry(self, instr_op: RYGate, qargs: list[Any], cargs: list[Any]) -> None:
+        angle = float(instr_op.params[0])
+        r, i = self.qubit_info[qargs[0]]
+        const = ConstFloatOp(self.func.value_map, angle, MLIRType("f64"))
+        self.func.block.add_op(const)
+        self.func.block.add_op(QIRRyOp(self.func.value_map, self.get_qubit(r, i), const.results[0]))
+
+    def visit_rz(self, instr_op: RZGate, qargs: list[Any], cargs: list[Any]) -> None:
+        angle = float(instr_op.params[0])
+        r, i = self.qubit_info[qargs[0]]
+        const = ConstFloatOp(self.func.value_map, angle, MLIRType("f64"))
+        self.func.block.add_op(const)
+        self.func.block.add_op(QIRRzOp(self.func.value_map, self.get_qubit(r, i), const.results[0]))
+
+    def visit_u3(self, instr_op: U3Gate, qargs: list[Any], cargs: list[Any]) -> None:
+        theta, phi, lam = map(float, instr_op.params)
+        r, i = self.qubit_info[qargs[0]]
+
+        # Decompose U3(θ, φ, λ) = RZ(φ) → RY(θ) → RZ(λ)
+        phi_const = ConstFloatOp(self.func.value_map, phi, MLIRType("f64"))
+        theta_const = ConstFloatOp(self.func.value_map, theta, MLIRType("f64"))
+        lambda_const = ConstFloatOp(self.func.value_map, lam, MLIRType("f64"))
+        self.func.block.add_op(phi_const)
+        self.func.block.add_op(theta_const)
+        self.func.block.add_op(lambda_const)
+        qubit_ssa = self.get_qubit(r, i)
+        self.func.block.add_op(
+            QIRUOp(self.func.value_map, qubit_ssa, theta_const.results[0], phi_const.results[0], lambda_const.results[0])
+        )
 
     def visit_swap(self, instr_op: SwapGate, qargs: list[Any], cargs: list[Any]) -> None:
         r1, i1 = self.qubit_info[qargs[0]]
@@ -450,7 +520,13 @@ def QASMToMLIR(code: str) -> MLIRModule:
     try:
         circuit: QuantumCircuit = qasm3_loads(code)
     except Exception as e:
-        raise ConversionError(f"QASM3 parse failed: {e}")
+        warnings.warn(f"QASM3 parse failed: {e}")
+        try:
+            circuit: QuantumCircuit = qasm2_loads(code)
+        except Exception as e2:
+            raise ConversionError(f"QASM2 parse failed: {e2}")
+
+    # Rest of function remains the same
 
     module = MLIRModule()
     func = MLIRFunction("main")
