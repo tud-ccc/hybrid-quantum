@@ -7,19 +7,19 @@ namespace mlir {
 
 //===- Generated includes -------------------------------------------------===//
 
-#define GEN_PASS_DECL_CONVERTQUANTUMTOQIR
+#define GEN_PASS_DECL_CONVERTQIRTOQUANTUM
 #include "quantum-mlir/Conversion/Passes.h.inc"
 
 //===----------------------------------------------------------------------===//
 
-namespace quantum {
+namespace qir {
 
-void populateConvertQuantumToQIRPatterns(
+void populateConvertQIRToQuantumPatterns(
     TypeConverter &typeConverter,
     RewritePatternSet &patterns);
 
-} // namespace quantum
+} // namespace qir
 
-std::unique_ptr<Pass> createConvertQuantumToQIRPass();
+std::unique_ptr<Pass> createConvertQIRToQuantumPass();
 
 } // namespace mlir
