@@ -309,6 +309,26 @@ def Quantum_HOp : PrimitiveGate_Op<
   let hasFolder = 1;
 }
 
+def Quantum_RzOp : PrimitiveGate_Op<
+        "Rz",
+        [
+          NoMemoryEffect,
+          AllTypesMatch<["input", "result"]>]> {
+  let summary = "z rotation gate operation";
+  let description = [{
+    Example:
+    %theta = arith.constant 0.34 : f64
+    %q1 = "quantum.Rz" (%q0, %theta): !quantum.qubit<1>, f64 -> !quantum.qubit<1>
+  }];
+
+  let arguments = (ins
+    Quantum_QubitType:$input,
+    F64:$theta
+  );
+  let results = (outs Quantum_QubitType:$result);
+  let hasCanonicalizeMethod = 1;
+}
+
 def Quantum_CNOTOp : PrimitiveGate_Op<
         "CNOT",
         [
@@ -368,7 +388,10 @@ def Quantum_ZOp : PrimitiveGate_Op<
 def Quantum_SWAPOp : PrimitiveGate_Op<
         "SWAP",
         [
-          AllTypesMatch<["lhs", "rhs", "result1", "result2"]>]> {
+          AllTypesMatch<
+            [
+              "lhs", "rhs",
+              "result1", "result2"]>]> {
   let summary = "SWAP gate";
   let description = [{
     Swaps the states of two qubits.

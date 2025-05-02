@@ -67,6 +67,21 @@ struct ConvertAlloc : public OpConversionPattern<qir::AllocOp> {
     }
 }; // struct ConvertAllocOp
 
+struct ConvertResultAlloc : public OpConversionPattern<qir::AllocResultOp> {
+    using OpConversionPattern::OpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        AllocResultOp op,
+        AllocResultOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        // We do not have a representation for result registers in Quantum
+        // dialect
+        rewriter.eraseOp(op);
+        return success();
+    }
+}; // struct ConvertResultAllocOp
+
 struct ConvertSwap : public OpConversionPattern<qir::SwapOp> {
     using OpConversionPattern::OpConversionPattern;
 
@@ -85,6 +100,37 @@ struct ConvertSwap : public OpConversionPattern<qir::SwapOp> {
 };
 } // namespace
 
+struct ConvertH : public OpConversionPattern<qir::HOp> {
+    using OpConversionPattern::OpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        HOp op,
+        HOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        rewriter.create<quantum::HOp>(op.getLoc(), adaptor.getInput());
+        rewriter.eraseOp(op);
+        return success();
+    }
+}; // struct ConvertHOp
+
+struct ConvertRz : public OpConversionPattern<qir::RzOp> {
+    using OpConversionPattern::OpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        RzOp op,
+        RzOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        rewriter.create<quantum::RzOp>(
+            op.getLoc(),
+            adaptor.getInput(),
+            adaptor.getAngle());
+        rewriter.eraseOp(op);
+        return success();
+    }
+}; // struct ConvertHOp
+
 void ConvertQIRToQuantumPass::runOnOperation()
 {
     TypeConverter typeConverter;
@@ -93,8 +139,8 @@ void ConvertQIRToQuantumPass::runOnOperation()
     RewritePatternSet patterns(context);
 
     typeConverter.addConversion([](Type ty) { return ty; });
-    typeConverter.addConversion([](quantum::QubitType ty) {
-        return qir::QubitType::get(ty.getContext());
+    typeConverter.addConversion([](qir::QubitType ty) {
+        return quantum::QubitType::get(ty.getContext(), 1);
     });
     typeConverter.addConversion([&](FunctionType fty) {
         llvm::SmallVector<Type> argTypes, resTypes;
@@ -129,7 +175,12 @@ void mlir::qir::populateConvertQIRToQuantumPatterns(
     TypeConverter &typeConverter,
     RewritePatternSet &patterns)
 {
-    patterns.add<ConvertAlloc, ConvertSwap>(
+    patterns.add<
+        ConvertAlloc,
+        ConvertSwap,
+        ConvertResultAlloc,
+        ConvertH,
+        ConvertRz>(
         typeConverter,
         patterns.getContext(),
         /* benefit*/ 1);

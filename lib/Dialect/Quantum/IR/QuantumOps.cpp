@@ -5,6 +5,7 @@
 
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
 
+#include <cstddef>
 #include <iterator>
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/ADT/SmallVector.h>
@@ -12,7 +13,9 @@
 #include <llvm/Support/Error.h>
 #include <llvm/Support/LogicalResult.h>
 #include <llvm/TableGen/Record.h>
+#include <mlir/Dialect/Arith/IR/Arith.h>
 #include <mlir/IR/OpDefinition.h>
+#include <mlir/IR/PatternMatch.h>
 #include <mlir/IR/Region.h>
 #include <mlir/IR/Value.h>
 #include <mlir/Support/LLVM.h>
@@ -48,6 +51,34 @@ OpFoldResult XOp::fold(FoldAdaptor adaptor)
     if (auto parent = getOperand().getDefiningOp<XOp>())
         return parent.getOperand();
     return nullptr;
+}
+
+//===----------------------------------------------------------------------===//
+// Canonicalization
+//===----------------------------------------------------------------------===//
+
+LogicalResult RzOp::canonicalize(RzOp op, PatternRewriter &rewriter)
+{
+    // %1 = Rz(%0, %theta1)
+    // %2 = Rz(%1, %theta2)
+    // --------------------
+    // %1 = Rz(%0, %theta1 + %theta2)
+    if (auto rz = op.getInput().getDefiningOp<RzOp>()) {
+        auto theta1 = op.getTheta();
+        auto theta2 = rz.getTheta();
+
+        auto loc = op.getLoc();
+        auto thetaPlus = rewriter.create<arith::AddFOp>(loc, theta1, theta2);
+
+        rewriter.eraseOp(op);
+        rewriter.replaceOpWithNewOp<RzOp>(
+            rz,
+            rz.getInput(),
+            thetaPlus.getResult());
+
+        return success();
+    }
+    return failure();
 }
 
 //===----------------------------------------------------------------------===//
