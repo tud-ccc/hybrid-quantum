@@ -3,6 +3,8 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
+class QubitMap;
+
 namespace mlir {
 
 //===- Generated includes -------------------------------------------------===//
@@ -16,7 +18,8 @@ namespace qir {
 
 void populateConvertQIRToQuantumPatterns(
     TypeConverter &typeConverter,
-    RewritePatternSet &patterns);
+    RewritePatternSet &patterns,
+    QubitMap &qubitMap);
 
 } // namespace qir
 
