@@ -14,4 +14,6 @@ add_mlir_dialect_library(QuantumIR
         QuantumEnums
         QuantumTransforms
         QIRIR
+        MLIRArithDialect
+        MLIRArithTransforms
 )

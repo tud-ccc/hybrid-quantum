@@ -6,6 +6,7 @@
 #pragma once
 
 #include "quantum-mlir/Conversion/QIRToLLVM/QIRToLLVM.h"
+#include "quantum-mlir/Conversion/QIRToQuantum/QIRToQuantum.h"
 #include "quantum-mlir/Conversion/QuantumToQIR/QuantumToQIR.h"
 
 namespace mlir::quantum {
