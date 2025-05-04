@@ -457,47 +457,47 @@ struct ZOpPattern : public ConvertOpToLLVMPattern<ZOp> {
     }
 };
 
-struct CNOTOpPattern : public ConvertOpToLLVMPattern<CNOTOp> {
-    using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+template<typename OpTy>
+struct COpPattern : public ConvertOpToLLVMPattern<OpTy> {
+    /// qirName must be exactly the __quantum__qis__XXX__body symbol for OpTy.
+    COpPattern(LLVMTypeConverter &tc, StringRef qirName)
+            : ConvertOpToLLVMPattern<OpTy>(tc),
+              qirName(qirName)
+    {}
 
     LogicalResult matchAndRewrite(
-        CNOTOp op,
-        CNOTOp::Adaptor adaptor,
+        OpTy op,
+        typename OpTy::Adaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
         Location loc = op.getLoc();
-        MLIRContext* ctx = getContext();
+        MLIRContext* ctx = op.getContext();
 
-        // Define the QIR function name for the CNOT gate.
-        StringRef qirName = "__quantum__qis__cnot__body";
+        // build the (ptr, ptr) -> void function type
+        Type ptrTy = LLVM::LLVMPointerType::get(ctx);
+        auto fnTy = LLVM::LLVMFunctionType::get(
+            LLVM::LLVMVoidType::get(ctx),
+            ArrayRef<Type>{ptrTy, ptrTy},
+            /*vararg=*/false);
 
-        // Create the LLVM function type: (ptr, ptr) -> void.
-        Type ptrType = LLVM::LLVMPointerType::get(ctx);
-        Type voidType = LLVM::LLVMVoidType::get(ctx);
-        Type qirSignature = LLVM::LLVMFunctionType::get(
-            voidType,
-            {ptrType, ptrType},
-            /*isVarArg=*/false);
+        // ensure the runtime declaration
+        auto fnDecl = ensureFunctionDeclaration(rewriter, op, qirName, fnTy);
 
-        // Ensure the runtime function is declared.
-        LLVM::LLVMFuncOp fnDecl =
-            ensureFunctionDeclaration(rewriter, op, qirName, qirSignature);
-
-        // Get the control and target qubits from the operation.
+        // pull the two operands (control, target)
         Value control = adaptor.getControl();
         Value target = adaptor.getTarget();
 
-        // Create the call operation to invoke the CNOT runtime function.
-        rewriter.create<LLVM::CallOp>(
-            loc,
-            TypeRange{},
+        // replace with a direct call
+        rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+            op,
+            TypeRange{}, // no results
             fnDecl.getSymName(),
             ValueRange{control, target});
-
-        // Erase the original CNOT op.
-        rewriter.eraseOp(op);
         return success();
     }
+
+private:
+    StringRef qirName;
 };
 
 template<typename OpType>
@@ -572,12 +572,12 @@ protected:
 };
 
 // Add to your existing patterns
-struct UOpLowering : public ConvertOpToLLVMPattern<UOp> {
-    using ConvertOpToLLVMPattern<UOp>::ConvertOpToLLVMPattern;
+struct U3OpLowering : public ConvertOpToLLVMPattern<U3Op> {
+    using ConvertOpToLLVMPattern<U3Op>::ConvertOpToLLVMPattern;
 
     LogicalResult matchAndRewrite(
-        UOp op,
-        UOpAdaptor adaptor,
+        U3Op op,
+        U3OpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
         Location loc = op.getLoc();
@@ -680,37 +680,272 @@ struct MeasureOpPattern : public ConvertOpToLLVMPattern<MeasureOp> {
     }
 };
 
-struct SwapOpPattern : public ConvertOpToLLVMPattern<qir::SwapOp> {
-    using ConvertOpToLLVMPattern<qir::SwapOp>::ConvertOpToLLVMPattern;
-
+// U1(λ) ≡ Rz(λ)
+struct U1OpLowering : public ConvertOpToLLVMPattern<U1Op> {
+    using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
     LogicalResult matchAndRewrite(
-        qir::SwapOp op,
-        qir::SwapOpAdaptor adaptor,
+        U1Op op,
+        U1OpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        MLIRContext* ctx = getContext();
+        Location loc = op.getLoc();
+        auto lambda = adaptor.getLambda();
+        auto qubit = adaptor.getInput();
 
-        // Create the LLVM function type for the swap function: (ptr, ptr) ->
-        // void.
-        Type ptrType = LLVM::LLVMPointerType::get(ctx);
-        Type voidType = LLVM::LLVMVoidType::get(ctx);
-        auto fnType =
-            LLVM::LLVMFunctionType::get(voidType, {ptrType, ptrType}, false);
-        StringRef swapFuncName = "__quantum__qis__swap__body";
-        LLVM::LLVMFuncOp fnDecl =
-            ensureFunctionDeclaration(rewriter, op, swapFuncName, fnType);
+        // __quantum__qis__u1__body(double, ptr) -> void
+        StringRef fnName = "__quantum__qis__u1__body";
+        auto fnType = LLVM::LLVMFunctionType::get(
+            LLVM::LLVMVoidType::get(getContext()),
+            {rewriter.getF64Type(), LLVM::LLVMPointerType::get(getContext())},
+            false);
+        auto fnDecl = ensureFunctionDeclaration(rewriter, op, fnName, fnType);
 
-        // Retrieve the two input qubits from the adaptor.
-        // Assuming your QIR_SwapOp defines arguments "input1" and "input2".
-        Value input1 = adaptor.getLhs();
-        Value input2 = adaptor.getRhs();
+        rewriter.create<LLVM::CallOp>(
+            loc,
+            TypeRange{},
+            fnDecl.getSymName(),
+            ValueRange{lambda, qubit});
+        rewriter.eraseOp(op);
+        return success();
+    }
+};
 
-        // Create the call operation to invoke the runtime swap function.
+// U2(φ, λ)
+struct U2OpLowering : public ConvertOpToLLVMPattern<U2Op> {
+    using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+    LogicalResult matchAndRewrite(
+        U2Op op,
+        U2OpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        Location loc = op.getLoc();
+        auto phi = adaptor.getPhi();
+        auto lambda = adaptor.getLambda();
+        auto qubit = adaptor.getInput();
+
+        // __quantum__qis__u2__body(double, double, ptr) -> void
+        StringRef fnName = "__quantum__qis__u2__body";
+        auto fnType = LLVM::LLVMFunctionType::get(
+            LLVM::LLVMVoidType::get(getContext()),
+            {rewriter.getF64Type(),
+             rewriter.getF64Type(),
+             LLVM::LLVMPointerType::get(getContext())},
+            false);
+        auto fnDecl = ensureFunctionDeclaration(rewriter, op, fnName, fnType);
+
+        rewriter.create<LLVM::CallOp>(
+            loc,
+            TypeRange{},
+            fnDecl.getSymName(),
+            ValueRange{phi, lambda, qubit});
+        rewriter.eraseOp(op);
+        return success();
+    }
+};
+
+// Controlled-Rz
+struct CRzOpLowering : public ConvertOpToLLVMPattern<CRzOp> {
+    using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+    LogicalResult matchAndRewrite(
+        CRzOp op,
+        CRzOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        Location loc = op.getLoc();
+        auto angle = adaptor.getAngle();
+        auto ctrl = adaptor.getControl();
+        auto tgt = adaptor.getTarget();
+
+        StringRef fnName = "__quantum__qis__crz__body";
+        auto fnType = LLVM::LLVMFunctionType::get(
+            LLVM::LLVMVoidType::get(getContext()),
+            {rewriter.getF64Type(),
+             LLVM::LLVMPointerType::get(getContext()),
+             LLVM::LLVMPointerType::get(getContext())},
+            false);
+        auto fnDecl = ensureFunctionDeclaration(rewriter, op, fnName, fnType);
+
         rewriter.replaceOpWithNewOp<LLVM::CallOp>(
             op,
             TypeRange{},
             fnDecl.getSymName(),
-            ValueRange{input1, input2});
+            ValueRange{angle, ctrl, tgt});
+        return success();
+    }
+};
+
+// Controlled-Ry
+struct CRyOpLowering : public ConvertOpToLLVMPattern<CRyOp> {
+    using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+    LogicalResult matchAndRewrite(
+        CRyOp op,
+        CRyOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        Location loc = op.getLoc();
+        auto angle = adaptor.getAngle();
+        auto ctrl = adaptor.getControl();
+        auto tgt = adaptor.getTarget();
+
+        StringRef fnName = "__quantum__qis__cry__body";
+        auto fnType = LLVM::LLVMFunctionType::get(
+            LLVM::LLVMVoidType::get(getContext()),
+            {rewriter.getF64Type(),
+             LLVM::LLVMPointerType::get(getContext()),
+             LLVM::LLVMPointerType::get(getContext())},
+            false);
+        auto fnDecl = ensureFunctionDeclaration(rewriter, op, fnName, fnType);
+
+        rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+            op,
+            TypeRange{},
+            fnDecl.getSymName(),
+            ValueRange{angle, ctrl, tgt});
+        return success();
+    }
+};
+
+// Toffoli (CCX)
+struct CCXOpLowering : public ConvertOpToLLVMPattern<CCXOp> {
+    using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+    LogicalResult matchAndRewrite(
+        CCXOp op,
+        CCXOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        Location loc = op.getLoc();
+        auto c1 = adaptor.getControl1();
+        auto c2 = adaptor.getControl2();
+        auto tgt = adaptor.getTarget();
+
+        StringRef fnName = "__quantum__qis__ccx__body";
+        auto fnType = LLVM::LLVMFunctionType::get(
+            LLVM::LLVMVoidType::get(getContext()),
+            {LLVM::LLVMPointerType::get(getContext()),
+             LLVM::LLVMPointerType::get(getContext()),
+             LLVM::LLVMPointerType::get(getContext())},
+            false);
+        auto fnDecl = ensureFunctionDeclaration(rewriter, op, fnName, fnType);
+
+        rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+            op,
+            TypeRange{},
+            fnDecl.getSymName(),
+            ValueRange{c1, c2, tgt});
+        return success();
+    }
+};
+
+// S gate
+struct SOpPattern : public ConvertOpToLLVMPattern<SOp> {
+    using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+    LogicalResult matchAndRewrite(
+        SOp op,
+        SOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        Location loc = op.getLoc();
+        auto in = adaptor.getInput();
+        StringRef fnName = "__quantum__qis__s__body";
+        auto fnType = LLVM::LLVMFunctionType::get(
+            LLVM::LLVMVoidType::get(getContext()),
+            {LLVM::LLVMPointerType::get(getContext())},
+            false);
+        auto fnDecl = ensureFunctionDeclaration(rewriter, op, fnName, fnType);
+        rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+            op,
+            TypeRange{},
+            fnDecl.getSymName(),
+            ValueRange{in});
+        return success();
+    }
+};
+
+// Sdg gate
+struct SdgOpPattern : public ConvertOpToLLVMPattern<SdgOp> {
+    using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+    LogicalResult matchAndRewrite(
+        SdgOp op,
+        SdgOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        Location loc = op.getLoc();
+        auto in = adaptor.getInput();
+        StringRef fnName = "__quantum__qis__sdg__body";
+        auto fnType = LLVM::LLVMFunctionType::get(
+            LLVM::LLVMVoidType::get(getContext()),
+            {LLVM::LLVMPointerType::get(getContext())},
+            false);
+        auto fnDecl = ensureFunctionDeclaration(rewriter, op, fnName, fnType);
+        rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+            op,
+            TypeRange{},
+            fnDecl.getSymName(),
+            ValueRange{in});
+        return success();
+    }
+};
+
+// T gate
+struct TOpPattern : public ConvertOpToLLVMPattern<TOp> {
+    using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+    LogicalResult matchAndRewrite(
+        TOp op,
+        TOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        Location loc = op.getLoc();
+        auto in = adaptor.getInput();
+        StringRef fnName = "__quantum__qis__t__body";
+        auto fnType = LLVM::LLVMFunctionType::get(
+            LLVM::LLVMVoidType::get(getContext()),
+            {LLVM::LLVMPointerType::get(getContext())},
+            false);
+        auto fnDecl = ensureFunctionDeclaration(rewriter, op, fnName, fnType);
+        rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+            op,
+            TypeRange{},
+            fnDecl.getSymName(),
+            ValueRange{in});
+        return success();
+    }
+};
+
+// Tdg gate
+struct TdgOpPattern : public ConvertOpToLLVMPattern<TdgOp> {
+    using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+    LogicalResult matchAndRewrite(
+        TdgOp op,
+        TdgOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        Location loc = op.getLoc();
+        auto in = adaptor.getInput();
+        StringRef fnName = "__quantum__qis__tdg__body";
+        auto fnType = LLVM::LLVMFunctionType::get(
+            LLVM::LLVMVoidType::get(getContext()),
+            {LLVM::LLVMPointerType::get(getContext())},
+            false);
+        auto fnDecl = ensureFunctionDeclaration(rewriter, op, fnName, fnType);
+        rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+            op,
+            TypeRange{},
+            fnDecl.getSymName(),
+            ValueRange{in});
+        return success();
+    }
+};
+
+struct BarrierOpPattern : public ConvertOpToLLVMPattern<qir::BarrierOp> {
+    using ConvertOpToLLVMPattern<qir::BarrierOp>::ConvertOpToLLVMPattern;
+
+    LogicalResult matchAndRewrite(
+        qir::BarrierOp op,
+        qir::BarrierOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        // No runtime effect — just erase the op.
+        rewriter.eraseOp(op);
         return success();
     }
 };
@@ -801,18 +1036,34 @@ void mlir::qir::populateConvertQIRToLLVMPatterns(
         InitOpPattern,
         SeedOpPattern,
         HOpPattern,
-        SwapOpPattern,
         XOpPattern,
         YOpPattern,
         ZOpPattern,
         RzOpLowering,
         RxOpLowering,
         RyOpLowering,
-        UOpLowering,
-        CNOTOpPattern,
+        U1OpLowering,
+        U2OpLowering,
+        U3OpLowering,
+        CRzOpLowering,
+        CRyOpLowering,
+        CCXOpLowering,
+        SOpPattern,
+        SdgOpPattern,
+        TOpPattern,
+        TdgOpPattern,
+        BarrierOpPattern,
         MeasureOpPattern,
         ReadMeasurementOpPattern,
         ResetOpPattern>(typeConverter);
+
+    patterns.add<COpPattern<CNOTOp>>(
+        typeConverter,
+        "__quantum__qis__cnot__body");
+    patterns.add<COpPattern<CZOp>>(typeConverter, "__quantum__qis__cz__body");
+    patterns.add<COpPattern<SwapOp>>(
+        typeConverter,
+        "__quantum__qis__swap__body");
 }
 
 std::unique_ptr<Pass> mlir::createConvertQIRToLLVMPass()

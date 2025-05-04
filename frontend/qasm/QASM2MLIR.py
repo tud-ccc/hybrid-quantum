@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """Refactored QASM3 to MLIR converter generating QIR dialect code
 Usage: python QASM2MLIR.py -i input.qasm -o output.mlir
 """
@@ -5,15 +6,35 @@ Usage: python QASM2MLIR.py -i input.qasm -o output.mlir
 import argparse
 import logging
 import sys
-import warnings
 from typing import Any, Optional
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Instruction, Measure, Reset
-from qiskit.circuit.controlflow import IfElseOp
-from qiskit.circuit.library import CXGate, HGate, RXGate, RYGate, RZGate, SwapGate, U3Gate, XGate
+from qiskit.circuit.library import (
+    Barrier,
+    CCXGate,
+    CRYGate,
+    CRZGate,
+    CXGate,
+    CZGate,
+    HGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    SdgGate,
+    SGate,
+    SwapGate,
+    TdgGate,
+    TGate,
+    U1Gate,
+    U2Gate,
+    U3Gate,
+    XGate,
+    YGate,
+    ZGate,
+)
 from qiskit.qasm2 import loads as qasm2_loads
-from qiskit.qasm3 import loads as qasm3_loads
+from qiskit.qasm2.parse import LEGACY_CUSTOM_INSTRUCTIONS
 
 # === Logging Setup ===
 
@@ -151,8 +172,52 @@ class QIRResultAllocOp(MLIROperation):
         self.add_result(ResultType())
 
 
+class QIRInitOp(MLIROperation):
+    op_name = "init"
+    op_dialect = "qir"
+
+    def __init__(self, value_map: SSAValueMap) -> None:
+        super().__init__(value_map)
+
+
+class QIRSeedOp(MLIROperation):
+    op_name = "seed"
+    op_dialect = "qir"
+
+    def __init__(self, value_map: SSAValueMap, seed: SSAValue) -> None:
+        super().__init__(value_map)
+        self.add_operand(seed)
+
+
 class QIRHOp(MLIROperation):
     op_name = "H"
+    op_dialect = "qir"
+
+    def __init__(self, value_map: SSAValueMap, qubit: SSAValue) -> None:
+        super().__init__(value_map)
+        self.add_operand(qubit)
+
+
+class QIRXOp(MLIROperation):
+    op_name = "X"
+    op_dialect = "qir"
+
+    def __init__(self, value_map: SSAValueMap, qubit: SSAValue) -> None:
+        super().__init__(value_map)
+        self.add_operand(qubit)
+
+
+class QIRYOp(MLIROperation):
+    op_name = "Y"
+    op_dialect = "qir"
+
+    def __init__(self, value_map: SSAValueMap, qubit: SSAValue) -> None:
+        super().__init__(value_map)
+        self.add_operand(qubit)
+
+
+class QIRZOp(MLIROperation):
+    op_name = "Z"
     op_dialect = "qir"
 
     def __init__(self, value_map: SSAValueMap, qubit: SSAValue) -> None:
@@ -164,39 +229,31 @@ class QIRCNOTOp(MLIROperation):
     op_name = "CNOT"
     op_dialect = "qir"
 
-    def __init__(self, value_map: SSAValueMap, control: SSAValue, target: SSAValue) -> None:
+    def __init__(self, value_map: SSAValueMap, ctl: SSAValue, tgt: SSAValue) -> None:
         super().__init__(value_map)
-        self.add_operand(control)
-        self.add_operand(target)
+        self.add_operand(ctl)
+        self.add_operand(tgt)
 
 
-class QIRMeasureOp(MLIROperation):
-    op_name = "measure"
+class QIRCZOp(MLIROperation):
+    op_name = "Cz"
     op_dialect = "qir"
 
-    def __init__(self, value_map: SSAValueMap, qubit: SSAValue, result: SSAValue) -> None:
+    def __init__(self, value_map: SSAValueMap, ctl: SSAValue, tgt: SSAValue) -> None:
         super().__init__(value_map)
-        self.add_operand(qubit)
-        self.add_operand(result)
+        self.add_operand(ctl)
+        self.add_operand(tgt)
 
 
-class QIRReadMeasurementOp(MLIROperation):
-    op_name = "read_measurement"
+class QIRCCXOp(MLIROperation):
+    op_name = "CCX"
     op_dialect = "qir"
 
-    def __init__(self, value_map: SSAValueMap, result_val: SSAValue) -> None:
+    def __init__(self, value_map: SSAValueMap, ctl1: SSAValue, ctl2: SSAValue, tgt: SSAValue) -> None:
         super().__init__(value_map)
-        self.add_operand(result_val)
-        self.add_result(MLIRType(name="tensor<1xi1>", dialect="tensor"))
-
-
-class QIRXOp(MLIROperation):
-    op_name = "X"
-    op_dialect = "qir"
-
-    def __init__(self, value_map: SSAValueMap, qubit: SSAValue) -> None:
-        super().__init__(value_map)
-        self.add_operand(qubit)
+        self.add_operand(ctl1)
+        self.add_operand(ctl2)
+        self.add_operand(tgt)
 
 
 class QIRRxOp(MLIROperation):
@@ -229,6 +286,40 @@ class QIRRzOp(MLIROperation):
         self.add_operand(angle)
 
 
+class QIRU2Op(MLIROperation):
+    op_name = "U2"
+    op_dialect = "qir"
+
+    def __init__(self, value_map: SSAValueMap, qubit: SSAValue, phi: SSAValue, lam: SSAValue) -> None:
+        super().__init__(value_map)
+        self.add_operand(qubit)
+        self.add_operand(phi)
+        self.add_operand(lam)
+
+
+class QIRU1Op(MLIROperation):
+    op_name = "U1"
+    op_dialect = "qir"
+
+    def __init__(self, value_map: SSAValueMap, qubit: SSAValue, lam: SSAValue) -> None:
+        super().__init__(value_map)
+        self.add_operand(qubit)
+        self.add_operand(lam)
+
+
+class QIRU3Op(MLIROperation):
+    op_name = "U3"
+    op_dialect = "qir"
+
+    def __init__(self, value_map: SSAValueMap, qubit: SSAValue, theta: SSAValue, phi: SSAValue, lam: SSAValue) -> None:
+        super().__init__(value_map)
+        # we still emit a single U3 op if you prefer; QIR dialect supports it directly
+        self.add_operand(qubit)
+        self.add_operand(theta)
+        self.add_operand(phi)
+        self.add_operand(lam)
+
+
 class QIRSwapOp(MLIROperation):
     op_name = "swap"
     op_dialect = "qir"
@@ -239,16 +330,82 @@ class QIRSwapOp(MLIROperation):
         self.add_operand(rhs)
 
 
-class QIRUOp(MLIROperation):
-    op_name = "U"
+class QIRSOp(MLIROperation):
+    op_name = "S"
     op_dialect = "qir"
 
-    def __init__(self, value_map: SSAValueMap, qubit: SSAValue, theta: SSAValue, phi: SSAValue, lambd: SSAValue) -> None:
+    def __init__(self, value_map: SSAValueMap, qubit: SSAValue) -> None:
         super().__init__(value_map)
         self.add_operand(qubit)
-        self.add_operand(theta)
-        self.add_operand(phi)
-        self.add_operand(lambd)
+
+
+class QIRSDGOp(MLIROperation):
+    op_name = "Sdg"
+    op_dialect = "qir"
+
+    def __init__(self, value_map: SSAValueMap, qubit: SSAValue) -> None:
+        super().__init__(value_map)
+        self.add_operand(qubit)
+
+
+class QIRTOp(MLIROperation):
+    op_name = "T"
+    op_dialect = "qir"
+
+    def __init__(self, value_map: SSAValueMap, qubit: SSAValue) -> None:
+        super().__init__(value_map)
+        self.add_operand(qubit)
+
+
+class QIRTDGOp(MLIROperation):
+    op_name = "Tdg"
+    op_dialect = "qir"
+
+    def __init__(self, value_map: SSAValueMap, qubit: SSAValue) -> None:
+        super().__init__(value_map)
+        self.add_operand(qubit)
+
+
+class QIRCRzOp(MLIROperation):
+    op_name = "CRz"
+    op_dialect = "qir"
+
+    def __init__(self, value_map: SSAValueMap, ctl: SSAValue, tgt: SSAValue, angle: SSAValue) -> None:
+        super().__init__(value_map)
+        self.add_operand(ctl)
+        self.add_operand(tgt)
+        self.add_operand(angle)
+
+
+class QIRCRyOp(MLIROperation):
+    op_name = "CRy"
+    op_dialect = "qir"
+
+    def __init__(self, value_map: SSAValueMap, ctl: SSAValue, tgt: SSAValue, angle: SSAValue) -> None:
+        super().__init__(value_map)
+        self.add_operand(ctl)
+        self.add_operand(tgt)
+        self.add_operand(angle)
+
+
+class QIRMeasureOp(MLIROperation):
+    op_name = "measure"
+    op_dialect = "qir"
+
+    def __init__(self, value_map: SSAValueMap, qubit: SSAValue, result: SSAValue) -> None:
+        super().__init__(value_map)
+        self.add_operand(qubit)
+        self.add_operand(result)
+
+
+class QIRReadMeasurementOp(MLIROperation):
+    op_name = "read_measurement"
+    op_dialect = "qir"
+
+    def __init__(self, value_map: SSAValueMap, result_val: SSAValue) -> None:
+        super().__init__(value_map)
+        self.add_operand(result_val)
+        self.add_result(MLIRType(name="tensor<1xi1>", dialect="tensor"))
 
 
 class QIRResetOp(MLIROperation):
@@ -317,6 +474,18 @@ class ReturnOp(MLIROperation):
         return ["return"]
 
 
+class BarrierOp(MLIROperation):
+    op_name = "barrier"
+    op_dialect = "qir"
+
+    def __init__(self, value_map: SSAValueMap, qubits: list[SSAValue]) -> None:
+        super().__init__(value_map)
+        # no operands, no results
+        # barrier takes any number of qubit operands
+        for q in qubits:
+            self.add_operand(q)
+
+
 class MLIRBlock(MLIRBase):
     def __init__(self, value_map: SSAValueMap) -> None:
         self.value_map: SSAValueMap = value_map
@@ -359,9 +528,6 @@ class MLIRModule(MLIRBase):
         return lines
 
 
-# Visitor class
-
-
 class QASMToMLIRVisitor:
     def __init__(
         self,
@@ -378,13 +544,21 @@ class QASMToMLIRVisitor:
         self.get_result = get_result
 
     def visit(self, instr_op: Instruction, qargs: list[Any], cargs: list[Any]) -> None:
-        # explicit class‐based dispatch:
+        # dispatch
         if isinstance(instr_op, HGate):
             return self.visit_h(instr_op, qargs, cargs)
         if isinstance(instr_op, XGate):
             return self.visit_x(instr_op, qargs, cargs)
+        if isinstance(instr_op, YGate):
+            return self.visit_y(instr_op, qargs, cargs)
+        if isinstance(instr_op, ZGate):
+            return self.visit_z(instr_op, qargs, cargs)
         if isinstance(instr_op, CXGate):
             return self.visit_cx(instr_op, qargs, cargs)
+        if isinstance(instr_op, CZGate):
+            return self.visit_cz(instr_op, qargs, cargs)
+        if isinstance(instr_op, CCXGate):
+            return self.visit_ccx(instr_op, qargs, cargs)
         if isinstance(instr_op, RXGate):
             return self.visit_rx(instr_op, qargs, cargs)
         if isinstance(instr_op, RYGate):
@@ -393,80 +567,165 @@ class QASMToMLIRVisitor:
             return self.visit_rz(instr_op, qargs, cargs)
         if isinstance(instr_op, U3Gate):
             return self.visit_u3(instr_op, qargs, cargs)
+        if isinstance(instr_op, U2Gate):
+            return self.visit_u2(instr_op, qargs, cargs)
+        if isinstance(instr_op, U1Gate):
+            return self.visit_u1(instr_op, qargs, cargs)
         if isinstance(instr_op, SwapGate):
             return self.visit_swap(instr_op, qargs, cargs)
-        if isinstance(instr_op, Reset):
-            return self.visit_reset(instr_op, qargs, cargs)
+        if isinstance(instr_op, SGate):
+            return self.visit_s(instr_op, qargs, cargs)
+        if isinstance(instr_op, SdgGate):
+            return self.visit_sdg(instr_op, qargs, cargs)
+        if isinstance(instr_op, TGate):
+            return self.visit_t(instr_op, qargs, cargs)
+        if isinstance(instr_op, TdgGate):
+            return self.visit_tdg(instr_op, qargs, cargs)
+        if isinstance(instr_op, CRZGate):
+            return self.visit_crz(instr_op, qargs, cargs)
+        if isinstance(instr_op, CRYGate):
+            return self.visit_cry(instr_op, qargs, cargs)
         if isinstance(instr_op, Measure):
             return self.visit_measure(instr_op, qargs, cargs)
-        if isinstance(instr_op, IfElseOp):
-            return self.visit_if_else(instr_op, qargs, cargs)
+        if isinstance(instr_op, Reset):
+            return self.visit_reset(instr_op, qargs, cargs)
+        if isinstance(instr_op, Barrier):
+            return self.visit_barrier(instr_op, qargs, cargs)
         return self.generic_visit(instr_op, qargs, cargs)
 
     def generic_visit(self, instr_op: Instruction, qargs: list[Any], cargs: list[Any]) -> None:
+        if getattr(instr_op, "definition", None) is not None:
+            if instr_op.definition is None:
+                raise UnimplementedError("Instruction definition is None")
+            def_circ: QuantumCircuit = instr_op.definition
+            # Build a map from the *definition’s* ephemeral qubits
+            # back to the real qubits in this call site.
+            mapping = {q_def: q_act for q_def, q_act in zip(def_circ.qubits, qargs)}
+
+            # Now walk the defined-circuit’s own .data
+            for instr in def_circ.data:
+                # CircuitInstruction now has named attributes, not unpackable
+                sub_inst = instr.operation
+                sub_qargs = instr.qubits
+                sub_cargs = instr.clbits
+
+                # remap into our real-call-site qubits
+                real_qargs = [mapping[q] for q in sub_qargs]
+                self.visit(sub_inst, real_qargs, sub_cargs)
+
+            return
+
         raise UnimplementedError(f"Unsupported operation: {type(instr_op).__name__}")
 
-    def visit_h(self, instr_op: HGate, qargs: list[Any], cargs: list[Any]) -> None:
+    def visit_h(self, instr_op: HGate, qargs, cargs):
         r, i = self.qubit_info[qargs[0]]
         self.func.block.add_op(QIRHOp(self.func.value_map, self.get_qubit(r, i)))
 
-    def visit_cx(self, instr_op: CXGate, qargs: list[Any], cargs: list[Any]) -> None:
-        r1, i1 = self.qubit_info[qargs[0]]
-        r2, i2 = self.qubit_info[qargs[1]]
-        self.func.block.add_op(
-            QIRCNOTOp(
-                self.func.value_map,
-                self.get_qubit(r1, i1),
-                self.get_qubit(r2, i2),
-            )
-        )
-
-    def visit_measure(self, instr_op: Measure, qargs: list[Any], cargs: list[Any]) -> None:
-        qr, qi = self.qubit_info[qargs[0]]
-        cr, ci = self.clbit_info[cargs[0]]
-        self.func.block.add_op(QIRMeasureOp(self.func.value_map, self.get_qubit(qr, qi), self.get_result(cr, ci)))
-        self.func.block.add_op(QIRReadMeasurementOp(self.func.value_map, self.get_result(cr, ci)))
-
-    def visit_x(self, instr_op: XGate, qargs: list[Any], cargs: list[Any]) -> None:
+    def visit_x(self, instr_op: XGate, qargs, cargs):
         r, i = self.qubit_info[qargs[0]]
         self.func.block.add_op(QIRXOp(self.func.value_map, self.get_qubit(r, i)))
 
-    def visit_rx(self, instr_op: RXGate, qargs: list[Any], cargs: list[Any]) -> None:
+    def visit_y(self, instr_op: YGate, qargs, cargs):
+        r, i = self.qubit_info[qargs[0]]
+        self.func.block.add_op(QIRYOp(self.func.value_map, self.get_qubit(r, i)))
+
+    def visit_z(self, instr_op: ZGate, qargs, cargs):
+        r, i = self.qubit_info[qargs[0]]
+        self.func.block.add_op(QIRZOp(self.func.value_map, self.get_qubit(r, i)))
+
+    def visit_cx(self, instr_op: CXGate, qargs, cargs):
+        r1, i1 = self.qubit_info[qargs[0]]
+        r2, i2 = self.qubit_info[qargs[1]]
+        self.func.block.add_op(QIRCNOTOp(self.func.value_map, self.get_qubit(r1, i1), self.get_qubit(r2, i2)))
+
+    def visit_cz(self, instr_op: CZGate, qargs, cargs):
+        r1, i1 = self.qubit_info[qargs[0]]
+        r2, i2 = self.qubit_info[qargs[1]]
+        self.func.block.add_op(QIRCZOp(self.func.value_map, self.get_qubit(r1, i1), self.get_qubit(r2, i2)))
+
+    def visit_ccx(self, instr_op: CCXGate, qargs, cargs):
+        r1, i1 = self.qubit_info[qargs[0]]
+        r2, i2 = self.qubit_info[qargs[1]]
+        r3, i3 = self.qubit_info[qargs[2]]
+        self.func.block.add_op(
+            QIRCCXOp(self.func.value_map, self.get_qubit(r1, i1), self.get_qubit(r2, i2), self.get_qubit(r3, i3))
+        )
+
+    def _emit_rotation(self, OpClass, instr_op, qargs, cargs):
         angle = float(instr_op.params[0])
         r, i = self.qubit_info[qargs[0]]
         const = ConstFloatOp(self.func.value_map, angle, MLIRType("f64"))
         self.func.block.add_op(const)
-        self.func.block.add_op(QIRRxOp(self.func.value_map, self.get_qubit(r, i), const.results[0]))
+        self.func.block.add_op(OpClass(self.func.value_map, self.get_qubit(r, i), const.results[0]))
 
-    def visit_ry(self, instr_op: RYGate, qargs: list[Any], cargs: list[Any]) -> None:
-        angle = float(instr_op.params[0])
-        r, i = self.qubit_info[qargs[0]]
-        const = ConstFloatOp(self.func.value_map, angle, MLIRType("f64"))
-        self.func.block.add_op(const)
-        self.func.block.add_op(QIRRyOp(self.func.value_map, self.get_qubit(r, i), const.results[0]))
+    def visit_rx(self, instr_op: RXGate, qargs, cargs):
+        return self._emit_rotation(QIRRxOp, instr_op, qargs, cargs)
 
-    def visit_rz(self, instr_op: RZGate, qargs: list[Any], cargs: list[Any]) -> None:
-        angle = float(instr_op.params[0])
-        r, i = self.qubit_info[qargs[0]]
-        const = ConstFloatOp(self.func.value_map, angle, MLIRType("f64"))
-        self.func.block.add_op(const)
-        self.func.block.add_op(QIRRzOp(self.func.value_map, self.get_qubit(r, i), const.results[0]))
+    def visit_ry(self, instr_op: RYGate, qargs, cargs):
+        return self._emit_rotation(QIRRyOp, instr_op, qargs, cargs)
 
-    def visit_u3(self, instr_op: U3Gate, qargs: list[Any], cargs: list[Any]) -> None:
+    def visit_rz(self, instr_op: RZGate, qargs, cargs):
+        return self._emit_rotation(QIRRzOp, instr_op, qargs, cargs)
+
+    def visit_u3(self, instr_op: U3Gate, qargs, cargs):
         theta, phi, lam = map(float, instr_op.params)
         r, i = self.qubit_info[qargs[0]]
+        # constants
+        cθ = ConstFloatOp(self.func.value_map, theta, MLIRType("f64"))
+        cφ = ConstFloatOp(self.func.value_map, phi, MLIRType("f64"))
+        cλ = ConstFloatOp(self.func.value_map, lam, MLIRType("f64"))
+        self.func.block.add_op(cθ)
+        self.func.block.add_op(cφ)
+        self.func.block.add_op(cλ)
+        self.func.block.add_op(QIRU3Op(self.func.value_map, self.get_qubit(r, i), cθ.results[0], cφ.results[0], cλ.results[0]))
 
-        # Decompose U3(θ, φ, λ) = RZ(φ) → RY(θ) → RZ(λ)
-        phi_const = ConstFloatOp(self.func.value_map, phi, MLIRType("f64"))
-        theta_const = ConstFloatOp(self.func.value_map, theta, MLIRType("f64"))
-        lambda_const = ConstFloatOp(self.func.value_map, lam, MLIRType("f64"))
-        self.func.block.add_op(phi_const)
-        self.func.block.add_op(theta_const)
-        self.func.block.add_op(lambda_const)
-        qubit_ssa = self.get_qubit(r, i)
-        self.func.block.add_op(
-            QIRUOp(self.func.value_map, qubit_ssa, theta_const.results[0], phi_const.results[0], lambda_const.results[0])
-        )
+    def visit_u2(self, instr_op: U2Gate, qargs, cargs):
+        phi, lam = map(float, instr_op.params)
+        r, i = self.qubit_info[qargs[0]]
+        cφ = ConstFloatOp(self.func.value_map, phi, MLIRType("f64"))
+        cλ = ConstFloatOp(self.func.value_map, lam, MLIRType("f64"))
+        self.func.block.add_op(cφ)
+        self.func.block.add_op(cλ)
+        self.func.block.add_op(QIRU2Op(self.func.value_map, self.get_qubit(r, i), cφ.results[0], cλ.results[0]))
+
+    def visit_u1(self, instr_op: U1Gate, qargs, cargs):
+        lam = float(instr_op.params[0])
+        r, i = self.qubit_info[qargs[0]]
+        cλ = ConstFloatOp(self.func.value_map, lam, MLIRType("f64"))
+        self.func.block.add_op(cλ)
+        self.func.block.add_op(QIRU1Op(self.func.value_map, self.get_qubit(r, i), cλ.results[0]))
+
+    def visit_s(self, instr_op: SGate, qargs, cargs):
+        r, i = self.qubit_info[qargs[0]]
+        self.func.block.add_op(QIRSOp(self.func.value_map, self.get_qubit(r, i)))
+
+    def visit_sdg(self, instr_op: SdgGate, qargs, cargs):
+        r, i = self.qubit_info[qargs[0]]
+        self.func.block.add_op(QIRSDGOp(self.func.value_map, self.get_qubit(r, i)))
+
+    def visit_t(self, instr_op: TGate, qargs, cargs):
+        r, i = self.qubit_info[qargs[0]]
+        self.func.block.add_op(QIRTOp(self.func.value_map, self.get_qubit(r, i)))
+
+    def visit_tdg(self, instr_op: TdgGate, qargs, cargs):
+        r, i = self.qubit_info[qargs[0]]
+        self.func.block.add_op(QIRTDGOp(self.func.value_map, self.get_qubit(r, i)))
+
+    def visit_crz(self, instr_op: CRZGate, qargs, cargs):
+        angle = float(instr_op.params[0])
+        r1, i1 = self.qubit_info[qargs[0]]
+        r2, i2 = self.qubit_info[qargs[1]]
+        cθ = ConstFloatOp(self.func.value_map, angle, MLIRType("f64"))
+        self.func.block.add_op(cθ)
+        self.func.block.add_op(QIRCRzOp(self.func.value_map, self.get_qubit(r1, i1), self.get_qubit(r2, i2), cθ.results[0]))
+
+    def visit_cry(self, instr_op: CRYGate, qargs, cargs):
+        angle = float(instr_op.params[0])
+        r1, i1 = self.qubit_info[qargs[0]]
+        r2, i2 = self.qubit_info[qargs[1]]
+        cθ = ConstFloatOp(self.func.value_map, angle, MLIRType("f64"))
+        self.func.block.add_op(cθ)
+        self.func.block.add_op(QIRCRyOp(self.func.value_map, self.get_qubit(r1, i1), self.get_qubit(r2, i2), cθ.results[0]))
 
     def visit_swap(self, instr_op: SwapGate, qargs: list[Any], cargs: list[Any]) -> None:
         r1, i1 = self.qubit_info[qargs[0]]
@@ -477,66 +736,48 @@ class QASMToMLIRVisitor:
         r, i = self.qubit_info[qargs[0]]
         self.func.block.add_op(QIRResetOp(self.func.value_map, self.get_qubit(r, i)))
 
-    def visit_if_else(self, instr_op: IfElseOp, qargs: list[Any], cargs: list[Any]) -> None:
-        # only simple (bit, val) conditions supported
-        cond = instr_op.condition
-        if isinstance(cond, tuple):
-            cond_bit, cond_val = cond
-        else:
-            raise ConversionError(f"Unsupported condition type: {type(cond).__name__}")
+    def visit_measure(self, instr_op: Measure, qargs, cargs):
+        # Get SSAValues for qubit and its result buffer
+        qr, qi = self.qubit_info[qargs[0]]
+        qubit_ssa = self.get_qubit(qr, qi)
+        cr, ci = self.clbit_info[cargs[0]]
+        result_ssa = self.get_result(cr, ci)
 
-        creg, cidx = self.clbit_info[cond_bit]
-        bit_ssa = self.get_result(creg, cidx)
+        # Emit the measure (no results)
+        measure_op = QIRMeasureOp(self.func.value_map, qubit_ssa, result_ssa)
+        self.func.block.add_op(measure_op)
 
-        const = ConstFloatOp(self.func.value_map, 1.0 if cond_val else 0.0, MLIRType("i1"))
-        self.func.block.add_op(const)
-        cmpi = ArithCmpIOp(self.func.value_map, bit_ssa, const.results[0])
-        self.func.block.add_op(cmpi)
+        # Now emit the read_measurement using the same result SSA
+        read_op = QIRReadMeasurementOp(self.func.value_map, result_ssa)
+        self.func.block.add_op(read_op)
 
-        # build the regions
-        then_circ = instr_op.blocks[0]
-        else_circ = instr_op.blocks[1] if len(instr_op.blocks) > 1 else None
-        then_block = MLIRBlock(self.func.value_map)
-        else_block = MLIRBlock(self.func.value_map) if else_circ else None
-
-        for nested in then_circ.data:
-            saved = self.func.block
-            self.func.block = then_block
-            self.visit(nested.operation, nested.qubits, nested.clbits)
-            self.func.block = saved
-
-        if else_circ:
-            for nested in else_circ.data:
-                saved = self.func.block
-                self.func.block = else_block  # type: ignore
-                self.visit(nested.operation, nested.qubits, nested.clbits)
-                self.func.block = saved
-
-        scf_if = SCFIfOp(cmpi.results[0], then_block, else_block)
-        self.func.block.add_op(scf_if)
+    def visit_barrier(self, instr_op: Barrier, qargs: list[Any], cargs: list[Any]) -> None:
+        # Emit a single barrier on all the qubits in qargs
+        # Gather the SSAValues for each qubit argument
+        qubit_ssas: list[SSAValue] = []
+        for q in qargs:
+            reg, idx = self.qubit_info[q]
+            qubit_ssas.append(self.get_qubit(reg, idx))
+        self.func.block.add_op(BarrierOp(self.func.value_map, qubit_ssas))
 
 
 def QASMToMLIR(code: str) -> MLIRModule:
     try:
-        circuit: QuantumCircuit = qasm3_loads(code)
+        circuit: QuantumCircuit = qasm2_loads(code, custom_instructions=LEGACY_CUSTOM_INSTRUCTIONS)
     except Exception as e:
-        warnings.warn(f"QASM3 parse failed: {e}")
-        try:
-            circuit: QuantumCircuit = qasm2_loads(code)
-        except Exception as e2:
-            raise ConversionError(f"QASM2 parse failed: {e2}")
-
-    # Rest of function remains the same
+        raise ConversionError(f"QASM2 parse failed: {e}")
+    # *** DEBUG: print the decomposed circuit diagram ***
+    # print("⟵ circuit:")
+    # print(circuit.draw(output="text"))
 
     module = MLIRModule()
     func = MLIRFunction("main")
 
     qubit_info = {q: (qreg.name, i) for qreg in circuit.qregs for i, q in enumerate(qreg)}
     clbit_info = {c: (creg.name, i) for creg in circuit.cregs for i, c in enumerate(creg)}
-    qubit_map: dict[tuple[str, int], SSAValue] = {}
-    result_map: dict[tuple[str, int], SSAValue] = {}
+    qubit_map, result_map = {}, {}
 
-    def get_qubit(reg: str, idx: int) -> SSAValue:
+    def get_qubit(reg, idx):
         key = (reg, idx)
         if key not in qubit_map:
             alloc = QIRAllocOp(func.value_map)
@@ -544,7 +785,7 @@ def QASMToMLIR(code: str) -> MLIRModule:
             qubit_map[key] = alloc.results[0]
         return qubit_map[key]
 
-    def get_result(reg: str, idx: int) -> SSAValue:
+    def get_result(reg, idx):
         key = (reg, idx)
         if key not in result_map:
             ralloc = QIRResultAllocOp(func.value_map)
@@ -555,29 +796,21 @@ def QASMToMLIR(code: str) -> MLIRModule:
     visitor = QASMToMLIRVisitor(func, qubit_info, clbit_info, get_qubit, get_result)
     for instr in circuit.data:
         visitor.visit(instr.operation, instr.qubits, instr.clbits)
-
     func.block.add_op(ReturnOp(func.value_map))
     module.add_function(func)
     return module
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="QASM3 to MLIR Converter")
+def main():
+    parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", help="Input QASM file")
     parser.add_argument("-o", "--output", help="Output MLIR file")
     args = parser.parse_args()
-
     code = open(args.input).read() if args.input else sys.stdin.read()
-    try:
-        module = QASMToMLIR(code)
-    except ConversionError as e:
-        logger.error(f"Conversion failed: {e}")
-        sys.exit(1)
-
+    module = QASMToMLIR(code)
     mlir = str(module)
     if args.output:
-        with open(args.output, "w") as f:
-            f.write(mlir)
+        open(args.output, "w").write(mlir)
     else:
         print(mlir)
 
