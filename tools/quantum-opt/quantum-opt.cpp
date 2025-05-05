@@ -12,6 +12,7 @@
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
 #include "quantum-mlir/Conversion/Passes.h"
 #include "quantum-mlir/Dialect/QIR/IR/QIR.h"
+#include "quantum-mlir/Dialect/QIR/Transforms/Passes.h"
 #include "quantum-mlir/Dialect/Quantum/IR/Quantum.h"
 
 using namespace mlir;
@@ -27,6 +28,7 @@ int main(int argc, char* argv[])
     registerAllPasses();
     quantum::registerQuantumPasses();
     quantum::registerConversionPasses();
+    qir::registerQIRPasses();
 
     return asMainReturnCode(
         MlirOptMain(argc, argv, "quantum-mlir optimizer driver\n", registry));
