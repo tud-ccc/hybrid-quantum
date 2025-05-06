@@ -221,9 +221,7 @@ void ConvertQuantumToQIRPass::runOnOperation()
     quantum::populateConvertQuantumToQIRPatterns(typeConverter, patterns);
 
     target.addIllegalDialect<quantum::QuantumDialect>();
-    target.markUnknownOpDynamicallyLegal([](Operation* op) { return true; });
     target.addLegalDialect<qir::QIRDialect>();
-    target.addLegalDialect<tensor::TensorDialect>();
     target.addDynamicallyLegalOp<func::FuncOp>([&](func::FuncOp op) {
         return typeConverter.isLegal(op.getFunctionType());
     });

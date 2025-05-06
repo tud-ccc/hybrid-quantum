@@ -6,6 +6,7 @@ module {
   // CHECK: ) -> tensor<1xi1> {
   func.func @complete_example() -> (tensor<1xi1>) {
     // CHECK-DAG: %[[Q0:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1> 
+    // CHECK-NOT: "qir.alloc"() : () -> (!qir.qubit)
     %q0 = "qir.alloc" () : () -> (!qir.qubit)
     // CHECK-DAG: %[[Q1:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
     %q1 = "qir.alloc" () : () -> (!qir.qubit)
@@ -34,9 +35,10 @@ module {
   // CHECK-LABEL: func.func @check_convert_XOp(
   // CHECK: ) -> !quantum.qubit<1> {
   func.func @check_convert_XOp() -> (!qir.qubit) {
-    // CHECK-DAG: %[[Q0:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1> 
+    // CHECK-DAG: %[[Q0:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
+    // CHECK-NOT: %[[Q:.+]] "qir.alloc"() : () -> (!qir.qubit)
     %q0 = "qir.alloc" () : () -> (!qir.qubit)
-    // CHECK-DAG: %[[Q1:.+]] = "quantum.alloc"(%[[Q0]]) : (!quantum.qubit<1>) -> !quantum.qubit<1>
+    // CHECK-DAG: %[[Q1:.+]] = "quantum.X"(%[[Q0]]) : (!quantum.qubit<1>) -> !quantum.qubit<1>
     "qir.X" (%q0) : (!qir.qubit) -> ()
     // CHECK-DAG: return %[[Q1]]
     func.return %q0 : !qir.qubit
