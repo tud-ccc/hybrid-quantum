@@ -236,7 +236,8 @@ struct ConvertReadMeasurement
         ReadMeasurementOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        return failure();
+        return op->emitOpError(
+            "ReadMeasurement should already have been removed");
     }
 }; // struct ConvertReadMeasurementOp
 
@@ -293,6 +294,7 @@ void mlir::qir::populateConvertQIRToQuantumPatterns(
         ConvertSwap,
         ConvertResultAlloc,
         ConvertUnaryOp<qir::HOp, quantum::HOp>,
+        ConvertUnaryOp<qir::XOp, quantum::XOp>,
         ConvertRotation<qir::RzOp, quantum::RzOp>,
         ConvertMeasure,
         ConvertReset>(typeConverter, patterns.getContext(), &qubitMap);
