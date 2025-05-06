@@ -135,22 +135,6 @@ struct ConvertSwap : public QIRToQuantumOpConversionPattern<qir::SwapOp> {
     }
 }; // struct ConvertSwapOp
 
-struct ConvertH : public QIRToQuantumOpConversionPattern<qir::HOp> {
-    using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
-
-    LogicalResult matchAndRewrite(
-        HOp op,
-        HOpAdaptor adaptor,
-        ConversionPatternRewriter &rewriter) const override
-    {
-        auto input = qubitMap->find(adaptor.getInput());
-        auto hOp = rewriter.create<quantum::HOp>(op.getLoc(), input);
-        qubitMap->insert(adaptor.getInput(), hOp.getResult());
-        rewriter.eraseOp(op);
-        return success();
-    }
-}; // struct ConvertHOp
-
 struct ConvertRz : public QIRToQuantumOpConversionPattern<qir::RzOp> {
     using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
 
@@ -169,6 +153,24 @@ struct ConvertRz : public QIRToQuantumOpConversionPattern<qir::RzOp> {
         return success();
     }
 }; // struct ConvertRzOp
+
+template<typename SourceOp, typename TargetOp>
+struct ConvertUnaryOp : public QIRToQuantumOpConversionPattern<SourceOp> {
+    using QIRToQuantumOpConversionPattern<
+        SourceOp>::QIRToQuantumOpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        SourceOp op,
+        OpConversionPattern<SourceOp>::OpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        auto input = this->qubitMap->find(adaptor.getInput());
+        auto genOp = rewriter.create<TargetOp>(op.getLoc(), input);
+        this->qubitMap->insert(adaptor.getInput(), genOp.getResult());
+        rewriter.eraseOp(op);
+        return success();
+    }
+}; // struct ConvertUnaryOp
 
 struct ConvertReset : public QIRToQuantumOpConversionPattern<qir::ResetOp> {
     using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
@@ -290,7 +292,7 @@ void mlir::qir::populateConvertQIRToQuantumPatterns(
         ConvertAlloc,
         ConvertSwap,
         ConvertResultAlloc,
-        ConvertH,
+        ConvertUnaryOp<qir::HOp, quantum::HOp>,
         ConvertRz,
         ConvertMeasure,
         ConvertReset>(typeConverter, patterns.getContext(), &qubitMap);
