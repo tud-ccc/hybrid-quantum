@@ -135,24 +135,24 @@ struct ConvertSwap : public QIRToQuantumOpConversionPattern<qir::SwapOp> {
     }
 }; // struct ConvertSwapOp
 
-struct ConvertRz : public QIRToQuantumOpConversionPattern<qir::RzOp> {
-    using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
+template<typename SourceOp, typename TargetOp>
+struct ConvertRotation : public QIRToQuantumOpConversionPattern<SourceOp> {
+    using QIRToQuantumOpConversionPattern<
+        SourceOp>::QIRToQuantumOpConversionPattern;
 
     LogicalResult matchAndRewrite(
-        RzOp op,
-        RzOpAdaptor adaptor,
+        SourceOp op,
+        OpConversionPattern<SourceOp>::OpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        auto input = qubitMap->find(adaptor.getInput());
-        auto rzOp = rewriter.create<quantum::RzOp>(
-            op.getLoc(),
-            input,
-            adaptor.getAngle());
-        qubitMap->insert(adaptor.getInput(), rzOp.getResult());
+        auto input = this->qubitMap->find(adaptor.getInput());
+        auto genOp =
+            rewriter.create<TargetOp>(op.getLoc(), input, adaptor.getAngle());
+        this->qubitMap->insert(adaptor.getInput(), genOp.getResult());
         rewriter.eraseOp(op);
         return success();
     }
-}; // struct ConvertRzOp
+}; // struct ConvertRotationOp
 
 template<typename SourceOp, typename TargetOp>
 struct ConvertUnaryOp : public QIRToQuantumOpConversionPattern<SourceOp> {
@@ -293,7 +293,7 @@ void mlir::qir::populateConvertQIRToQuantumPatterns(
         ConvertSwap,
         ConvertResultAlloc,
         ConvertUnaryOp<qir::HOp, quantum::HOp>,
-        ConvertRz,
+        ConvertRotation<qir::RzOp, quantum::RzOp>,
         ConvertMeasure,
         ConvertReset>(typeConverter, patterns.getContext(), &qubitMap);
 }
