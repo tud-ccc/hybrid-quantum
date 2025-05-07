@@ -9,6 +9,6 @@
     "reportMissingTypeStubs": false,
     "pythonVersion": "3.10",
     "pythonPlatform": "Linux",
-    "venvPath": ".",
+    "venvPath": "/net/media/scratch/quantum",
     "venv": ".venv"
 }

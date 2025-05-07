@@ -100,6 +100,14 @@ def QIR_CNOTOp : Gate_Op<"CNOT"> {
   let arguments = (ins QIR_QubitType:$control, QIR_QubitType:$target);
 }
 
+def QIR_CZOp : Gate_Op<"Cz"> {
+  let summary = "CZ gate operation";
+  let description = [{
+    The controlled-Z (CZ) gate
+  }];
+  let arguments = (ins QIR_QubitType:$control, QIR_QubitType:$target);
+}
+
 def QIR_RxOp : Gate_Op<"Rx"> {
   let summary = "Rx gate operation";
   let description = [{
@@ -118,15 +126,91 @@ def QIR_RzOp : Gate_Op<"Rz"> {
   let arguments = (ins QIR_QubitType:$input, F64:$angle);
 }
 
+// Ry: a single-qubit rotation with an angle parameter.
+def QIR_RyOp : Gate_Op<"Ry"> {
+  let summary = "Ry gate operation";
+  let description = [{
+    The Ry gate rotates a qubit around the Y-axis by a specified angle.
+  }];
+  let arguments = (ins QIR_QubitType:$input, F64:$angle);
+}
+
+// U: a universal single-qubit gate with three angles.
+def QIR_U3Op : Gate_Op<"U3"> {
+  let summary = "U gate operation";
+  let description = [{
+    The U gate is a universal single-qubit gate that can represent any single-qubit operation.
+  }];
+  let arguments = (ins QIR_QubitType:$input, F64:$theta, F64:$phi, F64:$lambda);
+}
+
+def QIR_U2Op : Gate_Op<"U2"> {
+  let summary = "U2 gate operation";
+  let description = [{ A single-qubit gate with two parameters φ and λ. Equivalent to U3(π/2, φ, λ). }];
+  let arguments = (ins QIR_QubitType:$input, F64:$phi, F64:$lambda);
+}
+
+def QIR_U1Op : Gate_Op<"U1"> {
+  let summary = "U1 gate operation";
+  let description = [{ A single-parameter unitary gate for phase rotation. Equivalent to Rz(λ). }];
+  let arguments = (ins QIR_QubitType:$input, F64:$lambda);
+}
+
+
+def QIR_SOp : PrimitiveGate_Op<"S"> {
+  let summary = "S gate operation";
+  let description = [{ Phase gate (√Z). }];
+}
+
+def QIR_SdgOp : PrimitiveGate_Op<"Sdg"> {
+  let summary = "S-dagger gate operation";
+  let description = [{ Adjoint of the S gate. }];
+}
+
+def QIR_TOp : PrimitiveGate_Op<"T"> {
+  let summary = "T gate operation";
+  let description = [{ T gate (π/8 gate). }];
+}
+
+def QIR_TdgOp : PrimitiveGate_Op<"Tdg"> {
+  let summary = "T-dagger gate operation";
+  let description = [{ Adjoint of the T gate. }];
+}
+
+def QIR_CRzOp : Gate_Op<"CRz"> {
+  let summary = "Controlled-Rz gate";
+  let description = [{ Applies a Z rotation conditioned on the control qubit. }];
+  let arguments = (ins QIR_QubitType:$control, QIR_QubitType:$target, F64:$angle);
+}
+
+def QIR_CRyOp : Gate_Op<"CRy"> {
+  let summary = "Controlled-Ry gate";
+  let description = [{ Applies a Y rotation conditioned on the control qubit. }];
+  let arguments = (ins QIR_QubitType:$control, QIR_QubitType:$target, F64:$angle);
+}
+
+def QIR_CCXOp : Gate_Op<"CCX"> {
+  let summary = "Toffoli (CCX) gate";
+  let description = [{ Controlled-controlled-X gate. Flips target if both controls are |1>. }];
+  let arguments = (ins QIR_QubitType:$control1, QIR_QubitType:$control2, QIR_QubitType:$target);
+}
+
+def QIR_BarrierOp : Gate_Op<"barrier"> {
+  let summary = "Barrier operation";
+  let description = [{ A barrier operation that prevents optimization across it. }];
+  let arguments = (ins Variadic<QIR_QubitType>:$input);
+}
+
 // Swap: a two-qubit gate that exchanges the states of its inputs.
 def QIR_SwapOp : Gate_Op<"swap"> {
   let summary = "Swap gate operation";
   let description = [{
     The swap gate exchanges the quantum states of two qubits.
   }];
+  // inputs named control/target for nomenclature only. it means lhs, rhs in this case.
   let arguments = (ins
-    QIR_QubitType:$lhs,
-    QIR_QubitType:$rhs
+    QIR_QubitType:$control,
+    QIR_QubitType:$target
   );
 }
 

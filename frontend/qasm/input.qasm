@@ -1,22 +1,29 @@
-// Test quantum circuit
-OPENQASM 3.0;
-include "stdgates.inc"; 
-qubit[2] q;
-bit[2] c;
+// quantum ripple-carry adder from Cuccaro et al, quant-ph/0410184
+OPENQASM 2.0;
+include "qelib1.inc";
+gate majority a,b,c 
+{ 
+  cx c,b; 
+  cx c,a; 
+  ccx a,b,c; 
+}
 
-// Apply all single-qubit gates
-h q[0];
-x q[0];
-rx(3.1415) q[0];
+gate unmaj a,b,c 
+{ 
+  ccx a,b,c; 
+  cx c,a; 
+  cx a,b; 
+}
 
-// Two-qubit gates
-cx q[0], q[1];
-swap q[0], q[1];
+qreg a[2];
+qreg b[2];
+creg ans[2];
 
-// Measurement
-measure q[0] -> c[0];
-measure q[1] -> c[1];
+x a[0];    // a = 0001
+x b[0];    // b = 1111
 
-// Reset qubits
-reset q[0];
-reset q[1];
+majority a[1],b[0],a[0];
+cx a[1],a[0];
+unmaj a[1],b[1],a[0];
+
+measure b[0] -> ans[0];
