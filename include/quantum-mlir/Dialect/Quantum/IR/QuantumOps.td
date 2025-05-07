@@ -189,6 +189,7 @@ def Quantum_IfOp : Quantum_Op<
       "getRegionInvocationBounds",
       "getEntrySuccessorRegions"
     ]>,
+    IsolatedFromAbove,
     SingleBlockImplicitTerminator<"quantum::YieldOp">,
     RecursiveMemoryEffects,
     RecursivelySpeculatable,
@@ -206,7 +207,7 @@ def Quantum_IfOp : Quantum_Op<
   Example:
 
   ```mlir
-  %qr = quantum.if %b qubits(%qin = %q) -> (!quantum.qubit<1>) {
+  %qr = quantum.if %b ins(%qin = %q) -> (!quantum.qubit<1>) {
     %qH = quantum.H (%qin)
     quantum.yield %qH
   } else {

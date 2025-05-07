@@ -5,6 +5,8 @@
 
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
 
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h"
+
 #include <cstddef>
 #include <iterator>
 #include <llvm/ADT/STLExtras.h>
@@ -90,11 +92,13 @@ LogicalResult NoClone<ConcreteType>::verifyTrait(Operation* op)
 {
     // Check whether the qubits capured by the IfOp
     // are used more than a single time in each region
-    if (auto ifOp = llvm::dyn_cast_or_null<quantum::IfOp>(op)) {
+    if (auto ifOp = llvm::dyn_cast_if_present<quantum::IfOp>(op)) {
         // Check `thenRegion`
         Region &thenRegion = ifOp.getThenRegion();
         Block &thenBlock = thenRegion.getBlocks().front();
         for (auto value : thenBlock.getArguments()) {
+            // Ignore captured non-qubit types
+            if (!llvm::dyn_cast<quantum::QubitType>(value.getType())) continue;
             auto uses = value.getUses();
             int numUses = std::distance(uses.begin(), uses.end());
             if (numUses > 1) {
@@ -140,6 +144,8 @@ LogicalResult IfOp::verify()
 {
     if (getNumResults() != 0 && getElseRegion().empty())
         return emitOpError("must have an else block if defining values");
+    if (getNumRegionCapturedArgs() != (getNumResults() - getNumConditionVars()))
+        return emitOpError("# return values != # captured values");
     return success();
 }
 
@@ -157,8 +163,10 @@ static void printInitializationList(
     ValueRange initializers,
     StringRef prefix = "")
 {
+    // the block arguments will be the conditional (1) + the list of
+    // initializers
     assert(
-        blocksArgs.size() == initializers.size()
+        (blocksArgs.size() + 1) == initializers.size()
         && "expected same length of arguments and initializers");
     if (initializers.empty()) return;
 
@@ -225,7 +233,7 @@ void IfOp::build(
         OpBuilder::InsertionGuard guard(builder);
         builder.setInsertionPointToStart(elseBlock);
 
-        thenBuilder(
+        elseBuilder(
             builder,
             result.location,
             elseBlock->getArgument(0),
@@ -254,7 +262,7 @@ ParseResult IfOp::parse(OpAsmParser &parser, OperationState &result)
     SmallVector<OpAsmParser::Argument, 4> regionArgs;
     SmallVector<OpAsmParser::UnresolvedOperand, 4> operands;
 
-    bool isCapturingArgs = succeeded(parser.parseOptionalKeyword("qubits"));
+    bool isCapturingArgs = succeeded(parser.parseOptionalKeyword("ins"));
     if (isCapturingArgs) {
         // Parse the assignment list
         if (parser.parseAssignmentList(regionArgs, operands)) return failure();
