@@ -13,9 +13,12 @@
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/Support/Casting.h>
 #include <llvm/Support/Error.h>
+#include <llvm/Support/Format.h>
 #include <llvm/Support/LogicalResult.h>
+#include <llvm/Support/raw_ostream.h>
 #include <llvm/TableGen/Record.h>
 #include <mlir/Dialect/Arith/IR/Arith.h>
+#include <mlir/IR/Diagnostics.h>
 #include <mlir/IR/OpDefinition.h>
 #include <mlir/IR/PatternMatch.h>
 #include <mlir/IR/Region.h>
@@ -144,8 +147,10 @@ LogicalResult IfOp::verify()
 {
     if (getNumResults() != 0 && getElseRegion().empty())
         return emitOpError("must have an else block if defining values");
-    if (getNumRegionCapturedArgs() != (getNumResults() - getNumConditionVars()))
+
+    if (getNumRegionCapturedArgs() != getNumResults())
         return emitOpError("# return values != # captured values");
+
     return success();
 }
 
@@ -166,7 +171,7 @@ static void printInitializationList(
     // the block arguments will be the conditional (1) + the list of
     // initializers
     assert(
-        (blocksArgs.size() + 1) == initializers.size()
+        blocksArgs.size() == initializers.size()
         && "expected same length of arguments and initializers");
     if (initializers.empty()) return;
 
@@ -187,6 +192,19 @@ void mlir::quantum::buildTerminatedBody(
     builder.create<quantum::YieldOp>(loc);
 }
 
+Block* IfOp::thenBlock()
+{
+    Block* thenBlock = &getThenRegion().getBlocks().front();
+    return thenBlock;
+}
+
+Block* IfOp::elseBlock()
+{
+    if (getElseRegion().empty()) return nullptr;
+    Block* elseBlock = &getElseRegion().getBlocks().front();
+    return elseBlock;
+}
+
 void IfOp::build(
     OpBuilder &builder,
     OperationState &result,
@@ -204,6 +222,7 @@ void IfOp::build(
 
     for (Value v : capturedArgs) result.addTypes(v.getType());
 
+    result.regions.reserve(2);
     Region* thenRegion = result.addRegion();
     Block* thenBlock = builder.createBlock(thenRegion);
     thenBlock->addArgument(condition.getType(), result.location);
@@ -229,10 +248,12 @@ void IfOp::build(
     Region* elseRegion = result.addRegion();
     if (elseBuilder) {
         Block* elseBlock = builder.createBlock(elseRegion);
+        elseBlock->addArgument(condition.getType(), result.location);
+        for (Value v : capturedArgs)
+            elseBlock->addArguments(v.getType(), v.getLoc());
 
         OpBuilder::InsertionGuard guard(builder);
         builder.setInsertionPointToStart(elseBlock);
-
         elseBuilder(
             builder,
             result.location,
@@ -312,7 +333,7 @@ void IfOp::print(OpAsmPrinter &p)
         p,
         getRegionCapturedArgs(),
         getCapturedArgs(),
-        " qubits");
+        " ins");
 
     if (!getResults().empty()) p << " -> (" << getResultTypes() << ")";
     p << ' ';
