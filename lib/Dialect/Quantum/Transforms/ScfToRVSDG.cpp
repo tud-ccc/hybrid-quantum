@@ -87,9 +87,6 @@ struct TransformScfIfOp : public OpConversionPattern<scf::IfOp> {
         scf::IfOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        IRMapping mapping;
-        auto condition = adaptor.getCondition();
-
         SetVector<Value> capturedValues;
         mlir::getUsedValuesDefinedAbove(
             op.getThenRegion(),
@@ -104,17 +101,19 @@ struct TransformScfIfOp : public OpConversionPattern<scf::IfOp> {
 
         auto capturedValueList =
             SmallVector<Value>(capturedValues.begin(), capturedValues.end());
+
         auto genOp = rewriter.create<quantum::IfOp>(
             op.getLoc(),
-            condition,
+            adaptor.getCondition(),
             capturedValueList,
             buildTerminatedBody,
             buildTerminatedBody);
 
-        for (auto [i, v] :
-             llvm::enumerate(genOp.getThenRegion().getArguments().drop_front(
-                 genOp.getNumConditionVars())))
-            mapping.map(capturedValueList[i], v);
+        IRMapping mapping;
+        for (auto [arg, captured] : llvm::zip_equal(
+                 genOp.getThenRegion().getArguments(),
+                 capturedValueList))
+            mapping.map(captured, arg);
 
         // build then region
         moveOpsFromBlock(op.thenBlock(), genOp.thenBlock(), mapping, rewriter);
@@ -122,10 +121,11 @@ struct TransformScfIfOp : public OpConversionPattern<scf::IfOp> {
         // build else region
         if (!op.getElseRegion().empty()) {
             mapping.clear();
-            for (auto [i, v] :
-                 llvm::enumerate(genOp->getRegion(1).getArguments().drop_front(
-                     genOp.getNumConditionVars())))
-                mapping.map(capturedValueList[i], v);
+            for (auto [arg, captured] : llvm::zip_equal(
+                     genOp.getElseRegion().getArguments(),
+                     capturedValueList))
+                mapping.map(captured, arg);
+
             moveOpsFromBlock(
                 op.elseBlock(),
                 genOp.elseBlock(),

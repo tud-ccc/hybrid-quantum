@@ -36,12 +36,12 @@ TEST_CASE("QuantumIf::Builder creates a valid QuantumIf") {
     auto qtype = QubitType::get(&context, 1);
 
     SUBCASE("capture nothing") {
-        auto op = builder.create<IfOp>(loc, trueConst);
+        auto op = builder.create<IfOp>(loc, trueConst, ValueRange{});
         
         REQUIRE(op.getNumConditionVars() == 1);
         auto regionCapturedArgs = op.getRegionCapturedArgs();
-        REQUIRE(regionCapturedArgs.size() == 1);
-        REQUIRE(op.getNumRegionCapturedArgs() == 1);
+        REQUIRE(regionCapturedArgs.size() == 0);
+        REQUIRE(op.getNumRegionCapturedArgs() == 0);
         REQUIRE(op->getNumResults() == 0);
     }
 
@@ -52,8 +52,8 @@ TEST_CASE("QuantumIf::Builder creates a valid QuantumIf") {
         auto op = builder.create<IfOp>(loc, trueConst, q);
         
         auto regionCapturedArgs = op.getRegionCapturedArgs();
-        REQUIRE(regionCapturedArgs.size() == 2);
-        REQUIRE(op.getNumRegionCapturedArgs() == 2);
+        REQUIRE(regionCapturedArgs.size() == 1);
+        REQUIRE(op.getNumRegionCapturedArgs() == 1);
         REQUIRE(op->getNumResults() == 1);
     }
 }

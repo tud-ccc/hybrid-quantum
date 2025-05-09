@@ -25,6 +25,7 @@
 #include <mlir/IR/Value.h>
 #include <mlir/Support/LLVM.h>
 #include <mlir/Support/LogicalResult.h>
+#include <optional>
 
 #define DEBUG_TYPE "quantum-ops"
 
@@ -218,14 +219,14 @@ void IfOp::build(
     assert(thenBuilder && "the builder callback for 'then' must be present");
     OpBuilder::InsertionGuard guard(builder);
     result.addOperands(condition);
-    result.addOperands(capturedArgs);
+    if (!capturedArgs.empty()) result.addOperands(capturedArgs);
 
     for (Value v : capturedArgs) result.addTypes(v.getType());
 
     result.regions.reserve(2);
     Region* thenRegion = result.addRegion();
     Block* thenBlock = builder.createBlock(thenRegion);
-    thenBlock->addArgument(condition.getType(), result.location);
+    // thenBlock->addArgument(condition.getType(), result.location);
     for (Value v : capturedArgs)
         thenBlock->addArguments(v.getType(), v.getLoc());
 
@@ -236,19 +237,19 @@ void IfOp::build(
         thenBuilder(
             builder,
             result.location,
-            thenBlock->getArgument(0),
-            thenBlock->getArguments().drop_front());
+            condition,
+            thenBlock->getArguments());
     }
 
-    // if (capturedArgs.empty())
-    //     IfOp::ensureTerminator(*thenRegion, builder, result.location);
+    if (capturedArgs.empty())
+        IfOp::ensureTerminator(*thenRegion, builder, result.location);
 
     // Build the else region.
     // The elseBuilder is optional.
     Region* elseRegion = result.addRegion();
     if (elseBuilder) {
         Block* elseBlock = builder.createBlock(elseRegion);
-        elseBlock->addArgument(condition.getType(), result.location);
+        // elseBlock->addArgument(condition.getType(), result.location);
         for (Value v : capturedArgs)
             elseBlock->addArguments(v.getType(), v.getLoc());
 
@@ -257,8 +258,11 @@ void IfOp::build(
         elseBuilder(
             builder,
             result.location,
-            elseBlock->getArgument(0),
-            elseBlock->getArguments().drop_front());
+            condition,
+            elseBlock->getArguments());
+
+        if (capturedArgs.empty())
+            IfOp::ensureTerminator(*elseRegion, builder, result.location);
     }
 }
 
@@ -295,6 +299,11 @@ ParseResult IfOp::parse(OpAsmParser &parser, OperationState &result)
     // Set the block argument types for the captured operands
     for (auto [capturedArg, type] : llvm::zip_equal(regionArgs, result.types))
         capturedArg.type = type;
+
+    if (regionArgs.size() != result.types.size())
+        return parser.emitError(
+            parser.getNameLoc(),
+            "mismatch in number of captured values and defined values");
 
     // Parse the `then` region
     if (parser.parseRegion(*thenRegion, regionArgs)) return failure();

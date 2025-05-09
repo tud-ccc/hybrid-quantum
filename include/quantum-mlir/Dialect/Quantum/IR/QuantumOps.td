@@ -265,7 +265,7 @@ def Quantum_IfOp : Quantum_Op<
 
     /// Return the captured region arguments
     Block::BlockArgListType getRegionCapturedArgs() {
-      return getBody()->getArguments().drop_front(getNumConditionVars());
+      return getBody()->getArguments(); //.drop_front(getNumConditionVars());
     }
 
     /// Return the `index`-th captured region argument.
@@ -277,7 +277,7 @@ def Quantum_IfOp : Quantum_Op<
 
     /// Number of region arguments for captured values
     unsigned getNumRegionCapturedArgs() {
-      return getBody()->getNumArguments() - getNumConditionVars();
+      return getBody()->getNumArguments(); // - getNumConditionVars();
     }
   }];
 
