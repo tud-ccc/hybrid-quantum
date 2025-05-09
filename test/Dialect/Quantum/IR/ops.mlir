@@ -26,3 +26,12 @@
 %q0_Y = "quantum.Y" (%q0_X) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
 %q0_Z = "quantum.Z" (%q0_Y) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
 %q0_H = "quantum.H" (%q0_Z) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
+
+%b = index.bool.constant true
+%qout = "quantum.alloc" () : () -> (!quantum.qubit<1>)
+%q_if1 = quantum.if %b ins(%qin = %qout) -> (!quantum.qubit<1>) {
+    "quantum.yield" (%qin) : (!quantum.qubit<1>) -> ()
+} else {
+    "quantum.yield" (%qin) : (!quantum.qubit<1>) -> ()
+}
+"quantum.deallocate" (%q_if1) : (!quantum.qubit<1>) -> ()
