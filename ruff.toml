@@ -1,0 +1,16 @@
+extend-exclude = [".venv", "build", "lit.cfg.py"]
+
+# Assume Python 3.10
+target-version = "py310"
+
+line-length = 130
+
+[lint]
+
+select = ["E", "F", "W", "I", "UP", "PT", "TID251", "INP"]
+ignore = [
+    "E741",  # https://beta.ruff.rs/docs/rules/ambiguous-variable-name/
+    "PT006", # https://beta.ruff.rs/docs/rules/pytest-parametrize-names-wrong-type/
+    "PT011", # https://beta.ruff.rs/docs/rules/pytest-raises-too-broad/
+    "PT012", # https://beta.ruff.rs/docs/rules/pytest-raises-with-multiple-statements/
+]

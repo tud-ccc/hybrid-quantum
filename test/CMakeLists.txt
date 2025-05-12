@@ -8,7 +8,7 @@ project(check-quantum-mlir)
 
 if(BACKEND_QIR)
     # Explicitly set the variable for substitution
-    set(QIR_SHLIBS "${QIR_DIR}/libqir_backend${CMAKE_SHARED_LIBRARY_SUFFIX},${QIR_DIR}/libqir_stdlib${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    set(QIR_SHLIBS "${QIR_DIR}/libqir_backend${CMAKE_SHARED_LIBRARY_SUFFIX},${QIR_DIR}/libqir_stdlib${CMAKE_SHARED_LIBRARY_SUFFIX}" CACHE STRING "Libraries required by cpu-runner to load QIR")
 
     message(STATUS "Using backend QIR libs in: ${QIR_DIR}")
     message(STATUS "Using libraries: ${QIR_SHLIBS}")
