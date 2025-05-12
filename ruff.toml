@@ -1,4 +1,4 @@
-extend-exclude = [".venv", "build"]
+extend-exclude = [".venv", "build", "lit.cfg.py"]
 
 # Assume Python 3.10
 target-version = "py310"

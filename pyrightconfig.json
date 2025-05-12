@@ -2,6 +2,9 @@
     "include": [
         "frontend/qasm"
     ],
+    "ignore": [
+        "test/lit.cfg.py"
+    ],
     "defineConstant": {
         "DEBUG": true
     },
