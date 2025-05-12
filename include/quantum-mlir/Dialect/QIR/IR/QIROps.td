@@ -207,10 +207,9 @@ def QIR_SwapOp : Gate_Op<"swap"> {
   let description = [{
     The swap gate exchanges the quantum states of two qubits.
   }];
-  // inputs named control/target for nomenclature only. it means lhs, rhs in this case.
   let arguments = (ins
-    QIR_QubitType:$control,
-    QIR_QubitType:$target
+    QIR_QubitType:$lhs,
+    QIR_QubitType:$rhs
   );
 }
 

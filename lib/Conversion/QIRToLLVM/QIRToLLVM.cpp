@@ -484,8 +484,8 @@ struct COpPattern : public ConvertOpToLLVMPattern<OpTy> {
         auto fnDecl = ensureFunctionDeclaration(rewriter, op, qirName, fnTy);
 
         // pull the two operands (control, target)
-        Value control = adaptor.getControl();
-        Value target = adaptor.getTarget();
+        auto control = adaptor.getOperands()[0];
+        auto target = adaptor.getOperands()[1];
 
         // replace with a direct call
         rewriter.replaceOpWithNewOp<LLVM::CallOp>(
