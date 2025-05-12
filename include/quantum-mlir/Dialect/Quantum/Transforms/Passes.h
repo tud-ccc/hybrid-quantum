@@ -30,12 +30,19 @@ void populateMultiQubitLegalizationPatterns(
     TypeConverter converter,
     RewritePatternSet &patterns);
 
+/// Adds the scf-to-rvsdg pass patterns to @p patterns .
+void populateScfToRVSDGPatterns(
+    TypeConverter converter,
+    RewritePatternSet &patterns);
+
 /// Constructs the lower-funnel-shift pass.
 std::unique_ptr<Pass> createQuantumOptimisePass();
 
 /// Pass that legalizes multi-qubit quantum programs
 /// such that they can be lowered to QIR
 std::unique_ptr<Pass> createMultiQubitLegalizationPass();
+
+std::unique_ptr<Pass> createScfToRVSDGPass();
 
 //===----------------------------------------------------------------------===//
 // Registration

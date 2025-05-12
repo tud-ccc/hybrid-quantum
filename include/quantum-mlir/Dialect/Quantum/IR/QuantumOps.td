@@ -189,6 +189,7 @@ def Quantum_IfOp : Quantum_Op<
       "getRegionInvocationBounds",
       "getEntrySuccessorRegions"
     ]>,
+    IsolatedFromAbove,
     SingleBlockImplicitTerminator<"quantum::YieldOp">,
     RecursiveMemoryEffects,
     RecursivelySpeculatable,
@@ -206,7 +207,7 @@ def Quantum_IfOp : Quantum_Op<
   Example:
 
   ```mlir
-  %qr = quantum.if %b qubits(%qin = %q) -> (!quantum.qubit<1>) {
+  %qr = quantum.if %b ins(%qin = %q) -> (!quantum.qubit<1>) {
     %qH = quantum.H (%qin)
     quantum.yield %qH
   } else {
@@ -264,7 +265,7 @@ def Quantum_IfOp : Quantum_Op<
 
     /// Return the captured region arguments
     Block::BlockArgListType getRegionCapturedArgs() {
-      return getBody()->getArguments().drop_front(getNumConditionVars());
+      return getBody()->getArguments(); //.drop_front(getNumConditionVars());
     }
 
     /// Return the `index`-th captured region argument.
@@ -276,7 +277,7 @@ def Quantum_IfOp : Quantum_Op<
 
     /// Number of region arguments for captured values
     unsigned getNumRegionCapturedArgs() {
-      return getBody()->getNumArguments() - getNumConditionVars();
+      return getBody()->getNumArguments(); // - getNumConditionVars();
     }
   }];
 
@@ -307,6 +308,26 @@ def Quantum_HOp : PrimitiveGate_Op<
   let arguments = (ins Quantum_QubitType:$input);
   let results = (outs Quantum_QubitType:$result);
   let hasFolder = 1;
+}
+
+def Quantum_RzOp : PrimitiveGate_Op<
+        "Rz",
+        [
+          NoMemoryEffect,
+          AllTypesMatch<["input", "result"]>]> {
+  let summary = "z rotation gate operation";
+  let description = [{
+    Example:
+    %theta = arith.constant 0.34 : f64
+    %q1 = "quantum.Rz" (%q0, %theta): !quantum.qubit<1>, f64 -> !quantum.qubit<1>
+  }];
+
+  let arguments = (ins
+    Quantum_QubitType:$input,
+    F64:$theta
+  );
+  let results = (outs Quantum_QubitType:$result);
+  let hasCanonicalizeMethod = 1;
 }
 
 def Quantum_CNOTOp : PrimitiveGate_Op<
@@ -368,7 +389,10 @@ def Quantum_ZOp : PrimitiveGate_Op<
 def Quantum_SWAPOp : PrimitiveGate_Op<
         "SWAP",
         [
-          AllTypesMatch<["lhs", "rhs", "result1", "result2"]>]> {
+          AllTypesMatch<
+            [
+              "lhs", "rhs",
+              "result1", "result2"]>]> {
   let summary = "SWAP gate";
   let description = [{
     Swaps the states of two qubits.

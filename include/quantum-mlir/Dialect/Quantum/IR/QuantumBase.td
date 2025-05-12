@@ -12,7 +12,6 @@ include "mlir/IR/BuiltinTypes.td"
 include "mlir/IR/OpBase.td"
 include "mlir/IR/EnumAttr.td"
 
-
 def Quantum_Dialect : Dialect {
     let name = "quantum";
     let cppNamespace = "::mlir::quantum";
@@ -32,7 +31,11 @@ def Quantum_Dialect : Dialect {
         void registerOps();
         void registerTypes();
     }];
-    // let dependentDialects = ["arith::ArithDialect"];
+
+    let dependentDialects = [
+        "arith::ArithDialect"
+    ];
+
     let useDefaultAttributePrinterParser = 0;
     // let useDefaultTypePrinterParser = 1;
 }

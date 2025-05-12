@@ -100,7 +100,11 @@ cmake -S . -B build \
 ninja -C build
 
 # Tests
+# MLIR dialect tests
 ninja -C build check-quantum-mlir
+# C++ unittests
+ninja -C quantum-mlir-tests
+ctest --test-dir build -V
 ```
 
 The following CMAKE variables can be configured:

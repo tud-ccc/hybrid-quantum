@@ -33,4 +33,19 @@ def MultiQubitLegalization : Pass<"quantum-multi-qubit-legalize", "ModuleOp"> {
   ];
 }
 
+def ScfToRVSDG : Pass<"scf-to-rvsdg", "ModuleOp"> {
+  let summary = "Transform `scf.if` and `scf.for` to RVSDG variants of the `quantum` dialect.";
+
+  let description = [{
+  This pass transform structured control flow to the regionalized value state dependence
+  graph (RVSDG) elements from the `quantum` dialect.
+  }];
+
+  let constructor = "mlir::quantum::createScfToRVSDGPass()";
+
+  let dependentDialects = [
+    "scf::SCFDialect"
+  ];
+}
+
 #endif // QUANTUM_PASSES
