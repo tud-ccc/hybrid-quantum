@@ -8,6 +8,7 @@ import logging
 import sys
 from typing import Any, Optional
 
+sys.path.append("/Users/lschuetze/git/hybrid-quantum/build/python_packages/mlir_core")
 from qiskit import QuantumCircuit
 from qiskit.circuit import Instruction, Measure, Reset
 from qiskit.circuit.library import (

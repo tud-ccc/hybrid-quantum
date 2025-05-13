@@ -79,6 +79,7 @@ add_compile_options(
 add_subdirectory(docs)
 add_subdirectory(include)
 add_subdirectory(lib)
+add_subdirectory(lib/CAPI)
 add_subdirectory(frontend)
 if(MLIR_ENABLE_BINDINGS_PYTHON)
     add_subdirectory(python)

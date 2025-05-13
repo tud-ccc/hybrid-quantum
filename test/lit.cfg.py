@@ -69,7 +69,7 @@ tools = [
 ]
 
 # Find QASM frontend
-qasm_import = config.qasm_frontend_dir + "/QASM2MLIR.py"
+qasm_import = config.qasm_frontend_dir + "/qasm-import.py"
 # Optional tools
 tools.extend(
     [
