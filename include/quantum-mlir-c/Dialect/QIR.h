@@ -1,7 +1,7 @@
 //===-- quantum-mlir-c/Dialect/QIR.h - C API for QIR dialect ----------*- C
 //-*-===//
 //
-//
+// @author  Lars Schütze (lars.schuetze@tu-dresden.de)
 //===----------------------------------------------------------------------===//
 
 #ifndef QUANTUM_MLIR_C_DIALECT_QIR_H
@@ -14,6 +14,13 @@ extern "C" {
 #endif
 
 MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(QIR, qir);
+
+//===---------------------------------------------------------------------===//
+// QubitType
+//===---------------------------------------------------------------------===//
+
+/// Returns `true` if the given type is a quantization dialect type.
+MLIR_CAPI_EXPORTED bool mlirTypeIsAQubitType(MlirType type);
 
 #ifdef __cplusplus
 }
