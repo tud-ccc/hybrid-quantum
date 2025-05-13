@@ -1,5 +1,5 @@
 add_mlir_dialect_library(QIRTransforms
-        Optimise.cpp
+        DecomposeUGates.cpp
 
     ENABLE_AGGREGATION
 

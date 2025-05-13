@@ -9,13 +9,13 @@
 
 include "mlir/Pass/PassBase.td"
 
-def QIROptimise : Pass<"qir-optimise", "ModuleOp"> {
-  let summary = "Optimise the `qir` dialect";
+def DecomposeUGates : Pass<"qir-decompose-ugates", "ModuleOp"> {
+  let summary = "Decompose the U gates in the `qir` dialect";
 
   let description = [{
   }];
 
-  let constructor = "mlir::qir::createQIROptimisePass()";
+  let constructor = "mlir::qir::createDecomposeUGatesPass()";
 }
 
 #endif // QIR_PASSES
