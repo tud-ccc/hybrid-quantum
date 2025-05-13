@@ -2,6 +2,7 @@
 ///
 /// @file
 /// @author     Washim Neupane (washimneupane@outlook.com)
+/// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
 
 #pragma once
 
@@ -20,10 +21,10 @@ namespace mlir {
 namespace qir {
 
 /// Adds the quantum optimise pass patterns to @p patterns .
-void populateQIROptimisePatterns(RewritePatternSet &patterns);
+void populateUGatesDecompositionPatterns(RewritePatternSet &patterns);
 
 /// Constructs the lower-funnel-shift pass.
-std::unique_ptr<Pass> createQIROptimisePass();
+std::unique_ptr<Pass> createDecomposeUGatesPass();
 
 //===----------------------------------------------------------------------===//
 // Registration
