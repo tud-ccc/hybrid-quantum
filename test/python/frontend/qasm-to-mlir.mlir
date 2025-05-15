@@ -1,7 +1,7 @@
 // RUN: %PYTHON qasm-import -i %s | FileCheck %s
 
 // CHECK: module {
-// CHECK:   func.func @main()
+// CHECK:   func.func @qasm_main()
 
 // Allocate and init a[0], b[0]
 // CHECK-DAG: %[[Q0:[0-9]+]] = "qir.alloc" () : () -> (!qir.qubit)
@@ -34,7 +34,6 @@
 // CHECK:     return
 // CHECK:   }
 // CHECK: }
-
 OPENQASM 2.0;
 include "qelib1.inc";
 gate majority a,b,c 
