@@ -13,11 +13,12 @@ import re
 import sys
 from enum import Enum
 
-sys.path.append("/Users/lschuetze/git/hybrid-quantum/build/python_packages/mlir_core")
-from mlir.dialects import builtin, func
-from mlir.ir import Context, FunctionType, Location, Module
-from qiskit import QuantumCircuit
+sys.path.append("/Users/lschuetze/git/hybrid-quantum/build/python_packages/quantum-mlir")
+from mlir.dialects import builtin, func, qir
+from mlir.ir import Context, Location, Module
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate, Instruction, Operation
+from qiskit.circuit import library as lib
 from qiskit.circuit.classical.expr import Expr
 from qiskit.qasm2 import loads as qasm2_loads
 from qiskit.qasm2.parse import LEGACY_CUSTOM_INSTRUCTIONS
@@ -48,14 +49,59 @@ class ParseError(RuntimeError): ...
 
 # Specify the QASM version the frontend conforms to
 class QASMVersion(Enum):
-    Unspecified = (0,)
+    Unspecified = 0
     QASM_2_0 = 1
     QASM_3_0 = 2
 
 
+"""
+# Types that can be coerced to a valid Qubit specifier in a circuit.
+QubitSpecifier = Union[
+    Qubit,
+    QuantumRegister,
+    int,
+    slice,
+    Sequence[Union[Qubit, int]],
+]
+# Types that can be coerced to a valid Clbit specifier in a circuit.
+ClbitSpecifier = Union[
+    Clbit,
+    ClassicalRegister,
+    int,
+    slice,
+    Sequence[Union[Clbit, int]],
+]
+"""
+
+
 class QASMToMLIRVisitor:
-    def __init__(self, module: builtin.Module) -> None:
+    def __init__(
+        self,
+        compat: QASMVersion,
+        context: Context,
+        module: builtin.Module,
+        loc: Location,
+        main: func.FuncOp,
+        qregs: list[QuantumRegister],
+        cregs: list[ClassicalRegister],
+    ) -> None:
+        self.compat: QASMVersion = compat
+        self.context: Context = context
         self.module: builtin.Module = module
+        self.loc: Location = loc
+        self.func: func.FuncOp = main
+
+        self.qalloc: dict[QuantumRegister, qir.AllocOp] = {q: None for qreg in qregs for q in qreg}
+        self.ralloc: dict[ClassicalRegister, qir.ResultAllocOp] = {c: None for creg in cregs for c in creg}
+
+    def visitQuantumRegister(self, reg: QuantumRegister) -> qir.AllocOp:
+        if self.qalloc[reg] is None:
+            q: qir.QubitType = qir.QubitType.get(self.context)
+            self.qalloc[reg] = q.result
+        return self.qalloc[reg]
+
+    def visitClassicalRegister(self, reg: ClassicalRegister) -> None:
+        pass
 
     def visitClassic(self, expr: Expr) -> None:
         raise NotImplementedError(f"Classic expressions are not supported for {expr}")
@@ -66,7 +112,12 @@ class QASMToMLIRVisitor:
         raise NotImplementedError(f"Virtual quantum expressions are not supported for {instr}")
 
     # Instruction represents physical quantum instructions
-    def visitInstruction(self, instr: Instruction) -> None:
+    def visitInstruction(self, instr: Instruction, qubits: list[QuantumRegister], classic: list[ClassicalRegister]) -> None:
+        if isinstance(instr, lib.XGate):
+            q0 = self.visitQuantumRegister(qubits[0])
+            xgate: qir.XOp = qir.XOp(None)
+            self.func.body.append(xgate)
+
         raise NotImplementedError(f"{instr}")
 
     def _visitGate(self, gate: Gate) -> None:
@@ -106,21 +157,22 @@ def QASMToMLIR(code: str) -> builtin.ModuleOp:
 
     context: Context = Context()
     context.allow_unregistered_dialects = True
+    qir.register_dialect(context)
+
     with context:
         location: Location = Location.unknown()
         module: Module = Module.create(location)
 
-        vvType: FunctionType = FunctionType.get([], [])
-        qasm_main: func.FuncOp = func.FuncOp("qasm_main", vvType, visibility="private", loc=location)
+        qasm_main: func.FuncOp = func.FuncOp("qasm_main", ([], []), visibility="private", loc=location)
         module.body.append(qasm_main)
 
-        visitor: QASMToMLIRVisitor = QASMToMLIRVisitor(module)
+        visitor: QASMToMLIRVisitor = QASMToMLIRVisitor(compat, context, module, location, qasm_main, circuit.qregs, circuit.cregs)
 
         for instr in circuit.data:
             if isinstance(instr.operation, Expr):
                 visitor.visitClassic(instr)
             elif isinstance(instr.operation, Instruction):
-                visitor.visitInstruction(instr.operation)
+                visitor.visitInstruction(instr.operation, instr.qubits, instr.clbits)
             elif isinstance(instr.operation, Operation):
                 visitor.visitQuantum(instr.operation)
             else:

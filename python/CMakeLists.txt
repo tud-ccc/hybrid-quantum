@@ -5,24 +5,18 @@ endif()
 
 include(AddMLIRPython)
 
-################################################################################
-# Pure python sources and generated code
-################################################################################
+# Specifies that all MLIR packages are co-located under the `mlir_standalone`
+# top level package (the API has been embedded in a relocatable way).
+add_compile_definitions("MLIR_PYTHON_PACKAGE_PREFIX=mlir.")
 
 ################################################################################
-# Structural groupings.
+# Sources
 ################################################################################
 
-declare_mlir_python_sources(QuantumPythonSources)
-declare_mlir_python_sources(QuantumPythonSources.Dialects
-  ADD_TO_PARENT QuantumPythonSources)
-
-################################################################################
-# Pure python sources and generated code
-################################################################################
+declare_mlir_python_sources(QIRPythonSources)
 
 declare_mlir_dialect_python_bindings(
-  ADD_TO_PARENT MLIRPythonSources.Dialects
+  ADD_TO_PARENT QIRPythonSources
   ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
   TD_FILE dialects/QIROps.td
   SOURCES
@@ -40,9 +34,9 @@ declare_mlir_dialect_python_bindings(
 
 set(PYTHON_SOURCE_DIR "${CMAKE_SOURCE_DIR}/lib/Bindings/Python")
 
-declare_mlir_python_extension(MLIRPythonExtension.Dialects.QIR.Pybind
+declare_mlir_python_extension(QIRPythonSources.NanobindExtension
   MODULE_NAME _mlirDialectsQIR
-  ADD_TO_PARENT MLIRPythonSources.Dialects.qir
+  ADD_TO_PARENT QIRPythonSources
   ROOT_DIR "${PYTHON_SOURCE_DIR}"
   PYTHON_BINDINGS_LIBRARY nanobind
   SOURCES
@@ -52,43 +46,34 @@ declare_mlir_python_extension(MLIRPythonExtension.Dialects.QIR.Pybind
   EMBED_CAPI_LINK_LIBS
     MLIRCAPIIR
     MLIRCAPIQIR
-)
+)   
 
 ################################################################################
-# Common CAPI dependency DSO.
-# All python extensions must link through one DSO which exports the CAPI, and
-# this must have a globally unique name amongst all embeddors of the python
-# library since it will effectively have global scope.
-#
-# The presence of this aggregate library is part of the long term plan, but its
-# use needs to be made more flexible.
-#
-# TODO: Upgrade to the aggregate utility in https://reviews.llvm.org/D106419
-# once ready.
+# Common CAPI
 ################################################################################
 
-add_mlir_python_common_capi_library(MLIRPythonCAPI
-  INSTALL_COMPONENT MLIRPythonModules
-  INSTALL_DESTINATION python_packages/mlir_core/mlir/_mlir_libs
-  OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python_packages/mlir_core/mlir/_mlir_libs"
+add_mlir_python_common_capi_library(QIRPythonCAPI
+  INSTALL_COMPONENT QIRPythonModules
+  INSTALL_DESTINATION python_packages/quantum-mlir/mlir/_mlir_libs
+  OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python_packages/quantum-mlir/mlir/_mlir_libs"
   RELATIVE_INSTALL_ROOT "../../../.."
-  DECLARED_HEADERS
-    MLIRPythonCAPI.HeaderSources
   DECLARED_SOURCES
-    MLIRPythonSources
+    QIRPythonSources
     MLIRPythonExtension.RegisterEverything
+    MLIRPythonSources.Core
 )
 
 ################################################################################
-# The fully assembled package of modules.
-# This must come last.
+# Instantiation of all Python modules
 ################################################################################
 
-add_mlir_python_modules(MLIRPythonModules
-  ROOT_PREFIX "${CMAKE_BINARY_DIR}/python_packages/mlir_core/mlir"
-  INSTALL_PREFIX "python_packages/mlir_core/mlir"
+add_mlir_python_modules(QIRPythonModules
+  ROOT_PREFIX "${CMAKE_BINARY_DIR}/python_packages/quantum-mlir/mlir"
+  INSTALL_PREFIX "python_packages/quantum-mlir/mlir"
   DECLARED_SOURCES
+    QIRPythonSources
+    MLIRPythonExtension.RegisterEverything
     MLIRPythonSources
   COMMON_CAPI_LINK_LIBS
-    MLIRPythonCAPI
+    QIRPythonCAPI
 )
