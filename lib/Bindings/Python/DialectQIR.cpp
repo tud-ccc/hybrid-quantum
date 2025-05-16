@@ -39,7 +39,7 @@ static void populateDialectQIRSubmodule(nb::module_ m)
         nb::arg("load") = true);
 
     //===--------------------------------------------------------------------===//
-    // Qubit Type
+    // QubitType
     //===--------------------------------------------------------------------===//
     auto qubitType = mlir_type_subclass(m, "QubitType", mlirTypeIsAQubitType);
 
@@ -48,6 +48,24 @@ static void populateDialectQIRSubmodule(nb::module_ m)
         [](nb::object cls, MlirContext context) {
             CollectDiagnosticsToStringScope scope(context);
             MlirType type = mlirQubitTypeGet(context);
+            if (mlirTypeIsNull(type))
+                throw nb::value_error(scope.takeMessage().c_str());
+            return cls(type);
+        },
+        nb::arg("cls"),
+        nb::arg("context").none() = nb::none());
+
+    //===--------------------------------------------------------------------===//
+    // ResultType
+    //===--------------------------------------------------------------------===//
+    auto resultType =
+        mlir_type_subclass(m, "ResultType", mlirTypeIsAResultType);
+
+    resultType.def_classmethod(
+        "get",
+        [](nb::object cls, MlirContext context) {
+            CollectDiagnosticsToStringScope scope(context);
+            MlirType type = mlirResultTypeGet(context);
             if (mlirTypeIsNull(type))
                 throw nb::value_error(scope.takeMessage().c_str());
             return cls(type);

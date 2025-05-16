@@ -20,11 +20,21 @@ MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(QIR, qir);
 // QubitType
 //===---------------------------------------------------------------------===//
 
-/// Returns `true` if the given type is a quantization dialect type.
+/// Returns `true` if the given type is a qir::QubitType dialect type.
 MLIR_CAPI_EXPORTED bool mlirTypeIsAQubitType(MlirType type);
 
 /// Creates an qir.QubitType type.
 MLIR_CAPI_EXPORTED MlirType mlirQubitTypeGet(MlirContext ctx);
+
+//===---------------------------------------------------------------------===//
+// ResultType
+//===---------------------------------------------------------------------===//
+
+/// Returns `true` if the given type is a qir::ResultType dialect type.
+MLIR_CAPI_EXPORTED bool mlirTypeIsAResultType(MlirType type);
+
+/// Creates an qir.QubitType type.
+MLIR_CAPI_EXPORTED MlirType mlirResultTypeGet(MlirContext ctx);
 
 #ifdef __cplusplus
 }
