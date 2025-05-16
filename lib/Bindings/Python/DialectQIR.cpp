@@ -52,9 +52,8 @@ static void populateDialectQIRSubmodule(nb::module_ m)
                 throw nb::value_error(scope.takeMessage().c_str());
             return cls(type);
         },
-        "cls"_a,
-        nb::kw_only(),
-        "context"_a.none() = nb::none());
+        nb::arg("cls"),
+        nb::arg("context").none() = nb::none());
 }
 
 NB_MODULE(_mlirDialectsQIR, m)
