@@ -9,13 +9,12 @@
 
 include "mlir/IR/EnumAttr.td"
 //include "mlir/IR/OpAsmInterface.td"
-//include "mlir/IR/SymbolInterfaces.td"
+include "mlir/IR/SymbolInterfaces.td"
 //include "mlir/Interfaces/CallInterfaces.td"
 //include "mlir/Interfaces/ControlFlowInterfaces.td"
-//include "mlir/Interfaces/FunctionInterfaces.td"
+include "mlir/Interfaces/FunctionInterfaces.td"
 //include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
-
 include "quantum-mlir/Dialect/QIR/IR/QIRBase.td"
 include "quantum-mlir/Dialect/QIR/IR/QIRTypes.td"
 
@@ -199,6 +198,35 @@ def QIR_BarrierOp : Gate_Op<"barrier"> {
   let summary = "Barrier operation";
   let description = [{ A barrier operation that prevents optimization across it. }];
   let arguments = (ins Variadic<QIR_QubitType>:$input);
+}
+
+def QIR_GateOp : Gate_Op<"gate", [
+  IsolatedFromAbove,
+  FunctionOpInterface
+]> {
+  let summary = "Custom gate operation";
+  let description = [{ A custom gate operation. }];
+  let arguments = (ins
+    SymbolNameAttr:$sym_name,
+    TypeAttrOf<FunctionType>:$function_type
+  );
+
+  let regions = (region AnyRegion:$body);
+
+  let extraClassDeclaration = [{
+    //===------------------------------------------------------------------===//
+    // FunctionOpInterface Methods
+    //===------------------------------------------------------------------===//
+
+    /// Returns the region on the current operation that is callable.
+    ::mlir::Region *getCallableRegion() { return &getBody(); }
+
+    /// Returns the argument types of this function.
+    ArrayRef<Type> getArgumentTypes() { return getFunctionType().getInputs(); }
+
+    /// Returns the result types of this function.
+    ArrayRef<Type> getResultTypes() { return getFunctionType().getResults(); }
+  }];
 }
 
 // Swap: a two-qubit gate that exchanges the states of its inputs.
