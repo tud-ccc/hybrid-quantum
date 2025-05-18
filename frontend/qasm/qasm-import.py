@@ -156,9 +156,7 @@ class QASMToMLIRVisitor:
 
     def visitQuantumRegister(self, reg: QuantumRegister) -> Value:
         if self.scope.findAlloc(reg) is None:
-            # q: qir.QubitType = qir.QubitType.get(self.context)
-            alloc: qir.AllocOp = qir.AllocOp(loc=self.loc)
-            self.block.append(alloc)
+            alloc: qir.AllocOp = qir.AllocOp(loc=self.loc, ip=InsertionPoint(self.block))
             self.scope.setAlloc(reg, alloc.result)
             return alloc.result
 
@@ -166,9 +164,7 @@ class QASMToMLIRVisitor:
 
     def visitClassicalRegister(self, reg: ClassicalRegister) -> Value:
         if self.scope.findResult(reg) is None:
-            # q: qir.QubitType = qir.ResultType.get(self.context)
-            ralloc: qir.AllocResultOp = qir.AllocResultOp(loc=self.loc)
-            self.block.append(ralloc)
+            ralloc: qir.AllocResultOp = qir.AllocResultOp(loc=self.loc, ip=InsertionPoint(self.block))
             self.scope.setResult(reg, ralloc.result)
             return ralloc.result
 
