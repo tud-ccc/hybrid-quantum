@@ -209,6 +209,7 @@ class QASMToMLIRVisitor:
                 arg_locs = [self.loc for _ in inputs]
                 gate.body.blocks.append(*inputs, arg_locs=arg_locs)
                 gateBody: Block = gate.body.blocks[0]
+                self.scope.setGate(instr, gate)
 
                 circuit: QuantumCircuit = instr.definition
                 gateQregs = {str(q): a for q, a in zip(circuit.qubits, gate.body.blocks[0].arguments)}
