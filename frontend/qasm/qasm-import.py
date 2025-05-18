@@ -185,9 +185,22 @@ class QASMToMLIRVisitor:
     # Instruction represents physical quantum instructions
     def visitInstruction(self, instr: Instruction, qubits: list[QuantumRegister], clbits: list[ClassicalRegister]) -> None:
         if isinstance(instr, lib.XGate):
-            q0 = self.visitQuantumRegister(qubits[0])
-            xgate: qir.XOp = qir.XOp(q0, loc=self.loc)
-            self.block.append(xgate)
+            target: qir.QubitType = self.visitQuantumRegister(qubits[0])
+            xgate: qir.XOp = qir.XOp(target, loc=self.loc, ip=InsertionPoint(self.block))
+        elif isinstance(instr, lib.CXGate):
+            control: qir.QubitType = self.visitQuantumRegister(qubits[0])
+            target: qir.QubitType = self.visitQuantumRegister(qubits[1])
+            cxgate: qir.CNOTOp = qir.CNOTOp(control, target, loc=self.loc, ip=InsertionPoint(self.block))
+        elif isinstance(instr, lib.CCXGate):
+            control1: qir.QubitType = self.visitQuantumRegister(qubits[0])
+            control2: qir.QubitType = self.visitQuantumRegister(qubits[1])
+            target: qir.QubitType = self.visitQuantumRegister(qubits[2])
+            cxgate: qir.CCXOp = qir.CCXOp(control1, control2, target, loc=self.loc, ip=InsertionPoint(self.block))
+        elif isinstance(instr, lib.Measure):
+            qubit: qir.QubitType = self.visitQuantumRegister(qubits[0])
+            bit: qir.ResultType = self.visitClassicalRegister(clbits[0])
+            measureOp: qir.MeasureOp = qir.MeasureOp(qubit, bit, loc=self.loc, ip=InsertionPoint(self.block))
+            # readMeasurement: qir.ReadMeasurementOp = qir.ReadMeasurementOp(measureOp.result, loc=self.loc, ip=InsertionPoint(self.block))
         elif isinstance(instr, QASM2_Gate):
             self._visitDefinedGate(instr, qubits, clbits)
         else:
@@ -270,6 +283,8 @@ def QASMToMLIR(code: str) -> Module:
         scope: Scope = Scope.fromList(circuit.qregs, circuit.cregs)
         visitor: QASMToMLIRVisitor = QASMToMLIRVisitor(compat, context, module, location, qasm_main.entry_block, scope)
         visitor.visitCircuit(circuit)
+
+        func.ReturnOp([], loc=location, ip=InsertionPoint(qasm_main.entry_block))
 
     return module
 
