@@ -104,16 +104,16 @@ class Scope:
         s.cregs = cregs
         return s
 
-    def findAlloc(self, reg: QubitSpecifier) -> qir.AllocOp:
+    def findAlloc(self, reg: QubitSpecifier) -> Value:
         return self.qregs.get(str(reg))
 
-    def setAlloc(self, reg: QubitSpecifier, alloc: qir.AllocOp) -> None:
+    def setAlloc(self, reg: QubitSpecifier, alloc: Value) -> None:
         self.qregs[str(reg)] = alloc
 
-    def findResult(self, reg: ClbitSpecifier) -> qir.AllocResultOp:
+    def findResult(self, reg: ClbitSpecifier) -> Value:
         return self.qregs.get(str(reg))
 
-    def setResult(self, reg: ClbitSpecifier, ralloc: qir.AllocResultOp) -> None:
+    def setResult(self, reg: ClbitSpecifier, ralloc: Value) -> None:
         self.qregs[str(reg)] = ralloc
 
     def findGate(self, gate: QASM2_Gate) -> qir.GateOp:
@@ -134,12 +134,14 @@ class QASMToMLIRVisitor:
 
     @classmethod
     def fromParent(cls, parent: QASMToMLIRVisitor, *, block: Block | None = None, scope: Scope | None = None):
-        return cls(parent.compat,
-                   parent.context,
-                   parent.module,
-                   parent.loc,
-                   parent.block if block is None else block,
-                   parent.scope if scope is None else scope)
+        return cls(
+            parent.compat,
+            parent.context,
+            parent.module,
+            parent.loc,
+            parent.block if block is None else block,
+            parent.scope if scope is None else scope,
+        )
 
     def visitCircuit(self, circuit: QuantumCircuit) -> None:
         for instr in circuit.data:
@@ -154,23 +156,23 @@ class QASMToMLIRVisitor:
 
     def visitQuantumRegister(self, reg: QuantumRegister) -> Value:
         if self.scope.findAlloc(reg) is None:
-            q: qir.QubitType = qir.QubitType.get(self.context)
-            alloc: qir.AllocOp = qir.AllocOp(q, loc=self.loc)
+            # q: qir.QubitType = qir.QubitType.get(self.context)
+            alloc: qir.AllocOp = qir.AllocOp(loc=self.loc)
             self.block.append(alloc)
-            self.scope.setAlloc(reg, alloc)
+            self.scope.setAlloc(reg, alloc.result)
             return alloc.result
 
-        return self.scope.findAlloc(reg).result
+        return self.scope.findAlloc(reg)
 
     def visitClassicalRegister(self, reg: ClassicalRegister) -> Value:
         if self.scope.findResult(reg) is None:
-            q: qir.QubitType = qir.ResultType.get(self.context)
-            ralloc: qir.AllocResultOp = qir.AllocResultOp(q, loc=self.loc)
+            # q: qir.QubitType = qir.ResultType.get(self.context)
+            ralloc: qir.AllocResultOp = qir.AllocResultOp(loc=self.loc)
             self.block.append(ralloc)
-            self.scope.setResult(reg, ralloc)
+            self.scope.setResult(reg, ralloc.result)
             return ralloc.result
 
-        return self.scope.findResult(reg).result
+        return self.scope.findResult(reg)
 
     def visitClassic(self, expr: Expr) -> None:
         raise NotImplementedError(f"Classic expressions are not supported for {expr}")
@@ -194,29 +196,29 @@ class QASMToMLIRVisitor:
     def _visitDefinedGate(self, instr: QASM2_Gate, qubits: list[QuantumRegister], clbits: list[ClassicalRegister]) -> None:
         if instr.definition is not None:
             if self.scope.findGate(instr) is None:
-                # TODO: create qir.gate in module and start writing to its body
+                # Construct qir.GateOp for dDefined custom gate
+                # Insert into module body and recursively visit gate body
                 inputs: list[qir.QubitType] = [qir.QubitType.get(self.context) for _ in range(instr.num_qubits)]
                 gty: func.FunctionType = func.FunctionType.get(inputs=inputs, results=[], context=self.context)
                 gate: qir.GateOp = qir.GateOp(
                     StringAttr.get(str(instr.name)),
                     TypeAttr.get(gty),
                     loc=self.loc,
-                    ip=InsertionPoint.at_block_begin(self.module.body)
+                    ip=InsertionPoint.at_block_begin(self.module.body),
                 )
                 arg_locs = [self.loc for _ in inputs]
                 gate.body.blocks.append(*inputs, arg_locs=arg_locs)
-                block: Block = gate.body.blocks[0]
+                gateBody: Block = gate.body.blocks[0]
 
                 circuit: QuantumCircuit = instr.definition
-                # TODO: Define new scope based on the gate definition
-                # Assign each qubit to the qir.GateOp argument value
-                newQreg = {str(q): a for q, a in zip(circuit.qregs, gate.body.blocks[0].arguments)}
-                scope: Scope = Scope.fromMap(newQreg, {}, self.scope.visitedGates)
-                visitor: QASMToMLIRVisitor = QASMToMLIRVisitor.fromParent(self, block=block, scope=scope)
+                gateQregs = {str(q): a for q, a in zip(circuit.qubits, gate.body.blocks[0].arguments)}
+                innerGateScope: Scope = Scope.fromMap(gateQregs, {}, self.scope.visitedGates)
+                visitor: QASMToMLIRVisitor = QASMToMLIRVisitor.fromParent(self, block=gateBody, scope=innerGateScope)
                 visitor.visitCircuit(circuit)
-            # TODO: build call to gate in current func
-            # qir.call(gate.name, values...)
-            #
+            # Construct qir.CallOp for defined custom gate
+            callee: StringAttr = StringAttr.get(str(instr.name))
+            operands: list[qir.QubitType] = [self.visitQuantumRegister(q) for q in qubits]
+            gateCall: qir.GateCallOp = qir.GateCallOp(callee, operands, loc=self.loc, ip=InsertionPoint(self.block))
         else:
             ParseError(f"Expected gate with definition but got {instr}")
 
