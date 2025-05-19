@@ -8,6 +8,9 @@ add_mlir_dialect_library(QIRIR
         QIRIncGen
 
     LINK_LIBS PUBLIC
+        MLIRCallInterfaces
+        MLIRFunctionInterfaces
+        MLIRInferTypeOpInterface
         MLIRIR
         MLIRParser
         MLIRSideEffectInterfaces

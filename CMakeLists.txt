@@ -49,15 +49,6 @@ find_package(MLIR REQUIRED CONFIG)
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
-if(FRONTEND_QASM)
-    # Defined in MLIRConfig.cmake
-    if(NOT MLIR_ENABLE_BINDINGS_PYTHON)
-        message(FATAL_ERROR "ERROR: MLIR was not built with Python bindings enabled")
-    endif()
-
-    find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
-endif()
-
 # Load LLVM and MLIR CMake modules.
 list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
@@ -88,6 +79,12 @@ add_compile_options(
 add_subdirectory(docs)
 add_subdirectory(include)
 add_subdirectory(lib)
+add_subdirectory(lib/CAPI)
+add_subdirectory(frontend)
+if(MLIR_ENABLE_BINDINGS_PYTHON)
+    add_subdirectory(python)
+endif()
 add_subdirectory(test)
 add_subdirectory(tools)
 enable_testing()
+add_subdirectory(unittest)

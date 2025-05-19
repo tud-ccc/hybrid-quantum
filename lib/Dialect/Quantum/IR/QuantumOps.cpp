@@ -5,21 +5,27 @@
 
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
 
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h"
+
 #include <cstddef>
 #include <iterator>
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/Support/Casting.h>
 #include <llvm/Support/Error.h>
+#include <llvm/Support/Format.h>
 #include <llvm/Support/LogicalResult.h>
+#include <llvm/Support/raw_ostream.h>
 #include <llvm/TableGen/Record.h>
 #include <mlir/Dialect/Arith/IR/Arith.h>
+#include <mlir/IR/Diagnostics.h>
 #include <mlir/IR/OpDefinition.h>
 #include <mlir/IR/PatternMatch.h>
 #include <mlir/IR/Region.h>
 #include <mlir/IR/Value.h>
 #include <mlir/Support/LLVM.h>
 #include <mlir/Support/LogicalResult.h>
+#include <optional>
 
 #define DEBUG_TYPE "quantum-ops"
 
@@ -90,11 +96,13 @@ LogicalResult NoClone<ConcreteType>::verifyTrait(Operation* op)
 {
     // Check whether the qubits capured by the IfOp
     // are used more than a single time in each region
-    if (auto ifOp = llvm::dyn_cast_or_null<quantum::IfOp>(op)) {
+    if (auto ifOp = llvm::dyn_cast_if_present<quantum::IfOp>(op)) {
         // Check `thenRegion`
         Region &thenRegion = ifOp.getThenRegion();
         Block &thenBlock = thenRegion.getBlocks().front();
         for (auto value : thenBlock.getArguments()) {
+            // Ignore captured non-qubit types
+            if (!llvm::dyn_cast<quantum::QubitType>(value.getType())) continue;
             auto uses = value.getUses();
             int numUses = std::distance(uses.begin(), uses.end());
             if (numUses > 1) {
@@ -140,6 +148,10 @@ LogicalResult IfOp::verify()
 {
     if (getNumResults() != 0 && getElseRegion().empty())
         return emitOpError("must have an else block if defining values");
+
+    if (getNumRegionCapturedArgs() != getNumResults())
+        return emitOpError("# return values != # captured values");
+
     return success();
 }
 
@@ -157,6 +169,8 @@ static void printInitializationList(
     ValueRange initializers,
     StringRef prefix = "")
 {
+    // the block arguments will be the conditional (1) + the list of
+    // initializers
     assert(
         blocksArgs.size() == initializers.size()
         && "expected same length of arguments and initializers");
@@ -179,6 +193,19 @@ void mlir::quantum::buildTerminatedBody(
     builder.create<quantum::YieldOp>(loc);
 }
 
+Block* IfOp::thenBlock()
+{
+    Block* thenBlock = &getThenRegion().getBlocks().front();
+    return thenBlock;
+}
+
+Block* IfOp::elseBlock()
+{
+    if (getElseRegion().empty()) return nullptr;
+    Block* elseBlock = &getElseRegion().getBlocks().front();
+    return elseBlock;
+}
+
 void IfOp::build(
     OpBuilder &builder,
     OperationState &result,
@@ -192,13 +219,14 @@ void IfOp::build(
     assert(thenBuilder && "the builder callback for 'then' must be present");
     OpBuilder::InsertionGuard guard(builder);
     result.addOperands(condition);
-    result.addOperands(capturedArgs);
+    if (!capturedArgs.empty()) result.addOperands(capturedArgs);
 
     for (Value v : capturedArgs) result.addTypes(v.getType());
 
+    result.regions.reserve(2);
     Region* thenRegion = result.addRegion();
     Block* thenBlock = builder.createBlock(thenRegion);
-    thenBlock->addArgument(condition.getType(), result.location);
+    // thenBlock->addArgument(condition.getType(), result.location);
     for (Value v : capturedArgs)
         thenBlock->addArguments(v.getType(), v.getLoc());
 
@@ -209,27 +237,32 @@ void IfOp::build(
         thenBuilder(
             builder,
             result.location,
-            thenBlock->getArgument(0),
-            thenBlock->getArguments().drop_front());
+            condition,
+            thenBlock->getArguments());
     }
 
-    // if (capturedArgs.empty())
-    //     IfOp::ensureTerminator(*thenRegion, builder, result.location);
+    if (capturedArgs.empty())
+        IfOp::ensureTerminator(*thenRegion, builder, result.location);
 
     // Build the else region.
     // The elseBuilder is optional.
     Region* elseRegion = result.addRegion();
     if (elseBuilder) {
         Block* elseBlock = builder.createBlock(elseRegion);
+        // elseBlock->addArgument(condition.getType(), result.location);
+        for (Value v : capturedArgs)
+            elseBlock->addArguments(v.getType(), v.getLoc());
 
         OpBuilder::InsertionGuard guard(builder);
         builder.setInsertionPointToStart(elseBlock);
-
-        thenBuilder(
+        elseBuilder(
             builder,
             result.location,
-            elseBlock->getArgument(0),
-            elseBlock->getArguments().drop_front());
+            condition,
+            elseBlock->getArguments());
+
+        if (capturedArgs.empty())
+            IfOp::ensureTerminator(*elseRegion, builder, result.location);
     }
 }
 
@@ -254,7 +287,7 @@ ParseResult IfOp::parse(OpAsmParser &parser, OperationState &result)
     SmallVector<OpAsmParser::Argument, 4> regionArgs;
     SmallVector<OpAsmParser::UnresolvedOperand, 4> operands;
 
-    bool isCapturingArgs = succeeded(parser.parseOptionalKeyword("qubits"));
+    bool isCapturingArgs = succeeded(parser.parseOptionalKeyword("ins"));
     if (isCapturingArgs) {
         // Parse the assignment list
         if (parser.parseAssignmentList(regionArgs, operands)) return failure();
@@ -266,6 +299,11 @@ ParseResult IfOp::parse(OpAsmParser &parser, OperationState &result)
     // Set the block argument types for the captured operands
     for (auto [capturedArg, type] : llvm::zip_equal(regionArgs, result.types))
         capturedArg.type = type;
+
+    if (regionArgs.size() != result.types.size())
+        return parser.emitError(
+            parser.getNameLoc(),
+            "mismatch in number of captured values and defined values");
 
     // Parse the `then` region
     if (parser.parseRegion(*thenRegion, regionArgs)) return failure();
@@ -304,7 +342,7 @@ void IfOp::print(OpAsmPrinter &p)
         p,
         getRegionCapturedArgs(),
         getCapturedArgs(),
-        " qubits");
+        " ins");
 
     if (!getResults().empty()) p << " -> (" << getResultTypes() << ")";
     p << ' ';
