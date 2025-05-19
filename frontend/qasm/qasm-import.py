@@ -14,9 +14,9 @@ import logging
 import re
 import sys
 from enum import Enum
-from typing import Union
 
-sys.path.append("/Users/lschuetze/git/hybrid-quantum/build/python_packages/quantum-mlir")
+from mlir._mlir_libs._mlirDialectsQIR import QubitType, ResultType
+from mlir._mlir_libs._mlirDialectsQIR import qir as qirdialect
 from mlir.dialects import func, qir
 from mlir.dialects.builtin import Block
 from mlir.ir import Context, InsertionPoint, Location, Module, StringAttr, TypeAttr, Value
@@ -60,21 +60,16 @@ class QASMVersion(Enum):
 
 
 # Types that can be coerced to a valid Qubit specifier in a circuit.
-QubitSpecifier = Union[
-    Qubit,
-    QuantumRegister,
-    # int,
-    # slice,
-    # Sequence[Union[Qubit, int]],
-]
+type QubitSpecifier = Qubit | QuantumRegister
+# int,
+# slice,
+# Sequence[Union[Qubit, int]],
+
 # Types that can be coerced to a valid Clbit specifier in a circuit.
-ClbitSpecifier = Union[
-    Clbit,
-    ClassicalRegister,
-    # int,
-    # slice,
-    # Sequence[Union[Clbit, int]],
-]
+type ClbitSpecifier = Clbit | ClassicalRegister
+# int,
+# slice,
+# Sequence[Union[Clbit, int]],
 
 
 class Scope:
@@ -96,7 +91,7 @@ class Scope:
     def fromMap(
         cls,
         qregs: dict[str, qir.AllocOp],
-        cregs: dict[str, qir.AllocOp],
+        cregs: dict[str, qir.AllocResultOp],
         visited: dict[str, qir.GateOp] | None = None,
     ) -> Scope:
         s = cls(visited)
@@ -104,16 +99,16 @@ class Scope:
         s.cregs = cregs
         return s
 
-    def findAlloc(self, reg: QubitSpecifier) -> Value:
+    def findAlloc(self, reg: QubitSpecifier) -> qir.AllocOp:
         return self.qregs.get(str(reg))
 
-    def setAlloc(self, reg: QubitSpecifier, alloc: Value) -> None:
+    def setAlloc(self, reg: QubitSpecifier, alloc: qir.AllocOp) -> None:
         self.qregs[str(reg)] = alloc
 
-    def findResult(self, reg: ClbitSpecifier) -> Value:
+    def findResult(self, reg: ClbitSpecifier) -> qir.AllocResultOp:
         return self.qregs.get(str(reg))
 
-    def setResult(self, reg: ClbitSpecifier, ralloc: Value) -> None:
+    def setResult(self, reg: ClbitSpecifier, ralloc: qir.AllocResultOp) -> None:
         self.qregs[str(reg)] = ralloc
 
     def findGate(self, gate: QASM2_Gate) -> qir.GateOp:
@@ -181,22 +176,24 @@ class QASMToMLIRVisitor:
     # Instruction represents physical quantum instructions
     def visitInstruction(self, instr: Instruction, qubits: list[QuantumRegister], clbits: list[ClassicalRegister]) -> None:
         if isinstance(instr, lib.XGate):
-            target: qir.QubitType = self.visitQuantumRegister(qubits[0])
-            xgate: qir.XOp = qir.XOp(target, loc=self.loc, ip=InsertionPoint(self.block))
+            target: QubitType = self.visitQuantumRegister(qubits[0])
+            qir.XOp(target, loc=self.loc, ip=InsertionPoint(self.block))
         elif isinstance(instr, lib.CXGate):
-            control: qir.QubitType = self.visitQuantumRegister(qubits[0])
-            target: qir.QubitType = self.visitQuantumRegister(qubits[1])
-            cxgate: qir.CNOTOp = qir.CNOTOp(control, target, loc=self.loc, ip=InsertionPoint(self.block))
+            control: QubitType = self.visitQuantumRegister(qubits[0])
+            target: QubitType = self.visitQuantumRegister(qubits[1])
+            qir.CNOTOp(control, target, loc=self.loc, ip=InsertionPoint(self.block))
         elif isinstance(instr, lib.CCXGate):
-            control1: qir.QubitType = self.visitQuantumRegister(qubits[0])
-            control2: qir.QubitType = self.visitQuantumRegister(qubits[1])
-            target: qir.QubitType = self.visitQuantumRegister(qubits[2])
-            cxgate: qir.CCXOp = qir.CCXOp(control1, control2, target, loc=self.loc, ip=InsertionPoint(self.block))
+            control1: QubitType = self.visitQuantumRegister(qubits[0])
+            control2: QubitType = self.visitQuantumRegister(qubits[1])
+            target: QubitType = self.visitQuantumRegister(qubits[2])
+            qir.CCXOp(control1, control2, target, loc=self.loc, ip=InsertionPoint(self.block))
         elif isinstance(instr, lib.Measure):
-            qubit: qir.QubitType = self.visitQuantumRegister(qubits[0])
-            bit: qir.ResultType = self.visitClassicalRegister(clbits[0])
-            measureOp: qir.MeasureOp = qir.MeasureOp(qubit, bit, loc=self.loc, ip=InsertionPoint(self.block))
-            # readMeasurement: qir.ReadMeasurementOp = qir.ReadMeasurementOp(measureOp.result, loc=self.loc, ip=InsertionPoint(self.block))
+            qubit: QubitType = self.visitQuantumRegister(qubits[0])
+            bit: ResultType = self.visitClassicalRegister(clbits[0])
+            # measureOp: qir.MeasureOp =
+            qir.MeasureOp(qubit, bit, loc=self.loc, ip=InsertionPoint(self.block))
+            # readMeasurement: qir.ReadMeasurementOp =
+            # qir.ReadMeasurementOp(measureOp.result, loc=self.loc, ip=InsertionPoint(self.block))
         elif isinstance(instr, QASM2_Gate):
             self._visitDefinedGate(instr, qubits, clbits)
         else:
@@ -207,7 +204,7 @@ class QASMToMLIRVisitor:
             if self.scope.findGate(instr) is None:
                 # Construct qir.GateOp for dDefined custom gate
                 # Insert into module body and recursively visit gate body
-                inputs: list[qir.QubitType] = [qir.QubitType.get(self.context) for _ in range(instr.num_qubits)]
+                inputs: list[QubitType] = [QubitType.get(self.context) for _ in range(instr.num_qubits)]
                 gty: func.FunctionType = func.FunctionType.get(inputs=inputs, results=[], context=self.context)
                 gate: qir.GateOp = qir.GateOp(
                     StringAttr.get(str(instr.name)),
@@ -227,8 +224,8 @@ class QASMToMLIRVisitor:
                 visitor.visitCircuit(circuit)
             # Construct qir.CallOp for defined custom gate
             callee: StringAttr = instr.name
-            operands: list[qir.QubitType] = [self.visitQuantumRegister(q) for q in qubits]
-            gateCall: qir.GateCallOp = qir.GateCallOp(callee, operands, loc=self.loc, ip=InsertionPoint(self.block))
+            operands: list[QubitType] = [self.visitQuantumRegister(q) for q in qubits]
+            qir.GateCallOp(callee, operands, loc=self.loc, ip=InsertionPoint(self.block))
         else:
             ParseError(f"Expected gate with definition but got {instr}")
 
@@ -266,7 +263,7 @@ def QASMToMLIR(code: str) -> Module:
 
     context: Context = Context()
     context.allow_unregistered_dialects = True
-    qir.register_dialect(context)
+    qirdialect.register_dialect(context)
 
     with context:
         location: Location = Location.unknown()
