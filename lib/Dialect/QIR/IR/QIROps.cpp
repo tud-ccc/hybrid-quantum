@@ -40,9 +40,17 @@ using namespace mlir::qir;
 
 LogicalResult GateCallOp::verifySymbolUses(SymbolTableCollection &symbolTable)
 {
-    auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("callee");
-    if (!fnAttr)
+    auto gateNameAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("callee");
+    if (!gateNameAttr)
         return emitOpError("requires a 'callee' symbol reference attribute");
+
+    GateOp gate =
+        symbolTable.lookupNearestSymbolFrom<GateOp>(*this, gateNameAttr);
+    if (!gate)
+        return emitOpError() << "'" << gateNameAttr.getValue()
+                             << "' does not reference a valid function";
+
+    return success();
 }
 
 // QIR gates do not return values

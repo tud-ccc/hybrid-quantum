@@ -226,7 +226,7 @@ class QASMToMLIRVisitor:
                 visitor: QASMToMLIRVisitor = QASMToMLIRVisitor.fromParent(self, block=gateBody, scope=innerGateScope)
                 visitor.visitCircuit(circuit)
             # Construct qir.CallOp for defined custom gate
-            callee: StringAttr = StringAttr.get(str(instr.name))
+            callee: StringAttr = instr.name
             operands: list[qir.QubitType] = [self.visitQuantumRegister(q) for q in qubits]
             gateCall: qir.GateCallOp = qir.GateCallOp(callee, operands, loc=self.loc, ip=InsertionPoint(self.block))
         else:

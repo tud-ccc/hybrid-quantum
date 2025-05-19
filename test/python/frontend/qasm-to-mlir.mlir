@@ -21,10 +21,10 @@
 // CHECK-DAG: %[[b0:.+]] = "qir.alloc"() : () -> !qir.qubit
 // CHECK-DAG: "qir.X"(%[[b0]]) : (!qir.qubit) -> ()
 // CHECK-DAG: %[[a1:.+]] = "qir.alloc"() : () -> !qir.qubit
-// CHECK-DAG: "qir.call"(%[[a1]], %[[b0]], %[[a0]]) : (!qir.qubit, !qir.qubit, !qir.qubit) -> () 
+// CHECK-DAG: "qir.call"(%[[a1]], %[[b0]], %[[a0]]) <{callee = @majority}> : (!qir.qubit, !qir.qubit, !qir.qubit) -> () 
 // CHECK-DAG: "qir.CNOT"(%[[a1]], %[[a0]]) : (!qir.qubit, !qir.qubit) -> ()
 // CHECK-DAG: %[[b1:.+]] = "qir.alloc"() : () -> !qir.qubit
-// CHECK-DAG: "qir.call"(%[[a1]], %[[b1]], %[[a0]]) : (!qir.qubit, !qir.qubit, !qir.qubit) -> () 
+// CHECK-DAG: "qir.call"(%[[a1]], %[[b1]], %[[a0]]) <{callee = @unmaj}> : (!qir.qubit, !qir.qubit, !qir.qubit) -> () 
 // CHECK-DAG: %[[ans0:.+]] = "qir.ralloc"() : () -> !qir.result
 // CHECK-DAG: "qir.measure"(%[[b0]], %[[ans0]]) : (!qir.qubit, !qir.result) -> ()
 // %[[bit:.+]] = "qir.read_measurement"(%[[ans0]]) : (!qir.result) -> (!tensor.tensor<1xi1>)
