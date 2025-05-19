@@ -17,8 +17,8 @@ from enum import Enum
 
 from mlir._mlir_libs._mlirDialectsQIR import QubitType, ResultType
 from mlir._mlir_libs._mlirDialectsQIR import qir as qirdialect
-from mlir.dialects import func, qir
-from mlir.dialects.builtin import Block
+from mlir.dialects import func, qir, tensor
+from mlir.dialects.builtin import Block, IntegerType
 from mlir.ir import Context, InsertionPoint, Location, Module, StringAttr, TypeAttr, Value
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Clbit, Instruction, Operation, Qubit
@@ -176,24 +176,27 @@ class QASMToMLIRVisitor:
     # Instruction represents physical quantum instructions
     def visitInstruction(self, instr: Instruction, qubits: list[QuantumRegister], clbits: list[ClassicalRegister]) -> None:
         if isinstance(instr, lib.XGate):
-            target: QubitType = self.visitQuantumRegister(qubits[0])
-            qir.XOp(target, loc=self.loc, ip=InsertionPoint(self.block))
+            with self.loc:
+                target: QubitType = self.visitQuantumRegister(qubits[0])
+                qir.XOp(target, ip=InsertionPoint(self.block))
         elif isinstance(instr, lib.CXGate):
-            control: QubitType = self.visitQuantumRegister(qubits[0])
-            target: QubitType = self.visitQuantumRegister(qubits[1])
-            qir.CNOTOp(control, target, loc=self.loc, ip=InsertionPoint(self.block))
+            with self.loc:
+                control: QubitType = self.visitQuantumRegister(qubits[0])
+                target: QubitType = self.visitQuantumRegister(qubits[1])
+                qir.CNOTOp(control, target, ip=InsertionPoint(self.block))
         elif isinstance(instr, lib.CCXGate):
-            control1: QubitType = self.visitQuantumRegister(qubits[0])
-            control2: QubitType = self.visitQuantumRegister(qubits[1])
-            target: QubitType = self.visitQuantumRegister(qubits[2])
-            qir.CCXOp(control1, control2, target, loc=self.loc, ip=InsertionPoint(self.block))
+            with self.loc:
+                control1: QubitType = self.visitQuantumRegister(qubits[0])
+                control2: QubitType = self.visitQuantumRegister(qubits[1])
+                target: QubitType = self.visitQuantumRegister(qubits[2])
+                qir.CCXOp(control1, control2, target, ip=InsertionPoint(self.block))
         elif isinstance(instr, lib.Measure):
-            qubit: QubitType = self.visitQuantumRegister(qubits[0])
-            bit: ResultType = self.visitClassicalRegister(clbits[0])
-            # measureOp: qir.MeasureOp =
-            qir.MeasureOp(qubit, bit, loc=self.loc, ip=InsertionPoint(self.block))
-            # readMeasurement: qir.ReadMeasurementOp =
-            # qir.ReadMeasurementOp(measureOp.result, loc=self.loc, ip=InsertionPoint(self.block))
+            with self.loc:
+                qubit: QubitType = self.visitQuantumRegister(qubits[0])
+                bit: ResultType = self.visitClassicalRegister(clbits[0])
+                measureOp: qir.MeasureOp = qir.MeasureOp(qubit, bit, ip=InsertionPoint(self.block))
+                tensor1DI1: tensor.RankedTensorType = tensor.RankedTensorType.get([1], IntegerType.get_signless(1, self.context))
+                qir.ReadMeasurementOp(tensor1DI1, measureOp.result, ip=InsertionPoint(self.block))
         elif isinstance(instr, QASM2_Gate):
             self._visitDefinedGate(instr, qubits, clbits)
         else:

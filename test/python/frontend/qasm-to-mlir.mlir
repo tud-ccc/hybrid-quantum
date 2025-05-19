@@ -27,7 +27,7 @@
 // CHECK-DAG: "qir.call"(%[[a1]], %[[b1]], %[[a0]]) <{callee = @unmaj}> : (!qir.qubit, !qir.qubit, !qir.qubit) -> () 
 // CHECK-DAG: %[[ans0:.+]] = "qir.ralloc"() : () -> !qir.result
 // CHECK-DAG: "qir.measure"(%[[b0]], %[[ans0]]) : (!qir.qubit, !qir.result) -> ()
-// %[[bit:.+]] = "qir.read_measurement"(%[[ans0]]) : (!qir.result) -> (!tensor.tensor<1xi1>)
+// CHECK-DAG: %[[bit:.+]] = "qir.read_measurement"(%[[ans0]]) : (!qir.result) -> tensor<1xi1>
 // CHECK:     return
 // CHECK-NEXT:   }) : () -> () 
 // CHECK-NEXT: }) : () -> () 
