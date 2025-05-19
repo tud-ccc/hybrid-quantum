@@ -26,6 +26,7 @@ set(TEST_DEPENDS
     FileCheck count not
     mlir-runner
     quantum-opt
+    MLIRCAPIQIR
 )
 
 # Create the test suite.

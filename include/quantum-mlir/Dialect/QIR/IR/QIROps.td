@@ -9,13 +9,11 @@
 
 include "mlir/IR/EnumAttr.td"
 //include "mlir/IR/OpAsmInterface.td"
-//include "mlir/IR/SymbolInterfaces.td"
-//include "mlir/Interfaces/CallInterfaces.td"
-//include "mlir/Interfaces/ControlFlowInterfaces.td"
-//include "mlir/Interfaces/FunctionInterfaces.td"
-//include "mlir/Interfaces/InferTypeOpInterface.td"
+include "mlir/IR/SymbolInterfaces.td"
+include "mlir/Interfaces/CallInterfaces.td"
+include "mlir/Interfaces/FunctionInterfaces.td"
+include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
-
 include "quantum-mlir/Dialect/QIR/IR/QIRBase.td"
 include "quantum-mlir/Dialect/QIR/IR/QIRTypes.td"
 
@@ -195,10 +193,111 @@ def QIR_CCXOp : Gate_Op<"CCX"> {
   let arguments = (ins QIR_QubitType:$control1, QIR_QubitType:$control2, QIR_QubitType:$target);
 }
 
+def QIR_GateCallOp : Gate_Op<"call", [
+  CallOpInterface,
+  DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+  let summary = "Gate call operation";
+  let description = [{ Gate call operation. }];
+
+  let arguments = (ins
+    FlatSymbolRefAttr:$callee,
+    Variadic<AnyType>:$operands
+  );
+
+  let builders = [
+    OpBuilder<(ins "GateOp":$callee, CArg<"ValueRange", "{}">:$operands), [{
+      $_state.addOperands(operands);
+      $_state.addAttribute("callee", SymbolRefAttr::get(callee));
+      $_state.addTypes(callee.getFunctionType().getResults());
+    }]>,
+    OpBuilder<(ins "SymbolRefAttr":$callee, "TypeRange":$results,
+      CArg<"ValueRange", "{}">:$operands), [{
+      $_state.addOperands(operands);
+      $_state.addAttribute("callee", callee);
+      $_state.addTypes(results);
+    }]>,
+    OpBuilder<(ins "StringAttr":$callee, "TypeRange":$results,
+      CArg<"ValueRange", "{}">:$operands), [{
+      build($_builder, $_state, SymbolRefAttr::get(callee), results, operands);
+    }]>,
+    OpBuilder<(ins "StringRef":$callee, "TypeRange":$results,
+      CArg<"ValueRange", "{}">:$operands), [{
+      build($_builder, $_state, StringAttr::get($_builder.getContext(), callee),
+            results, operands);
+    }]>
+  ];
+
+  let extraClassDeclaration = [{
+    FunctionType getCalleeType();
+
+    /// Get the argument operands to the called function.
+    operand_range getArgOperands() {
+      return {arg_operand_begin(), arg_operand_end()};
+    }
+
+    MutableOperandRange getArgOperandsMutable() {
+      return getOperandsMutable();
+    }
+
+    operand_iterator arg_operand_begin() { return operand_begin(); }
+    operand_iterator arg_operand_end() { return operand_end(); }
+
+    /// Return the callee of this operation.
+    CallInterfaceCallable getCallableForCallee() {
+      return (*this)->getAttrOfType<SymbolRefAttr>("callee");
+    }
+
+    /// Set the callee for this operation.
+    void setCalleeFromCallable(CallInterfaceCallable callee) {
+      (*this)->setAttr("callee", cast<SymbolRefAttr>(callee));
+    }
+  }];
+}
+
 def QIR_BarrierOp : Gate_Op<"barrier"> {
   let summary = "Barrier operation";
   let description = [{ A barrier operation that prevents optimization across it. }];
   let arguments = (ins Variadic<QIR_QubitType>:$input);
+}
+
+def QIR_GateOp : Gate_Op<"gate", [
+  IsolatedFromAbove,
+  FunctionOpInterface
+]> {
+  let summary = "Custom gate operation";
+  let description = [{ A custom gate operation. }];
+  let arguments = (ins
+    SymbolNameAttr:$sym_name,
+    OptionalAttr<DictArrayAttr>:$arg_attrs,
+    OptionalAttr<DictArrayAttr>:$res_attrs,
+    TypeAttrOf<FunctionType>:$function_type
+  );
+
+  let regions = (region AnyRegion:$body);
+
+  let builders = [OpBuilder<(ins
+    "StringRef":$name, "FunctionType":$type,
+    CArg<"ArrayRef<NamedAttribute>", "{}">:$attrs,
+    CArg<"ArrayRef<DictionaryAttr>", "{}">:$argAttrs)
+  >];
+
+  let extraClassDeclaration = [{
+    static GateOp create(Location location, StringRef name, FunctionType type,
+                         ArrayRef<NamedAttribute> attrs = {});
+
+    //===------------------------------------------------------------------===//
+    // FunctionOpInterface Methods
+    //===------------------------------------------------------------------===//
+
+    /// Returns the region on the current operation that is callable.
+    ::mlir::Region *getCallableRegion() { return &getBody(); }
+
+    /// Returns the argument types of this function.
+    ArrayRef<Type> getArgumentTypes() { return getFunctionType().getInputs(); }
+
+    /// Returns the result types of this function.
+    ArrayRef<Type> getResultTypes() { return getFunctionType().getResults(); }
+  }];
 }
 
 // Swap: a two-qubit gate that exchanges the states of its inputs.
