@@ -31,7 +31,7 @@ pre-commit install
 
 ### Dependencies
 
-The project depends on [LLVM](https://github.com/llvm/llvm-project) version `20.1.1` (`424c2d9`).
+The project depends on [LLVM](https://github.com/llvm/llvm-project) version `20.1.5` (`7b09d7b`).
 You have to set `MLIR_ENABLE_BINDINGS_PYTHON` to build [MLIR Python bindings](https://github.com/llvm/llvm-project/blob/main/mlir/docs/Bindings/Python.md) if you want to use our Python frontend.
 
 ```sh
@@ -49,7 +49,7 @@ python3 -m pip install -r $LLVM_PREFIX/mlir/python/requirements.txt
 cmake -S $LLVM_PREFIX/llvm -B $LLVM_PREFIX/build \
    -G Ninja \
    -DCMAKE_BUILD_TYPE=Debug \
-   -DLLVM_ENABLE_PROJECTS="mlir;llvm;clang" \
+   -DLLVM_ENABLE_PROJECTS="mlir;llvm" \
    -DLLVM_TARGETS_TO_BUILD="host" \
    -DLLVM_ENABLE_ASSERTIONS=ON \
    -DPython3_EXECUTABLE="$VENV_DIR/bin/python3" \
