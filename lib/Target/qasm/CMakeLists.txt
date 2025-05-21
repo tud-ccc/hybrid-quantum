@@ -1,5 +1,6 @@
-add_mlir_translation_library(QASMToOpenQASM
-    qir2qasm.cpp
+add_mlir_translation_library(QIRToOpenQASM
+    TargetQASMRegistration.cpp
+    TargetQASM.cpp
 
     DEPENDS
     QIRIR
@@ -9,4 +10,4 @@ add_mlir_translation_library(QASMToOpenQASM
     QIRIR
     )
 
-target_link_libraries(QASMToOpenQASM PUBLIC MLIRIR)
+#target_link_libraries(QIRToOpenQASM PUBLIC MLIRIR)
