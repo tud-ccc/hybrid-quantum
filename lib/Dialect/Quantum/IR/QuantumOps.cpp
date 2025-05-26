@@ -123,6 +123,24 @@ LogicalResult NoClone<ConcreteType>::verifyTrait(Operation* op)
     return success();
 }
 
+template<typename ConcreteType>
+LogicalResult Hermitian<ConcreteType>::verifyTrait(Operation* op)
+{
+    // Check that operand and result types match
+    auto operandTypes = op->getOperandTypes();
+    auto resultTypes = op->getResultTypes();
+
+    if (operandTypes.size() != resultTypes.size())
+        return op->emitOpError(
+            "must have the same number of operands and results");
+
+    // Check that it's either a 1- or 2-qubit gate
+    if (operandTypes.size() > 2)
+        return op->emitOpError("Hermitian gates must have 1 or 2 operands");
+
+    return success();
+}
+
 LogicalResult IfOp::verify()
 {
     if (getNumResults() != 0 && getElseRegion().empty())

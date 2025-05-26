@@ -45,7 +45,7 @@ public:
 template<typename ConcreteType>
 class Hermitian : public OpTrait::TraitBase<ConcreteType, Hermitian> {
 public:
-    // Empty trait for marker use
+    static LogicalResult verifyTrait(Operation* op);
 };
 } // namespace quantum
 

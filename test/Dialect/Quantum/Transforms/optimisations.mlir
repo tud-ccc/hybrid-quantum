@@ -1,4 +1,4 @@
-// RUN: quantum-opt --hermitian-peephole %s | FileCheck %s
+// RUN: quantum-opt --hermitian-peephole --quantum-optimise %s | FileCheck %s
 
 module {
   // CHECK-LABEL: func.func @triple_h_cancel(
@@ -103,5 +103,16 @@ module {
     // CHECK-DAG: %[[Q4:.+]] = "quantum.X"(%[[Q2]]) : (!quantum.qubit<1>) -> !quantum.qubit<1>
     %q4 = "quantum.X" (%q2) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
     return %q3, %q4 : !quantum.qubit<1>, !quantum.qubit<1>
+  }
+
+    // CHECK-LABEL: func.func @drop_z_before_measure(
+  func.func @drop_z_before_measure() -> !quantum.qubit<1> {
+    // CHECK-DAG: %[[Q1:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
+    %q1 = "quantum.alloc"() : () -> (!quantum.qubit<1>)
+    // CHECK-NOT: "quantum.Z"
+    %q2 = "quantum.Z"(%q1) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
+    // CHECK-DAG: %[[MEAS:.+]], %[[QOUT:.+]] = "quantum.measure"(%[[Q1]]) : (!quantum.qubit<1>) -> (tensor<1xi1>, !quantum.qubit<1>)
+    %m, %qout = "quantum.measure"(%q2) : (!quantum.qubit<1>) -> (tensor<1xi1>, !quantum.qubit<1>)
+    return %qout : !quantum.qubit<1>
   }
 }
