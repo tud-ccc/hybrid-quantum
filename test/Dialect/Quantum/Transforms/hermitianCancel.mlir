@@ -1,4 +1,4 @@
-// RUN: quantum-opt --quantum-optimise %s | FileCheck %s
+// RUN: quantum-opt --hermitian-peephole %s | FileCheck %s
 
 module {
   // CHECK-LABEL: func.func @triple_h_cancel(

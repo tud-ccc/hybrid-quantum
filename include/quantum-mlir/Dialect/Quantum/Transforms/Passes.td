@@ -18,6 +18,15 @@ def QuantumOptimise : Pass<"quantum-optimise", "ModuleOp"> {
   let constructor = "mlir::quantum::createQuantumOptimisePass()";
 }
 
+def HermitianCancel : Pass<"hermitian-peephole", "ModuleOp"> {
+  let summary = "Hermitian Cancellation on the `quantum` dialect";
+
+  let description = [{
+  }];
+
+  let constructor = "mlir::quantum::createHermitianCancelPass()";
+}
+
 def MultiQubitLegalization : Pass<"quantum-multi-qubit-legalize", "ModuleOp"> {
   let summary = "Legalize multi-qubit registers in the `quantum` dialect";
 

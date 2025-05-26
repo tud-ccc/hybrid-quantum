@@ -37,6 +37,7 @@ void populateScfToRVSDGPatterns(
 
 /// Constructs the lower-funnel-shift pass.
 std::unique_ptr<Pass> createQuantumOptimisePass();
+std::unique_ptr<Pass> createHermitianCancelPass();
 
 /// Pass that legalizes multi-qubit quantum programs
 /// such that they can be lowered to QIR

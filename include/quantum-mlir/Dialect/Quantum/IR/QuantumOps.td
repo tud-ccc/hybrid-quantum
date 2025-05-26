@@ -46,6 +46,10 @@ def NoClone : NativeOpTrait<"NoClone"> {
     let cppNamespace = "::mlir::quantum";
 }
 
+//Hermitian trait
+def Hermitian : NativeOpTrait<"Hermitian"> {
+    let cppNamespace = "::mlir::quantum";
+}
 //===----------------------------------------------------------------------===//
 // Quantum memory operations.
 //===----------------------------------------------------------------------===//
@@ -296,7 +300,7 @@ class PrimitiveGate_Op<string mnemonic, list<Trait> traits = []> :
         
 def Quantum_HOp : PrimitiveGate_Op<
         "H",
-        [
+        [Hermitian,
           NoMemoryEffect,
           AllTypesMatch<["input", "result"]>]> {
   let summary = "Hadamard gate operation";
@@ -307,7 +311,6 @@ def Quantum_HOp : PrimitiveGate_Op<
 
   let arguments = (ins Quantum_QubitType:$input);
   let results = (outs Quantum_QubitType:$result);
-  let hasFolder = 1;
 }
 
 def Quantum_RzOp : PrimitiveGate_Op<
@@ -332,7 +335,7 @@ def Quantum_RzOp : PrimitiveGate_Op<
 
 def Quantum_CNOTOp : PrimitiveGate_Op<
         "CNOT",
-        [
+        [Hermitian,
           NoMemoryEffect]> {
   let summary = "CNOT gate operation";
   let description = [{
@@ -354,19 +357,18 @@ def Quantum_CNOTOp : PrimitiveGate_Op<
 
 def Quantum_XOp : PrimitiveGate_Op<
         "X",
-        [
+        [Hermitian,
           NoMemoryEffect,
           AllTypesMatch<["input", "result"]>]> {
   let summary = "X gate operation (NOT gate)";
   let description = [{%out = "quantum.X"(%qubit) : !quantum.qubit<1> -> !quantum.qubit<1>}]; 
   let arguments = (ins Quantum_QubitType:$input);
   let results = (outs Quantum_QubitType:$result);
-  let hasFolder = 1;
 }
 
 def Quantum_YOp : PrimitiveGate_Op<
         "Y",
-        [
+        [Hermitian,
           NoMemoryEffect,
           AllTypesMatch<["input", "result"]>]> {
   let summary = "Y gate operation (Pauli-Y gate)";
@@ -377,7 +379,7 @@ def Quantum_YOp : PrimitiveGate_Op<
 
 def Quantum_ZOp : PrimitiveGate_Op<
         "Z",
-        [
+        [Hermitian,
           NoMemoryEffect,
           AllTypesMatch<["input", "result"]>]> {
   let summary = "Z gate operation (Pauli-Z gate)";
@@ -388,7 +390,7 @@ def Quantum_ZOp : PrimitiveGate_Op<
 
 def Quantum_SWAPOp : PrimitiveGate_Op<
         "SWAP",
-        [
+        [Hermitian,
           AllTypesMatch<
             [
               "lhs", "rhs",
