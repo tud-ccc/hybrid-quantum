@@ -16,6 +16,7 @@
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/TypeSwitch.h"
 
+#include <atomic>
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Support/FormatVariadic.h>
 #include <llvm/Support/LogicalResult.h>
