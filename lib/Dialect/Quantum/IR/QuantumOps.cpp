@@ -40,29 +40,8 @@ using namespace mlir::quantum;
 //===----------------------------------------------------------------------===//
 
 //===----------------------------------------------------------------------===//
-// Folders
-//===----------------------------------------------------------------------===//
-
-OpFoldResult HOp::fold(FoldAdaptor adaptor)
-{
-    // If the input to this H gate was another H gate, remove both.
-    if (auto parent = getOperand().getDefiningOp<HOp>())
-        return parent.getOperand();
-    return nullptr;
-}
-
-OpFoldResult XOp::fold(FoldAdaptor adaptor)
-{
-    // If the input to this H gate was another H gate, remove both.
-    if (auto parent = getOperand().getDefiningOp<XOp>())
-        return parent.getOperand();
-    return nullptr;
-}
-
-//===----------------------------------------------------------------------===//
 // Canonicalization
 //===----------------------------------------------------------------------===//
-
 LogicalResult RzOp::canonicalize(RzOp op, PatternRewriter &rewriter)
 {
     // %1 = Rz(%0, %theta1)
@@ -140,6 +119,24 @@ LogicalResult NoClone<ConcreteType>::verifyTrait(Operation* op)
                    << " used more than once within the same block";
         }
     }
+
+    return success();
+}
+
+template<typename ConcreteType>
+LogicalResult Hermitian<ConcreteType>::verifyTrait(Operation* op)
+{
+    // Check that operand and result types match
+    auto operandTypes = op->getOperandTypes();
+    auto resultTypes = op->getResultTypes();
+
+    if (operandTypes.size() != resultTypes.size())
+        return op->emitOpError(
+            "must have the same number of operands and results");
+
+    // Check that it's either a 1- or 2-qubit gate
+    if (operandTypes.size() > 2)
+        return op->emitOpError("Hermitian gates must have 1 or 2 operands");
 
     return success();
 }

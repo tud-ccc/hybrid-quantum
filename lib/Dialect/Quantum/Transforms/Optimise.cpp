@@ -2,7 +2,7 @@
 ///
 /// @file
 /// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
-/// @author     Washim Neupane (washim_sharma.neupane@mailbox.tu-dresden.de)
+/// @author     Washim Neupane (washimneupane@outlook.com)
 
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/PatternMatch.h"
@@ -18,40 +18,87 @@ using namespace mlir::quantum;
 namespace mlir::quantum {
 
 #define GEN_PASS_DEF_QUANTUMOPTIMISE
+#define GEN_PASS_DEF_HERMITIANCANCEL
 #include "quantum-mlir/Dialect/Quantum/Transforms/Passes.h.inc"
 
 } // namespace mlir::quantum
-
 //===----------------------------------------------------------------------===//
 
-namespace {
+/// Pattern: Drop phase gates immediately before measurement
+struct DropPhaseBeforeMeasure : RewritePattern {
+    DropPhaseBeforeMeasure(MLIRContext* ctx)
+            : RewritePattern(MatchAnyOpTypeTag(), 1, ctx)
+    {}
 
+    LogicalResult
+    matchAndRewrite(Operation* op, PatternRewriter &rewriter) const override
+    {
+        if (op->getNumResults() != 1) return failure();
+        if (!(isa<quantum::ZOp>(op)))
+            return failure(); // Add more gates, currently no S, T, Sdg, Tdg
+
+        auto result = op->getResult(0);
+        if (!result.getType().isa<quantum::QubitType>()) return failure();
+        if (!result.hasOneUse()) return failure();
+
+        Operation* user = *result.getUsers().begin();
+        if (!isa<quantum::MeasureOp>(user)) return failure();
+
+        rewriter.replaceOp(op, op->getOperand(0));
+        return success();
+    }
+};
+
+/// --quantum-optimise
 struct QuantumOptimisePass
-        : mlir::quantum::impl::QuantumOptimiseBase<QuantumOptimisePass> {
+        : quantum::impl::QuantumOptimiseBase<QuantumOptimisePass> {
     using QuantumOptimiseBase::QuantumOptimiseBase;
 
-    void runOnOperation() override;
+    void runOnOperation() override
+    {
+        RewritePatternSet patterns(&getContext());
+        patterns.add<DropPhaseBeforeMeasure>(patterns.getContext());
+        if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
+            signalPassFailure();
+    }
 };
-} // namespace
 
-void QuantumOptimisePass::runOnOperation()
-{
-    RewritePatternSet patterns(&getContext());
+/// --hermitian-peephole
+struct HermitianCancelPass
+        : quantum::impl::HermitianCancelBase<HermitianCancelPass> {
+    using HermitianCancelBase::HermitianCancelBase;
 
-    populateQuantumOptimisePatterns(patterns);
+    void runOnOperation() override
+    {
+        RewritePatternSet patterns(&getContext());
+        /// Pattern: Cancel double Hermitian ops
+        struct FoldDoubleHermitian : OpTraitRewritePattern<Hermitian> {
+            using OpTraitRewritePattern::OpTraitRewritePattern;
 
-    if (failed(
-            applyPatternsAndFoldGreedily(getOperation(), std::move(patterns))))
-        signalPassFailure();
-}
+            LogicalResult matchAndRewrite(
+                Operation* op,
+                PatternRewriter &rewriter) const override
+            {
+                auto inner = op->getOperand(0).getDefiningOp();
+                if (!inner || inner->getName() != op->getName())
+                    return failure();
 
-void mlir::quantum::populateQuantumOptimisePatterns(RewritePatternSet &patterns)
-{
-    // TBD: Add more patterns here.Currently,only canonacalize patterns
-    // implemented i.e H and X cancel.
-}
+                rewriter.replaceOp(op, inner->getOperand(0));
+                return success();
+            }
+        };
+        patterns.add<FoldDoubleHermitian>(&getContext());
+        if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
+            signalPassFailure();
+    }
+};
 
 std::unique_ptr<Pass> mlir::quantum::createQuantumOptimisePass()
 {
     return std::make_unique<QuantumOptimisePass>();
+}
+
+std::unique_ptr<Pass> mlir::quantum::createHermitianCancelPass()
+{
+    return std::make_unique<HermitianCancelPass>();
 }
