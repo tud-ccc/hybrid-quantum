@@ -21,7 +21,7 @@ from mlir.dialects import arith, func, qir, tensor
 from mlir.dialects.builtin import Block, IntegerType
 from mlir.ir import Context, F64Type, InsertionPoint, Location, Module, StringAttr, TypeAttr, Value
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.circuit import Clbit, Instruction, Operation, Qubit
+from qiskit.circuit import Clbit, Instruction, Operation, ParameterExpression, Qubit
 from qiskit.circuit import library as lib
 from qiskit.circuit.classical.expr import Expr
 from qiskit.qasm2 import loads as qasm2_loads
@@ -165,8 +165,13 @@ class QASMToMLIRVisitor:
 
         return self.scope.findResult(reg)
 
-    def visitClassic(self, expr: Expr) -> None:
-        raise NotImplementedError(f"Classic expressions are not supported for {expr}")
+    def visitClassic(self, expr: Expr) -> Value:
+        if isinstance(expr, ParameterExpression):
+            raise NotImplementedError("Parameter Expression")
+        elif isinstance(expr, float):
+            return arith.ConstantOp(F64Type.get(self.context), expr, ip=InsertionPoint(self.block)).result
+        else:
+            raise NotImplementedError(f"Classic expressions are not supported for {expr}")
 
     # Operation encapsulates virtual instructions that must
     # be synthesized to physical instructions
@@ -210,42 +215,33 @@ class QASMToMLIRVisitor:
         elif isinstance(instr, lib.RZGate):
             with self.loc:
                 target: QubitType = self.visitQuantumRegister(qubits[0])
-                angle = instr.params[0]
-                angle_f64 = arith.ConstantOp(F64Type.get(self.context), angle, ip=InsertionPoint(self.block)).result
-                qir.RzOp(target, angle_f64, ip=InsertionPoint(self.block))
+                angle = self.visitClassic(instr.params[0])
+                qir.RzOp(target, angle, ip=InsertionPoint(self.block))
         elif isinstance(instr, lib.RXGate):
             with self.loc:
                 target: QubitType = self.visitQuantumRegister(qubits[0])
-                angle = instr.params[0]
-                angle_f64 = arith.ConstantOp(F64Type.get(self.context), angle, ip=InsertionPoint(self.block)).result
-                qir.RxOp(target, angle_f64, ip=InsertionPoint(self.block))
+                angle = self.visitClassic(instr.params[0])
+                qir.RxOp(target, angle, ip=InsertionPoint(self.block))
         elif isinstance(instr, lib.RYGate):
             with self.loc:
                 target: QubitType = self.visitQuantumRegister(qubits[0])
-                angle = instr.params[0]
-                angle_f64 = arith.ConstantOp(F64Type.get(self.context), angle, ip=InsertionPoint(self.block)).result
-                qir.RyOp(target, angle_f64, ip=InsertionPoint(self.block))
+                angle = self.visitClassic(instr.params[0])
+                qir.RyOp(target, angle, ip=InsertionPoint(self.block))
         elif isinstance(instr, lib.U3Gate):
             with self.loc:
                 target: QubitType = self.visitQuantumRegister(qubits[0])
-                theta, phi, lam = instr.params
-                theta_f64 = arith.ConstantOp(F64Type.get(self.context), theta, ip=InsertionPoint(self.block)).result
-                phi_f64 = arith.ConstantOp(F64Type.get(self.context), phi, ip=InsertionPoint(self.block)).result
-                lam_f64 = arith.ConstantOp(F64Type.get(self.context), lam, ip=InsertionPoint(self.block)).result
-                qir.U3Op(target, theta_f64, phi_f64, lam_f64, ip=InsertionPoint(self.block))
+                theta, phi, lam = [self.visitClassic(param) for param in instr.params]
+                qir.U3Op(target, theta, phi, lam, ip=InsertionPoint(self.block))
         elif isinstance(instr, lib.U2Gate):
             with self.loc:
                 target: QubitType = self.visitQuantumRegister(qubits[0])
-                phi, lam = instr.params
-                phi_f64 = arith.ConstantOp(F64Type.get(self.context), phi, ip=InsertionPoint(self.block)).result
-                lam_f64 = arith.ConstantOp(F64Type.get(self.context), lam, ip=InsertionPoint(self.block)).result
-                qir.U2Op(target, phi_f64, lam_f64, ip=InsertionPoint(self.block))
+                phi, lam = [self.visitClassic(param) for param in instr.params]
+                qir.U2Op(target, phi, lam, ip=InsertionPoint(self.block))
         elif isinstance(instr, lib.U1Gate):
             with self.loc:
                 target: QubitType = self.visitQuantumRegister(qubits[0])
-                lam = instr.params[0]
-                lam_f64 = arith.ConstantOp(F64Type.get(self.context), lam, ip=InsertionPoint(self.block)).result
-                qir.U1Op(target, lam_f64, ip=InsertionPoint(self.block))
+                lam = self.visitClassic(instr.params[0])
+                qir.U1Op(target, lam, ip=InsertionPoint(self.block))
         elif isinstance(instr, lib.SwapGate):
             with self.loc:
                 lhs: QubitType = self.visitQuantumRegister(qubits[0])
@@ -265,16 +261,14 @@ class QASMToMLIRVisitor:
             with self.loc:
                 control: QubitType = self.visitQuantumRegister(qubits[0])
                 target: QubitType = self.visitQuantumRegister(qubits[1])
-                angle = instr.params[0]
-                angle_f64 = arith.ConstantOp(F64Type.get(self.context), angle, ip=InsertionPoint(self.block)).result
-                qir.CRyOp(control, target, angle_f64, ip=InsertionPoint(self.block))
+                angle = self.visitClassic(instr.params[0])
+                qir.CRyOp(control, target, angle, ip=InsertionPoint(self.block))
         elif isinstance(instr, lib.CRZGate):
             with self.loc:
                 control: QubitType = self.visitQuantumRegister(qubits[0])
                 target: QubitType = self.visitQuantumRegister(qubits[1])
-                angle = instr.params[0]
-                angle_f64 = arith.ConstantOp(F64Type.get(self.context), angle, ip=InsertionPoint(self.block)).result
-                qir.CRzOp(control, target, angle_f64, ip=InsertionPoint(self.block))
+                angle = self.visitClassic(instr.params[0])
+                qir.CRzOp(control, target, angle, ip=InsertionPoint(self.block))
         elif isinstance(instr, lib.CCXGate):
             with self.loc:
                 control1: QubitType = self.visitQuantumRegister(qubits[0])
