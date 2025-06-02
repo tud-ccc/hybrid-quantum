@@ -16,6 +16,7 @@
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/TypeSwitch.h"
 
+#include <atomic>
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Support/FormatVariadic.h>
 #include <llvm/Support/LogicalResult.h>
@@ -24,7 +25,6 @@
 #include <mlir/IR/Diagnostics.h>
 #include <mlir/IR/Operation.h>
 #include <string>
-
 using namespace mlir;
 using namespace mlir::qir;
 

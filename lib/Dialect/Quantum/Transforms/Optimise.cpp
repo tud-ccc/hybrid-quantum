@@ -27,18 +27,21 @@ namespace mlir::quantum {
 namespace {
 /// Pattern: Drop phase gates immediately before measurement
 struct DropPhaseBeforeMeasure : OpRewritePattern<quantum::ZOp> {
-    using OpRewritePattern::OpRewritePattern;
+    using OpRewritePattern<quantum::ZOp>::OpRewritePattern;
 
     LogicalResult
     matchAndRewrite(quantum::ZOp zOp, PatternRewriter &rewriter) const override
     {
-        auto result = zOp.getResult();
-        if (!result.getType().isa<quantum::QubitType>()) return failure();
-        if (!result.hasOneUse()) return failure();
+        Value zResult = zOp.getResult();
+        if (!zResult.getType().isa<quantum::QubitType>()) return failure();
+        if (zResult.use_empty()) return failure();
 
-        Operation* user = *result.getUsers().begin();
-        if (!isa<quantum::MeasureOp>(user)) return failure();
-
+        for (Operation* userOp : zResult.getUsers()) {
+            auto measureOp = dyn_cast<quantum::MeasureOp>(userOp);
+            if (!measureOp) return failure();
+            // Ensure that the qubit operand of the MeasureOp is exactly zResult
+            if (measureOp.getOperand() != zResult) return failure();
+        }
         rewriter.replaceOp(zOp, zOp.getInput());
         return success();
     }
