@@ -24,30 +24,41 @@ namespace mlir::quantum {
 } // namespace mlir::quantum
 //===----------------------------------------------------------------------===//
 
+namespace {
 /// Pattern: Drop phase gates immediately before measurement
-struct DropPhaseBeforeMeasure : RewritePattern {
-    DropPhaseBeforeMeasure(MLIRContext* ctx)
-            : RewritePattern(MatchAnyOpTypeTag(), 1, ctx)
-    {}
+struct DropPhaseBeforeMeasure : OpRewritePattern<quantum::ZOp> {
+    using OpRewritePattern::OpRewritePattern;
 
     LogicalResult
-    matchAndRewrite(Operation* op, PatternRewriter &rewriter) const override
+    matchAndRewrite(quantum::ZOp zOp, PatternRewriter &rewriter) const override
     {
-        if (op->getNumResults() != 1) return failure();
-        if (!(isa<quantum::ZOp>(op)))
-            return failure(); // Add more gates, currently no S, T, Sdg, Tdg
-
-        auto result = op->getResult(0);
+        auto result = zOp.getResult();
         if (!result.getType().isa<quantum::QubitType>()) return failure();
         if (!result.hasOneUse()) return failure();
 
         Operation* user = *result.getUsers().begin();
         if (!isa<quantum::MeasureOp>(user)) return failure();
 
-        rewriter.replaceOp(op, op->getOperand(0));
+        rewriter.replaceOp(zOp, zOp.getInput());
         return success();
     }
 };
+
+/// Pattern: Cancel double Hermitian ops
+struct FoldDoubleHermitian : OpTraitRewritePattern<Hermitian> {
+    using OpTraitRewritePattern::OpTraitRewritePattern;
+
+    LogicalResult
+    matchAndRewrite(Operation* op, PatternRewriter &rewriter) const override
+    {
+        auto inner = op->getOperand(0).getDefiningOp();
+        if (!inner || inner->getName() != op->getName()) return failure();
+
+        rewriter.replaceOp(op, inner->getOperand(0));
+        return success();
+    }
+};
+} // namespace
 
 /// --quantum-optimise
 struct QuantumOptimisePass
@@ -71,22 +82,6 @@ struct HermitianCancelPass
     void runOnOperation() override
     {
         RewritePatternSet patterns(&getContext());
-        /// Pattern: Cancel double Hermitian ops
-        struct FoldDoubleHermitian : OpTraitRewritePattern<Hermitian> {
-            using OpTraitRewritePattern::OpTraitRewritePattern;
-
-            LogicalResult matchAndRewrite(
-                Operation* op,
-                PatternRewriter &rewriter) const override
-            {
-                auto inner = op->getOperand(0).getDefiningOp();
-                if (!inner || inner->getName() != op->getName())
-                    return failure();
-
-                rewriter.replaceOp(op, inner->getOperand(0));
-                return success();
-            }
-        };
         patterns.add<FoldDoubleHermitian>(&getContext());
         if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
             signalPassFailure();
