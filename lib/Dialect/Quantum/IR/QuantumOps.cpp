@@ -87,6 +87,54 @@ LogicalResult RzOp::canonicalize(RzOp op, PatternRewriter &rewriter)
     return failure();
 }
 
+LogicalResult RxOp::canonicalize(RxOp op, PatternRewriter &rewriter)
+{
+    // %1 = Rx(%0, %theta1)
+    // %2 = Rx(%1, %theta2)
+    // --------------------
+    // %1 = Rx(%0, %theta1 + %theta2)
+    if (auto rx = op.getInput().getDefiningOp<RxOp>()) {
+        auto theta1 = op.getTheta();
+        auto theta2 = rx.getTheta();
+
+        auto loc = op.getLoc();
+        auto thetaPlus = rewriter.create<arith::AddFOp>(loc, theta1, theta2);
+
+        rewriter.eraseOp(op);
+        rewriter.replaceOpWithNewOp<RxOp>(
+            rx,
+            rx.getInput(),
+            thetaPlus.getResult());
+
+        return success();
+    }
+    return failure();
+}
+
+LogicalResult RyOp::canonicalize(RyOp op, PatternRewriter &rewriter)
+{
+    // %1 = Ry(%0, %theta1)
+    // %2 = Ry(%1, %theta2)
+    // --------------------
+    // %1 = Ry(%0, %theta1 + %theta2)
+    if (auto ry = op.getInput().getDefiningOp<RyOp>()) {
+        auto theta1 = op.getTheta();
+        auto theta2 = ry.getTheta();
+
+        auto loc = op.getLoc();
+        auto thetaPlus = rewriter.create<arith::AddFOp>(loc, theta1, theta2);
+
+        rewriter.eraseOp(op);
+        rewriter.replaceOpWithNewOp<RyOp>(
+            ry,
+            ry.getInput(),
+            thetaPlus.getResult());
+
+        return success();
+    }
+    return failure();
+}
+
 //===----------------------------------------------------------------------===//
 // Verifier
 //===----------------------------------------------------------------------===//

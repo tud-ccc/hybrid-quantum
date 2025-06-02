@@ -310,6 +310,49 @@ def Quantum_HOp : PrimitiveGate_Op<
   let hasFolder = 1;
 }
 
+def Quantum_RxOp : PrimitiveGate_Op<
+        "Rx",
+        [
+          NoMemoryEffect,
+          AllTypesMatch<["input", "result"]>
+        ]> {
+  let summary = "x rotation gate operation";
+  let description = [{
+    Example:
+    %theta = arith.constant 0.34 : f64
+    %q1 = "quantum.Rx" (%q0, %theta): !quantum.qubit<1>, f64 -> !quantum.qubit<1>
+  }];
+
+  let arguments = (ins
+    Quantum_QubitType:$input,
+    F64:$theta
+  );
+  let results = (outs Quantum_QubitType:$result);
+  let hasCanonicalizeMethod = 1;
+}
+
+def Quantum_RyOp : PrimitiveGate_Op<
+        "Ry",
+        [
+          NoMemoryEffect,
+          AllTypesMatch<["input", "result"]>
+        ]> {
+  let summary = "y rotation gate operation";
+  let description = [{
+    Example:
+    %theta = arith.constant 0.34 : f64
+    %q1 = "quantum.Ry" (%q0, %theta): !quantum.qubit<1>, f64 -> !quantum.qubit<1>
+  }];
+
+  let arguments = (ins
+    Quantum_QubitType:$input,
+    F64:$theta
+  );
+  let results = (outs Quantum_QubitType:$result);
+  let hasCanonicalizeMethod = 1;
+}
+
+
 def Quantum_RzOp : PrimitiveGate_Op<
         "Rz",
         [
@@ -405,6 +448,97 @@ def Quantum_SWAPOp : PrimitiveGate_Op<
     Quantum_QubitType:$result1,
     Quantum_QubitType:$result2
   );
+}
+
+def Quantum_SOp : PrimitiveGate_Op<
+        "S",
+        [
+          NoMemoryEffect,
+          AllTypesMatch<["input", "result"]>
+        ]> {
+  let summary = "S (phase) gate";
+  let description = [{
+    Example:
+    %q1 = "quantum.S"(%q0): !quantum.qubit<1> -> !quantum.qubit<1>
+  }];
+  let arguments = (ins Quantum_QubitType:$input);
+  let results = (outs Quantum_QubitType:$result);
+}
+
+def Quantum_TOp : PrimitiveGate_Op<
+        "T",
+        [
+          NoMemoryEffect,
+          AllTypesMatch<["input", "result"]>
+        ]> {
+  let summary = "T (pi/8) gate";
+  let description = [{
+    Example:
+    %q1 = "quantum.T"(%q0): !quantum.qubit<1> -> !quantum.qubit<1>
+  }];
+  let arguments = (ins Quantum_QubitType:$input);
+  let results = (outs Quantum_QubitType:$result);
+}
+
+def Quantum_SdgOp : PrimitiveGate_Op<
+        "Sdg",
+        [
+          NoMemoryEffect,
+          AllTypesMatch<["input", "result"]>
+        ]> {
+  let summary = "S-dagger gate";
+  let description = [{
+    Example:
+    %q1 = "quantum.Sdg"(%q0): !quantum.qubit<1> -> !quantum.qubit<1>
+  }];
+  let arguments = (ins Quantum_QubitType:$input);
+  let results = (outs Quantum_QubitType:$result);
+}
+
+def Quantum_TdgOp : PrimitiveGate_Op<
+        "Tdg",
+        [
+          NoMemoryEffect,
+          AllTypesMatch<["input", "result"]>
+        ]> {
+  let summary = "T-dagger gate";
+  let description = [{
+    Example:
+    %q1 = "quantum.Tdg"(%q0): !quantum.qubit<1> -> !quantum.qubit<1>
+  }];
+  let arguments = (ins Quantum_QubitType:$input);
+  let results = (outs Quantum_QubitType:$result);
+}
+
+def Quantum_CZOp : PrimitiveGate_Op<
+        "CZ",
+        [
+          NoMemoryEffect,
+          AllTypesMatch<["control", "target", "control_out", "target_out"]>
+        ]> {
+  let summary = "Controlled-Z gate";
+  let description = [{
+    Example:
+    %q1, %q2 = "quantum.CZ"(%q0, %q1): (!quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>)
+  }];
+  let arguments = (ins Quantum_QubitType:$control, Quantum_QubitType:$target);
+  let results = (outs Quantum_QubitType:$control_out, Quantum_QubitType:$target_out);
+}
+
+
+def Quantum_CCXOp : PrimitiveGate_Op<
+        "CCX",
+        [
+          NoMemoryEffect,
+          AllTypesMatch<["control1", "control2", "target", "control1_out", "control2_out", "target_out"]>
+        ]> {
+  let summary = "Toffoli (CCX) gate";
+  let description = [{
+    Example:
+    %q1, %q2, %q3 = "quantum.CCX"(%q0, %q1, %q2): (!quantum.qubit<1>, !quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>, !quantum.qubit<1>)
+  }];
+  let arguments = (ins Quantum_QubitType:$control1, Quantum_QubitType:$control2, Quantum_QubitType:$target);
+  let results = (outs Quantum_QubitType:$control1_out, Quantum_QubitType:$control2_out, Quantum_QubitType:$target_out);
 }
 
 def Quantum_MeasureSingleOp : Memory_Op<
