@@ -5,6 +5,7 @@
 
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
 
+#include "mlir/Interfaces/FunctionImplementation.h"
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h"
 
 #include <cstddef>
@@ -151,6 +152,28 @@ LogicalResult IfOp::verify()
 
     if (getNumRegionCapturedArgs() != getNumResults())
         return emitOpError("# return values != # captured values");
+
+    return success();
+}
+
+LogicalResult ReturnOp::verify()
+{
+    auto customGate = cast<GateOp>((*this)->getParentOp());
+
+    // The operand number and types must match the function signature.
+    const auto &results = customGate.getFunctionType().getResults();
+    if (getNumOperands() != results.size())
+        return emitOpError("has ")
+               << getNumOperands() << " operands, but enclosing function (@"
+               << customGate.getName() << ") returns " << results.size();
+
+    for (unsigned i = 0, e = results.size(); i != e; ++i)
+        if (getOperand(i).getType() != results[i])
+            return emitError() << "type of return operand " << i << " ("
+                               << getOperand(i).getType()
+                               << ") doesn't match function result type ("
+                               << results[i] << ")"
+                               << " in function @" << customGate.getName();
 
     return success();
 }
@@ -415,6 +438,75 @@ void IfOp::getRegionInvocationBounds(
         // Non-constant condition. Each region may be executed 0 or 1 times.
         invocationBounds.assign(2, {0, 1});
     }
+}
+
+//===----------------------------------------------------------------------===//
+// GateCallOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult GateCallOp::verifySymbolUses(SymbolTableCollection &symbolTable)
+{
+    auto gateNameAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("callee");
+    if (!gateNameAttr)
+        return emitOpError("requires a 'callee' symbol reference attribute");
+
+    GateOp gate =
+        symbolTable.lookupNearestSymbolFrom<GateOp>(*this, gateNameAttr);
+    if (!gate)
+        return emitOpError() << "'" << gateNameAttr.getValue()
+                             << "' does not reference a valid function";
+
+    return success();
+}
+
+FunctionType GateCallOp::getCalleeType()
+{
+    return FunctionType::get(getContext(), getOperandTypes(), getResultTypes());
+}
+
+//===----------------------------------------------------------------------===//
+// GateOp
+//===----------------------------------------------------------------------===//
+
+GateOp GateOp::create(
+    Location location,
+    StringRef name,
+    FunctionType type,
+    ArrayRef<NamedAttribute> attrs)
+{
+    OpBuilder builder(location->getContext());
+    OperationState state(location, getOperationName());
+    GateOp::build(builder, state, name, type, attrs);
+    return cast<GateOp>(Operation::create(state));
+}
+
+void GateOp::build(
+    OpBuilder &builder,
+    OperationState &state,
+    StringRef name,
+    FunctionType type,
+    ArrayRef<NamedAttribute> attrs,
+    ArrayRef<DictionaryAttr> argAttrs)
+{
+    state.addAttribute(
+        SymbolTable::getSymbolAttrName(),
+        builder.getStringAttr(name));
+    state.addAttribute(
+        getFunctionTypeAttrName(state.name),
+        TypeAttr::get(type));
+    state.attributes.append(attrs.begin(), attrs.end());
+    state.addRegion();
+
+    if (argAttrs.empty()) return;
+    assert(type.getNumInputs() == argAttrs.size());
+    // call_interface_impl
+    function_interface_impl::addArgAndResultAttrs(
+        builder,
+        state,
+        argAttrs,
+        /*resultAttrs=*/std::nullopt,
+        getArgAttrsAttrName(state.name),
+        getResAttrsAttrName(state.name));
 }
 
 //===----------------------------------------------------------------------===//
