@@ -22,21 +22,22 @@ namespace mlir {
 
 namespace quantum {
 
-/// Adds the quantum optimise pass patterns to @p patterns .
 void populateQuantumOptimisePatterns(RewritePatternSet &patterns);
 
-/// Adds the legalization pass patterns to @p patterns .
+void populateHermitianCancelPatterns(RewritePatternSet &patterns);
+
 void populateMultiQubitLegalizationPatterns(
     TypeConverter converter,
     RewritePatternSet &patterns);
 
-/// Adds the scf-to-rvsdg pass patterns to @p patterns .
 void populateScfToRVSDGPatterns(
     TypeConverter converter,
     RewritePatternSet &patterns);
 
 /// Constructs the lower-funnel-shift pass.
 std::unique_ptr<Pass> createQuantumOptimisePass();
+
+/// Pass that realizes self-adjoint gate cancellation
 std::unique_ptr<Pass> createHermitianCancelPass();
 
 /// Pass that legalizes multi-qubit quantum programs

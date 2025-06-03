@@ -18,7 +18,7 @@ def QuantumOptimise : Pass<"quantum-optimise", "ModuleOp"> {
   let constructor = "mlir::quantum::createQuantumOptimisePass()";
 }
 
-def HermitianCancel : Pass<"hermitian-peephole", "ModuleOp"> {
+def HermitianCancel : Pass<"hermitian-cancel", "ModuleOp"> {
   let summary = "Hermitian Cancellation on the `quantum` dialect";
 
   let description = [{

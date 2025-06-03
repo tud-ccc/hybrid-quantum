@@ -126,11 +126,7 @@ LogicalResult NoClone<ConcreteType>::verifyTrait(Operation* op)
 template<typename ConcreteType>
 LogicalResult Hermitian<ConcreteType>::verifyTrait(Operation* op)
 {
-    // Check that operand and result types match
-    auto operandTypes = op->getOperandTypes();
-    auto resultTypes = op->getResultTypes();
-
-    if (operandTypes.size() != resultTypes.size())
+    if (op->getNumOperands() != op->getNumResults())
         return op->emitOpError(
             "must have the same number of operands and results");
 
