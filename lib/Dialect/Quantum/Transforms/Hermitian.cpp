@@ -11,6 +11,8 @@
 #include "quantum-mlir/Dialect/Quantum/IR/Quantum.h"
 #include "quantum-mlir/Dialect/Quantum/Transforms/Passes.h"
 
+#include <algorithm>
+
 using namespace mlir;
 using namespace mlir::quantum;
 
@@ -41,10 +43,18 @@ struct FoldDoubleHermitian : OpTraitRewritePattern<Hermitian> {
     LogicalResult
     matchAndRewrite(Operation* op, PatternRewriter &rewriter) const override
     {
-        auto inner = op->getOperand(0).getDefiningOp();
-        if (inner && inner->hasTrait<Hermitian>()
-            && inner->getName() == op->getName()) {
-            rewriter.replaceOp(op, inner->getOperand(0));
+        bool isSame = std::all_of(
+            op->getOperands().begin(),
+            op->getOperands().end(),
+            [&](auto operand) {
+                auto inner = operand.getDefiningOp();
+                return inner && inner->template hasTrait<Hermitian>()
+                       && inner->getName() == op->getName();
+            });
+
+        if (isSame) {
+            auto inner = op->getOperand(0).getDefiningOp();
+            rewriter.replaceOp(op, inner->getOperands());
             return success();
         }
         return failure();
