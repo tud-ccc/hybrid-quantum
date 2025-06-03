@@ -34,25 +34,18 @@ struct QuantumOptimisePass
 };
 
 /// Pattern: Drop phase gates immediately before measurement
-struct DropPhaseBeforeMeasure : OpRewritePattern<quantum::ZOp> {
-    using OpRewritePattern<quantum::ZOp>::OpRewritePattern;
+struct DropPhaseBeforeMeasure : OpRewritePattern<ZOp> {
+    using OpRewritePattern<ZOp>::OpRewritePattern;
 
     LogicalResult
     matchAndRewrite(ZOp zOp, PatternRewriter &rewriter) const override
     {
-        Value zResult = zOp.getResult();
-        if (!zResult.getType().isa<quantum::QubitType>()) return failure();
-        if (zResult.use_empty()) return failure();
-
-        for (Operation* userOp : zResult.getUsers()) {
-            auto measureOp = dyn_cast<MeasureOp>(userOp);
-            if (!measureOp) return failure();
-            // Ensure that the qubit operand of the MeasureOp is exactly
-            // zResult
-            if (measureOp.getOperand() != zResult) return failure();
+        auto userOp = *zOp.getResult().getUsers().begin();
+        if (auto measureOp = dyn_cast<MeasureOp>(userOp)) {
+            rewriter.replaceOp(zOp, zOp.getInput());
+            return success();
         }
-        rewriter.replaceOp(zOp, zOp.getInput());
-        return success();
+        return failure();
     }
 };
 
