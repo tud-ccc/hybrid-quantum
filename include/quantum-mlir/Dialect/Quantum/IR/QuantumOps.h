@@ -42,6 +42,11 @@ public:
     static LogicalResult verifyTrait(Operation* op);
 };
 
+template<typename ConcreteType>
+class Hermitian : public OpTrait::TraitBase<ConcreteType, Hermitian> {
+public:
+    static LogicalResult verifyTrait(Operation* op);
+};
 } // namespace quantum
 
 } // namespace mlir
