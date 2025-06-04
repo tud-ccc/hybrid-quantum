@@ -40,29 +40,8 @@ using namespace mlir::quantum;
 //===----------------------------------------------------------------------===//
 
 //===----------------------------------------------------------------------===//
-// Folders
-//===----------------------------------------------------------------------===//
-
-OpFoldResult HOp::fold(FoldAdaptor adaptor)
-{
-    // If the input to this H gate was another H gate, remove both.
-    if (auto parent = getOperand().getDefiningOp<HOp>())
-        return parent.getOperand();
-    return nullptr;
-}
-
-OpFoldResult XOp::fold(FoldAdaptor adaptor)
-{
-    // If the input to this H gate was another H gate, remove both.
-    if (auto parent = getOperand().getDefiningOp<XOp>())
-        return parent.getOperand();
-    return nullptr;
-}
-
-//===----------------------------------------------------------------------===//
 // Canonicalization
 //===----------------------------------------------------------------------===//
-
 LogicalResult RzOp::canonicalize(RzOp op, PatternRewriter &rewriter)
 {
     // %1 = Rz(%0, %theta1)
@@ -188,6 +167,16 @@ LogicalResult NoClone<ConcreteType>::verifyTrait(Operation* op)
                    << " used more than once within the same block";
         }
     }
+
+    return success();
+}
+
+template<typename ConcreteType>
+LogicalResult Hermitian<ConcreteType>::verifyTrait(Operation* op)
+{
+    if (op->getNumOperands() != op->getNumResults())
+        return op->emitOpError(
+            "must have the same number of operands and results");
 
     return success();
 }

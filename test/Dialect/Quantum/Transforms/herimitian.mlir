@@ -1,4 +1,4 @@
-// RUN: quantum-opt --quantum-optimise %s | FileCheck %s
+// RUN: quantum-opt --hermitian-cancel %s | FileCheck %s
 
 module {
   // CHECK-LABEL: func.func @triple_h_cancel(
@@ -79,7 +79,7 @@ module {
     return %q2 : !quantum.qubit<1>
   }
 
-    // CHECK-LABEL: func.func @triple_x_cancel(
+  // CHECK-LABEL: func.func @triple_x_cancel(
   func.func @triple_x_cancel() -> !quantum.qubit<1> {
     // CHECK-DAG: %[[Q1:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
     %q1 = "quantum.alloc"() : () -> (!quantum.qubit<1>)
@@ -104,4 +104,19 @@ module {
     %q4 = "quantum.X" (%q2) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
     return %q3, %q4 : !quantum.qubit<1>, !quantum.qubit<1>
   }
+
+  // CHECK-LABEL: func.func @cnot_cancel(
+  func.func @cnot_cancel() -> (!quantum.qubit<1>, !quantum.qubit<1>) {
+    // CHECK-DAG: %[[Q1:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
+    %q1 = "quantum.alloc"() : () -> (!quantum.qubit<1>)
+    // CHECK-DAG: %[[Q2:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
+    %q2 = "quantum.alloc"() : () -> (!quantum.qubit<1>)
+    // CHECK-NOT: "quantum.CNOT"
+    %q3, %q4 = "quantum.CNOT" (%q1, %q2) : (!quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>)
+    // CHECK-NOT: "quantum.CNOT"
+    %q5, %q6 = "quantum.CNOT" (%q3, %q4) : (!quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>)
+    // CHECK-DAG: return %[[Q1]], %[[Q2]]
+    return %q5, %q6 : !quantum.qubit<1>, !quantum.qubit<1>
+  }
+
 }

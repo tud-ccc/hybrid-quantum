@@ -46,6 +46,10 @@ def NoClone : NativeOpTrait<"NoClone"> {
     let cppNamespace = "::mlir::quantum";
 }
 
+//Hermitian trait
+def Hermitian : NativeOpTrait<"Hermitian"> {
+    let cppNamespace = "::mlir::quantum";
+}
 //===----------------------------------------------------------------------===//
 // Quantum memory operations.
 //===----------------------------------------------------------------------===//
@@ -294,11 +298,15 @@ def Quantum_IfOp : Quantum_Op<
 class PrimitiveGate_Op<string mnemonic, list<Trait> traits = []> :
         Gate_Op<mnemonic, traits # [NoClone]>;
 
-
 //===----------------------------------------------------------------------===//
 // Single qubit gate operations.
-//===----------------------------------------------------------------------===//
-def Quantum_HOp : PrimitiveGate_Op<"H", [NoMemoryEffect, AllTypesMatch<["input", "result"]>]> {
+//===----------------------------------------------------------------------===//        
+def Quantum_HOp : PrimitiveGate_Op<
+        "H",
+        [
+          Hermitian,
+          NoMemoryEffect,
+          AllTypesMatch<["input", "result"]>]> {
   let summary = "Hadamard gate operation";
   let description = [{
     Example:
@@ -307,15 +315,13 @@ def Quantum_HOp : PrimitiveGate_Op<"H", [NoMemoryEffect, AllTypesMatch<["input",
 
   let arguments = (ins Quantum_QubitType:$input);
   let results = (outs Quantum_QubitType:$result);
-  let hasFolder = 1;
 }
 
-def Quantum_XOp : PrimitiveGate_Op<"X", [NoMemoryEffect,AllTypesMatch<["input", "result"]>]> {
+def Quantum_XOp : PrimitiveGate_Op<"X", [Hermitian, NoMemoryEffect,AllTypesMatch<["input", "result"]>]> {
   let summary = "X gate operation (NOT gate)";
   let description = [{%out = "quantum.X"(%qubit) : !quantum.qubit<1> -> !quantum.qubit<1>}]; 
   let arguments = (ins Quantum_QubitType:$input);
   let results = (outs Quantum_QubitType:$result);
-  let hasFolder = 1;
 }
 
 def Quantum_YOp : PrimitiveGate_Op<"Y", [NoMemoryEffect, AllTypesMatch<["input", "result"]>]> {
@@ -375,7 +381,7 @@ def Quantum_TdgOp : PrimitiveGate_Op<"Tdg", [NoMemoryEffect, AllTypesMatch<["inp
 //===----------------------------------------------------------------------===//
 // Two qubit gate operations.
 //===----------------------------------------------------------------------===//
-def Quantum_CNOTOp : PrimitiveGate_Op<"CNOT", [NoMemoryEffect, AllTypesMatch<["input", "target", "control_out", "target_out"]>]> {
+def Quantum_CNOTOp : PrimitiveGate_Op<"CNOT", [Hermitian, NoMemoryEffect, AllTypesMatch<["input", "target", "control_out", "target_out"]>]> {
   let summary = "CNOT gate operation";
   let description = [{
     Example:
@@ -404,7 +410,7 @@ def Quantum_CZOp : PrimitiveGate_Op< "CZ", [NoMemoryEffect, AllTypesMatch<["cont
   let results = (outs Quantum_QubitType:$control_out, Quantum_QubitType:$target_out);
 }
 
-def Quantum_SWAPOp : PrimitiveGate_Op<"SWAP",[AllTypesMatch<[ "lhs", "rhs","result1", "result2"]>]> {
+def Quantum_SWAPOp : PrimitiveGate_Op<"SWAP",[Hermitian, AllTypesMatch<[ "lhs", "rhs","result1", "result2"]>]> {
   let summary = "SWAP gate";
   let description = [{
     Swaps the states of two qubits.
