@@ -49,17 +49,68 @@ LogicalResult RzOp::canonicalize(RzOp op, PatternRewriter &rewriter)
     // --------------------
     // %1 = Rz(%0, %theta1 + %theta2)
     if (auto rz = op.getInput().getDefiningOp<RzOp>()) {
-        auto theta1 = op.getTheta();
-        auto theta2 = rz.getTheta();
+        auto theta1 = rz.getTheta();
+        auto theta2 = op.getTheta();
 
         auto loc = op.getLoc();
         auto thetaPlus = rewriter.create<arith::AddFOp>(loc, theta1, theta2);
 
-        rewriter.eraseOp(op);
-        rewriter.replaceOpWithNewOp<RzOp>(
+        auto newRz = rewriter.replaceOpWithNewOp<RzOp>(
             rz,
             rz.getInput(),
             thetaPlus.getResult());
+        op->replaceAllUsesWith(newRz->getResults());
+        rewriter.eraseOp(op);
+
+        return success();
+    }
+    return failure();
+}
+
+LogicalResult RxOp::canonicalize(RxOp op, PatternRewriter &rewriter)
+{
+    // %1 = Rx(%0, %theta1) -> rx
+    // %2 = Rx(%1, %theta2) -> op
+    // --------------------
+    // %1 = Rx(%0, %theta1 + %theta2)
+    if (auto rx = op.getInput().getDefiningOp<RxOp>()) {
+        auto theta1 = rx.getTheta();
+        auto theta2 = op.getTheta();
+
+        auto loc = op.getLoc();
+        auto thetaPlus = rewriter.create<arith::AddFOp>(loc, theta1, theta2);
+
+        auto newRx = rewriter.replaceOpWithNewOp<RxOp>(
+            rx,
+            rx.getInput(),
+            thetaPlus.getResult());
+        op->replaceAllUsesWith(newRx->getResults());
+        rewriter.eraseOp(op);
+
+        return success();
+    }
+    return failure();
+}
+
+LogicalResult RyOp::canonicalize(RyOp op, PatternRewriter &rewriter)
+{
+    // %1 = Ry(%0, %theta1)
+    // %2 = Ry(%1, %theta2)
+    // --------------------
+    // %1 = Ry(%0, %theta1 + %theta2)
+    if (auto ry = op.getInput().getDefiningOp<RyOp>()) {
+        auto theta1 = ry.getTheta();
+        auto theta2 = op.getTheta();
+
+        auto loc = op.getLoc();
+        auto thetaPlus = rewriter.create<arith::AddFOp>(loc, theta1, theta2);
+
+        auto newRy = rewriter.replaceOpWithNewOp<RyOp>(
+            ry,
+            ry.getInput(),
+            thetaPlus.getResult());
+        op->replaceAllUsesWith(newRy->getResults());
+        rewriter.eraseOp(op);
 
         return success();
     }
