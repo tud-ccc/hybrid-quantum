@@ -25,7 +25,6 @@
 #include <mlir/IR/Diagnostics.h>
 #include <mlir/IR/Operation.h>
 #include <string>
-
 using namespace mlir;
 using namespace mlir::qir;
 

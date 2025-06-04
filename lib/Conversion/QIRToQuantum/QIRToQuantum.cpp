@@ -225,6 +225,201 @@ struct ConvertUnaryOp : public QIRToQuantumOpConversionPattern<SourceOp> {
     }
 }; // struct ConvertUnaryOp
 
+struct ConvertCNOT : public QIRToQuantumOpConversionPattern<qir::CNOTOp> {
+    using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        qir::CNOTOp op,
+        qir::CNOTOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        auto ctrl = qubitMap->find(adaptor.getControl());
+        auto tgt = qubitMap->find(adaptor.getTarget());
+        auto cxOp = rewriter.create<quantum::CNOTOp>(
+            op.getLoc(),
+            ValueRange{ctrl, tgt});
+        qubitMap->insert(adaptor.getControl(), cxOp.getControlOut());
+        qubitMap->insert(adaptor.getTarget(), cxOp.getTargetOut());
+
+        rewriter.eraseOp(op);
+        return success();
+    }
+};
+
+struct ConvertCZ : public QIRToQuantumOpConversionPattern<qir::CZOp> {
+    using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
+    LogicalResult matchAndRewrite(
+        qir::CZOp op,
+        qir::CZOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        auto ctrl = qubitMap->find(adaptor.getControl());
+        auto tgt = qubitMap->find(adaptor.getTarget());
+        auto czOp = rewriter.create<quantum::CZOp>(op.getLoc(), ctrl, tgt);
+        qubitMap->insert(adaptor.getControl(), czOp.getControlOut());
+        qubitMap->insert(adaptor.getTarget(), czOp.getTargetOut());
+        rewriter.eraseOp(op);
+        return success();
+    }
+}; // struct ConvertCZOp
+
+struct ConvertCCX : public QIRToQuantumOpConversionPattern<qir::CCXOp> {
+    using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
+    LogicalResult matchAndRewrite(
+        qir::CCXOp op,
+        qir::CCXOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        auto ctrl1 = qubitMap->find(adaptor.getControl1());
+        auto ctrl2 = qubitMap->find(adaptor.getControl2());
+        auto tgt = qubitMap->find(adaptor.getTarget());
+        auto ccxOp =
+            rewriter.create<quantum::CCXOp>(op.getLoc(), ctrl1, ctrl2, tgt);
+        qubitMap->insert(adaptor.getControl1(), ccxOp.getControl1Out());
+        qubitMap->insert(adaptor.getControl2(), ccxOp.getControl2Out());
+        qubitMap->insert(adaptor.getTarget(), ccxOp.getTargetOut());
+        rewriter.eraseOp(op);
+        return success();
+    }
+}; // struct ConvertCCXOp
+
+struct ConvertBarrierOp
+        : public QIRToQuantumOpConversionPattern<qir::BarrierOp> {
+    using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        qir::BarrierOp op,
+        qir::BarrierOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        ValueRange qirQubits = adaptor.getInput();
+        Value quantumQubit = qubitMap->find(qirQubits.front());
+        auto barrierOp = rewriter.create<quantum::BarrierOp>(
+            op.getLoc(),
+            quantumQubit.getType(),
+            quantumQubit);
+
+        qubitMap->insert(qirQubits.front(), barrierOp.getResult());
+
+        rewriter.eraseOp(op);
+        return success();
+    }
+}; // struct ConvertBarrierOp
+
+struct ConvertU3 : public QIRToQuantumOpConversionPattern<qir::U3Op> {
+    using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        qir::U3Op op,
+        qir::U3OpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        auto input = qubitMap->find(adaptor.getInput());
+        auto newOp = rewriter.create<quantum::U3Op>(
+            op.getLoc(),
+            input,
+            adaptor.getTheta(),
+            adaptor.getPhi(),
+            adaptor.getLambda());
+        qubitMap->insert(adaptor.getInput(), newOp.getResult());
+        rewriter.eraseOp(op);
+        return success();
+    }
+}; // struct ConvertU3Op
+
+struct ConvertU1 : public QIRToQuantumOpConversionPattern<qir::U1Op> {
+    using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        qir::U1Op op,
+        qir::U1OpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        auto input = qubitMap->find(adaptor.getInput());
+        auto u1Op = rewriter.create<quantum::U1Op>(
+            op.getLoc(),
+            input,
+            adaptor.getLambda());
+        qubitMap->insert(adaptor.getInput(), u1Op.getResult());
+        rewriter.eraseOp(op);
+        return success();
+    }
+}; // struct ConvertU1Op
+
+struct ConvertU2 : public QIRToQuantumOpConversionPattern<qir::U2Op> {
+    using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        qir::U2Op op,
+        qir::U2OpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        auto input = qubitMap->find(adaptor.getInput());
+        auto u2Op = rewriter.create<quantum::U2Op>(
+            op.getLoc(),
+            input,
+            adaptor.getPhi(),
+            adaptor.getLambda());
+        qubitMap->insert(adaptor.getInput(), u2Op.getResult());
+        rewriter.eraseOp(op);
+        return success();
+    }
+}; // struct ConvertU2Op
+
+struct ConvertCRy : public QIRToQuantumOpConversionPattern<qir::CRyOp> {
+    using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        qir::CRyOp op,
+        qir::CRyOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        auto controlQubit = qubitMap->find(adaptor.getControl());
+        auto targetQubit = qubitMap->find(adaptor.getTarget());
+        auto angle = adaptor.getAngle();
+
+        auto cryOp = rewriter.create<quantum::CRyOp>(
+            op.getLoc(),
+            controlQubit,
+            targetQubit,
+            angle);
+
+        // Update the qubit map with outputs
+        qubitMap->insert(adaptor.getControl(), cryOp.getControlOut());
+        qubitMap->insert(adaptor.getTarget(), cryOp.getTargetOut());
+
+        rewriter.eraseOp(op);
+        return success();
+    }
+};
+
+struct ConvertCRz : public QIRToQuantumOpConversionPattern<qir::CRzOp> {
+    using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        qir::CRzOp op,
+        qir::CRzOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        auto controlQubit = qubitMap->find(adaptor.getControl());
+        auto targetQubit = qubitMap->find(adaptor.getTarget());
+        auto angle = adaptor.getAngle();
+
+        auto crzOp = rewriter.create<quantum::CRzOp>(
+            op.getLoc(),
+            controlQubit,
+            targetQubit,
+            angle);
+
+        // Update the qubit map with outputs
+        qubitMap->insert(adaptor.getControl(), crzOp.getControlOut());
+        qubitMap->insert(adaptor.getTarget(), crzOp.getTargetOut());
+
+        rewriter.eraseOp(op);
+        return success();
+    }
+};
+
 struct ConvertReset : public QIRToQuantumOpConversionPattern<qir::ResetOp> {
     using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
 
@@ -356,7 +551,24 @@ void mlir::qir::populateConvertQIRToQuantumPatterns(
         ConvertResultAlloc,
         ConvertUnaryOp<qir::HOp, quantum::HOp>,
         ConvertUnaryOp<qir::XOp, quantum::XOp>,
+        ConvertUnaryOp<qir::YOp, quantum::YOp>,
+        ConvertUnaryOp<qir::ZOp, quantum::ZOp>,
         ConvertRotation<qir::RzOp, quantum::RzOp>,
+        ConvertRotation<qir::RxOp, quantum::RxOp>,
+        ConvertRotation<qir::RyOp, quantum::RyOp>,
+        ConvertUnaryOp<qir::SOp, quantum::SOp>,
+        ConvertUnaryOp<qir::TOp, quantum::TOp>,
+        ConvertUnaryOp<qir::SdgOp, quantum::SdgOp>,
+        ConvertUnaryOp<qir::TdgOp, quantum::TdgOp>,
+        ConvertCNOT,
+        ConvertCZ,
+        ConvertCCX,
+        ConvertU3,
+        ConvertU2,
+        ConvertU1,
+        ConvertCRy,
+        ConvertCRz,
+        ConvertBarrierOp,
         ConvertMeasure,
         ConvertReset>(typeConverter, patterns.getContext(), &qubitMap);
 }
