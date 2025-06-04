@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/ADT/DenseMap.h>
+#include <llvm/ADT/STLExtras.h>
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/IR/ValueMap.h>
 #include <llvm/Support/Casting.h>
@@ -28,6 +29,7 @@
 #include <mlir/Dialect/Tensor/IR/Tensor.h>
 #include <mlir/IR/BuiltinTypes.h>
 #include <mlir/IR/MLIRContext.h>
+#include <mlir/IR/TypeRange.h>
 #include <mlir/IR/Types.h>
 #include <mlir/IR/Value.h>
 #include <mlir/IR/ValueRange.h>
@@ -52,6 +54,11 @@ public:
     QubitMap(MLIRContext* ctx) : ctx(ctx), qubits() {}
 
     void insert(Value use, Value gen) { qubits[use] = gen; }
+
+    void insertAll(ValueRange uses, ValueRange gens)
+    {
+        for (auto [use, gen] : llvm::zip_equal(uses, gens)) insert(use, gen);
+    }
 
     Value find(Value use) { return qubits[use]; }
 
@@ -292,14 +299,16 @@ struct ConvertBarrierOp
         qir::BarrierOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        ValueRange qirQubits = adaptor.getInput();
-        Value quantumQubit = qubitMap->find(qirQubits.front());
+        auto inputs = qubitMap->findAll(adaptor.getInput());
+        SmallVector<Type> resultTypes(
+            inputs.size(),
+            quantum::QubitType::get(getContext(), 1));
         auto barrierOp = rewriter.create<quantum::BarrierOp>(
             op.getLoc(),
-            quantumQubit.getType(),
-            quantumQubit);
+            resultTypes,
+            inputs);
 
-        qubitMap->insert(qirQubits.front(), barrierOp.getResult());
+        qubitMap->insertAll(adaptor.getInput(), barrierOp.getResult());
 
         rewriter.eraseOp(op);
         return success();

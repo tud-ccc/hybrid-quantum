@@ -43,11 +43,14 @@ module {
     // CHECK-NOT: "qir.read_measurement"
     %mt = "qir.read_measurement" (%r0) : (!qir.result) -> (tensor<1xi1>)
 
-    // CHECK-DAG: "quantum.deallocate"(%[[Q14]]) : (!quantum.qubit<1>) -> ()
+    // CHECK-DAG: %[[Q15:.+]]:{{.*}} = "quantum.barrier"(%[[Q14]], %[[Q12]], %[[Q13]]) : (!quantum.qubit<1>, !quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>, !quantum.qubit<1>)
+    "qir.barrier"(%q0, %q1, %q2) : (!qir.qubit, !qir.qubit, !qir.qubit) -> ()
+
+    // CHECK-DAG: "quantum.deallocate"(%[[Q15]]#0) : (!quantum.qubit<1>) -> ()
     "qir.reset" (%q0) : (!qir.qubit) -> ()
-    // CHECK-DAG: "quantum.deallocate"(%[[Q12]]) : (!quantum.qubit<1>) -> ()
+    // CHECK-DAG: "quantum.deallocate"(%[[Q15]]#1) : (!quantum.qubit<1>) -> ()
     "qir.reset" (%q1) : (!qir.qubit) -> ()
-    // CHECK-DAG: "quantum.deallocate"(%[[Q13]]) : (!quantum.qubit<1>) -> ()
+    // CHECK-DAG: "quantum.deallocate"(%[[Q15]]#2) : (!quantum.qubit<1>) -> ()
     "qir.reset" (%q2) : (!qir.qubit) -> ()
     // CHECK-DAG: return %[[M]]
     func.return %mt : tensor<1xi1>

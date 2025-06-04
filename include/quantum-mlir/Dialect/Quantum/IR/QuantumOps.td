@@ -683,14 +683,14 @@ def Quantum_CCXOp : PrimitiveGate_Op<"CCX",[NoMemoryEffect, AllTypesMatch<["cont
   let results = (outs Quantum_QubitType:$control1_out, Quantum_QubitType:$control2_out, Quantum_QubitType:$target_out);
 }
 
-def Quantum_BarrierOp : PrimitiveGate_Op<"barrier", [AllTypesMatch<["qubits", "results"]>]> {
+def Quantum_BarrierOp : PrimitiveGate_Op<"barrier", [AllTypesMatch<["input", "result"]>]> {
   let summary = "Barrier operation";
   let description = [{
     Barrier operation acting as a synchronization point without modifying qubits.
   }];
 
-  let arguments = (ins Quantum_QubitType:$qubits);
-  let results = (outs Quantum_QubitType:$results);
+  let arguments = (ins Variadic<Quantum_QubitType>:$input);
+  let results = (outs Variadic<Quantum_QubitType>:$result);
 }
 
 //===----------------------------------------------------------------------===//
