@@ -1,6 +1,16 @@
 // RUN: quantum-opt %s -lift-qir-to-quantum | FileCheck %s
+// --debug --mlir-print-ir-after-all
 
 module {
+  // CHECK: "quantum.gate"() <{function_type = (!quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>), sym_name = "test"}> ({
+  "qir.gate"() <{function_type = (!qir.qubit, !qir.qubit) -> (), sym_name = "test"}> ({
+    // CHECK-NEXT: ^bb0(%[[QG1:.+]]: !quantum.qubit<1>, %[[QG2:.+]]: !quantum.qubit<1>):
+    ^bb0(%arg1: !qir.qubit, %arg2: !qir.qubit):
+    // CHECK-DAG: %[[QG3:.+]], %[[QG4:.+]] = "quantum.CNOT"(%[[QG1]], %[[QG2]]) : (!quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>)
+    "qir.CNOT"(%arg1, %arg2) : (!qir.qubit, !qir.qubit) -> ()
+    // CHECK-DAG: "quantum.return"(%[[QG3]], %[[QG4]]) : (!quantum.qubit<1>, !quantum.qubit<1>) -> ()
+    "qir.return"() : () -> ()
+  }) : () -> ()
 
   // CHECK-LABEL: func.func @complete_example(
   // CHECK: ) -> tensor<1xi1> {
@@ -45,6 +55,8 @@ module {
 
     // CHECK-DAG: %[[Q15:.+]]:{{.*}} = "quantum.barrier"(%[[Q14]], %[[Q12]], %[[Q13]]) : (!quantum.qubit<1>, !quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>, !quantum.qubit<1>)
     "qir.barrier"(%q0, %q1, %q2) : (!qir.qubit, !qir.qubit, !qir.qubit) -> ()
+
+    "qir.call"(%q0, %q1) <{callee = @test}> : (!qir.qubit, !qir.qubit) -> ()
 
     // CHECK-DAG: "quantum.deallocate"(%[[Q15]]#0) : (!quantum.qubit<1>) -> ()
     "qir.reset" (%q0) : (!qir.qubit) -> ()

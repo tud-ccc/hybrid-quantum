@@ -1,4 +1,4 @@
-/// Implements the ConvertQuantumToQIRPass.
+/// Implements the ConvertQIRToQuantumPass.
 ///
 /// @file
 /// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
@@ -16,6 +16,7 @@
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/ADT/DenseMap.h>
 #include <llvm/ADT/STLExtras.h>
@@ -24,6 +25,7 @@
 #include <llvm/Support/Casting.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
 #include <mlir/Dialect/Tensor/IR/Tensor.h>
+#include <mlir/IR/BuiltinAttributes.h>
 #include <mlir/IR/BuiltinTypes.h>
 #include <mlir/IR/Diagnostics.h>
 #include <mlir/IR/IRMapping.h>
@@ -33,6 +35,7 @@
 #include <mlir/IR/Value.h>
 #include <mlir/IR/ValueRange.h>
 #include <mlir/Support/LogicalResult.h>
+#include <optional>
 
 using namespace mlir;
 using namespace mlir::qir;
@@ -49,6 +52,22 @@ namespace mlir {
 //===----------------------------------------------------------------------===//
 
 namespace {
+
+Value getLastUsage(Value value)
+{
+    mlir::Value current = value;
+
+    while (true) {
+        auto uses = current.getUses();
+        auto it = uses.begin();
+        if (it == uses.end()) return current;
+
+        auto &operand = *it;
+        auto user = operand.getOwner();
+        unsigned operandIndex = operand.getOperandNumber();
+        current = user->getResult(operandIndex);
+    }
+}
 
 struct ConvertQIRToQuantumPass
         : mlir::impl::ConvertQIRToQuantumBase<ConvertQIRToQuantumPass> {
@@ -216,9 +235,7 @@ struct ConvertCNOT : public QIRToQuantumOpConversionPattern<qir::CNOTOp> {
     {
         auto ctrl = mapping->lookup(adaptor.getControl());
         auto tgt = mapping->lookup(adaptor.getTarget());
-        auto cxOp = rewriter.create<quantum::CNOTOp>(
-            op.getLoc(),
-            ValueRange{ctrl, tgt});
+        auto cxOp = rewriter.create<quantum::CNOTOp>(op.getLoc(), ctrl, tgt);
         mapping->map(adaptor.getControl(), cxOp.getControlOut());
         mapping->map(adaptor.getTarget(), cxOp.getTargetOut());
 
@@ -486,27 +503,61 @@ struct ConvertGateOp : public QIRToQuantumOpConversionPattern<qir::GateOp> {
         GateOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        auto ftype = dyn_cast<FunctionType>(
-            getTypeConverter()->convertType(op.getFunctionType()));
-        if (!ftype) op->emitOpError("Cannot convert QIR gate to Quantum gate");
+        SmallVector<Type> types;
+        if (failed(
+                getTypeConverter()->convertTypes(op.getArgumentTypes(), types)))
+            op.emitOpError("Gate argument type conversion failed");
 
+        FunctionType ftype = FunctionType::get(getContext(), types, types);
         auto gateOp = rewriter.create<quantum::GateOp>(
             op->getLoc(),
             op.getSymName(),
-            *op.getArgAttrs(),
-            *op.getResAttrs(),
+            op.getArgAttrs().value_or(ArrayAttr()),
+            op.getResAttrs().value_or(ArrayAttr()),
             ftype);
 
-        gateOp.getBody().takeBody(op.getBody());
+        Block* newEntryBlock = gateOp.addEntryBlock();
+        Block &oldEntryBlock = op.getBody().front();
 
-        // Update the qubit map with outputs
-        // mapping->map(adaptor.getControl(), crzOp.getControlOut());
-        // mapping->map(adaptor.getTarget(), crzOp.getTargetOut());
+        for (auto [oldArg, newArg] : llvm::zip(
+                 oldEntryBlock.getArguments(),
+                 newEntryBlock->getArguments())) {
+            mapping->map(oldArg, newArg);
+            mapping->map(newArg, newArg);
+        }
+        rewriter.setInsertionPointToStart(newEntryBlock);
+        for (Operation &op : oldEntryBlock.without_terminator())
+            rewriter.clone(op, *mapping);
+
+        Operation* terminator = oldEntryBlock.getTerminator();
+        rewriter.clone(*terminator, *mapping);
 
         rewriter.eraseOp(op);
         return success();
     }
 }; // struct ConvertGateOp
+
+struct ConvertGateReturnOp
+        : public QIRToQuantumOpConversionPattern<qir::ReturnOp> {
+    using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        ReturnOp op,
+        ReturnOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        auto gate = op->getParentOfType<quantum::GateOp>();
+        if (!gate) op.emitOpError("Failed to access enclosing GateOp");
+
+        auto &entryBlock = gate.getBody().front();
+        SmallVector<Value> results;
+        for (auto arg : entryBlock.getArguments())
+            results.push_back(getLastUsage(arg));
+        rewriter.create<quantum::ReturnOp>(op->getLoc(), results);
+        rewriter.eraseOp(op);
+        return success();
+    }
+}; // struct ConvertGateReturnOp
 
 } // namespace
 
@@ -590,7 +641,8 @@ void mlir::qir::populateConvertQIRToQuantumPatterns(
         ConvertBarrierOp,
         ConvertMeasure,
         ConvertReset,
-        ConvertGateOp>(typeConverter, patterns.getContext(), &mapping);
+        ConvertGateOp,
+        ConvertGateReturnOp>(typeConverter, patterns.getContext(), &mapping);
 }
 
 std::unique_ptr<Pass> mlir::createConvertQIRToQuantumPass()

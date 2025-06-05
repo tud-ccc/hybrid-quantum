@@ -11,6 +11,7 @@ include "mlir/IR/EnumAttr.td"
 //include "mlir/IR/OpAsmInterface.td"
 include "mlir/IR/SymbolInterfaces.td"
 include "mlir/Interfaces/CallInterfaces.td"
+include "mlir/Interfaces/ControlFlowInterfaces.td"
 include "mlir/Interfaces/FunctionInterfaces.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
@@ -330,6 +331,19 @@ def QIR_GateOp : Gate_Op<"gate", [
     //===------------------------------------------------------------------===//
 
     bool isDeclaration() { return false; }
+  }];
+}
+
+def QIR_ReturnOp : QIR_Op<"return", [
+  Pure,
+  HasParent<"GateOp">,
+  ReturnLike,
+  Terminator]> {
+  let summary = "QIR gate return operation";
+  let description = [{
+    The `QIR.return` operation represents a return operation within a gate body.
+    The operation takes no operands and produces no results.
+    ```
   }];
 }
 
