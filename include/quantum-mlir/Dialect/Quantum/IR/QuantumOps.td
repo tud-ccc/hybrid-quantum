@@ -10,6 +10,9 @@
 include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.td"
 include "mlir/Interfaces/CastInterfaces.td"
 include "mlir/Interfaces/ControlFlowInterfaces.td"
+include "mlir/IR/SymbolInterfaces.td"
+include "mlir/Interfaces/CallInterfaces.td"
+include "mlir/Interfaces/FunctionInterfaces.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
@@ -50,6 +53,144 @@ def NoClone : NativeOpTrait<"NoClone"> {
 def Hermitian : NativeOpTrait<"Hermitian"> {
     let cppNamespace = "::mlir::quantum";
 }
+//===----------------------------------------------------------------------===//
+// Quantum gate operations.
+//===----------------------------------------------------------------------===//
+
+def Quantum_GateOp : Quantum_Op<"gate", [
+  IsolatedFromAbove,
+  FunctionOpInterface
+]> {
+  let summary = "A quantum gate operation";
+  let description = [{ A quantum gate operation. }];
+  let arguments = (ins
+    SymbolNameAttr:$sym_name,
+    OptionalAttr<DictArrayAttr>:$arg_attrs,
+    OptionalAttr<DictArrayAttr>:$res_attrs,
+    TypeAttrOf<FunctionType>:$function_type
+  );
+
+  let regions = (region AnyRegion:$body);
+
+  let builders = [OpBuilder<(ins
+    "StringRef":$name, "FunctionType":$type,
+    CArg<"ArrayRef<NamedAttribute>", "{}">:$attrs,
+    CArg<"ArrayRef<DictionaryAttr>", "{}">:$argAttrs)
+  >];
+
+  let extraClassDeclaration = [{
+    static GateOp create(Location location, StringRef name, FunctionType type,
+                         ArrayRef<NamedAttribute> attrs = {});
+
+    //===------------------------------------------------------------------===//
+    // FunctionOpInterface Methods
+    //===------------------------------------------------------------------===//
+
+    /// Returns the region on the current operation that is callable.
+    ::mlir::Region *getCallableRegion() { return &getBody(); }
+
+    /// Returns the argument types of this function.
+    ArrayRef<Type> getArgumentTypes() { return getFunctionType().getInputs(); }
+
+    /// Returns the result types of this function.
+    ArrayRef<Type> getResultTypes() { return getFunctionType().getResults(); }
+    
+    //===------------------------------------------------------------------===//
+    // SymbolOpInterface Methods
+    //===------------------------------------------------------------------===//
+
+    bool isDeclaration() { return false; }
+  }];
+}
+
+def Quantum_GateCallOp : Gate_Op<"call", [
+  CallOpInterface,
+  DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+  let summary = "Gate call operation";
+  let description = [{ Gate call operation. }];
+
+  let arguments = (ins
+    FlatSymbolRefAttr:$callee,
+    Variadic<AnyType>:$operands,
+    OptionalAttr<DictArrayAttr>:$arg_attrs,
+    OptionalAttr<DictArrayAttr>:$res_attrs
+  );
+
+  let results = (outs Variadic<AnyType>);
+
+  let builders = [
+    OpBuilder<(ins "GateOp":$callee, CArg<"ValueRange", "{}">:$operands), [{
+      $_state.addOperands(operands);
+      $_state.addAttribute("callee", SymbolRefAttr::get(callee));
+      $_state.addTypes(callee.getFunctionType().getResults());
+    }]>,
+    OpBuilder<(ins "SymbolRefAttr":$callee, "TypeRange":$results,
+      CArg<"ValueRange", "{}">:$operands), [{
+      $_state.addOperands(operands);
+      $_state.addAttribute("callee", callee);
+      $_state.addTypes(results);
+    }]>,
+    OpBuilder<(ins "StringAttr":$callee, "TypeRange":$results,
+      CArg<"ValueRange", "{}">:$operands), [{
+      build($_builder, $_state, SymbolRefAttr::get(callee), results, operands);
+    }]>,
+    OpBuilder<(ins "StringRef":$callee, "TypeRange":$results,
+      CArg<"ValueRange", "{}">:$operands), [{
+      build($_builder, $_state, StringAttr::get($_builder.getContext(), callee),
+            results, operands);
+    }]>
+  ];
+
+  let extraClassDeclaration = [{
+    FunctionType getCalleeType();
+
+    /// Get the argument operands to the called function.
+    operand_range getArgOperands() {
+      return {arg_operand_begin(), arg_operand_end()};
+    }
+
+    MutableOperandRange getArgOperandsMutable() {
+      return getOperandsMutable();
+    }
+
+    operand_iterator arg_operand_begin() { return operand_begin(); }
+    operand_iterator arg_operand_end() { return operand_end(); }
+
+    /// Return the callee of this operation.
+    CallInterfaceCallable getCallableForCallee() {
+      return (*this)->getAttrOfType<SymbolRefAttr>("callee");
+    }
+
+    /// Set the callee for this operation.
+    void setCalleeFromCallable(CallInterfaceCallable callee) {
+      (*this)->setAttr("callee", cast<SymbolRefAttr>(callee));
+    }
+  }];
+}
+
+def Quantum_ReturnOp : Quantum_Op<"return", [
+  Pure,
+  HasParent<"GateOp">,
+  ReturnLike,
+  Terminator]> {
+  let summary = "Quantum gate return operation";
+  let description = [{
+    The `quantum.return` operation represents a return operation within a gate body.
+    The operation takes variable number of operands and produces no results.
+    The operand number and types must match the signature of the function
+    that contains the operation.
+    ```
+  }];
+
+  let arguments = (ins Variadic<AnyType>:$operands);
+
+  let builders = [OpBuilder<(ins), [{
+    build($_builder, $_state, std::nullopt);
+  }]>];
+
+  let hasVerifier = 1;
+}
+
 //===----------------------------------------------------------------------===//
 // Quantum memory operations.
 //===----------------------------------------------------------------------===//
@@ -542,14 +683,14 @@ def Quantum_CCXOp : PrimitiveGate_Op<"CCX",[NoMemoryEffect, AllTypesMatch<["cont
   let results = (outs Quantum_QubitType:$control1_out, Quantum_QubitType:$control2_out, Quantum_QubitType:$target_out);
 }
 
-def Quantum_BarrierOp : PrimitiveGate_Op<"barrier", [AllTypesMatch<["qubits", "results"]>]> {
+def Quantum_BarrierOp : PrimitiveGate_Op<"barrier", [AllTypesMatch<["input", "result"]>]> {
   let summary = "Barrier operation";
   let description = [{
     Barrier operation acting as a synchronization point without modifying qubits.
   }];
 
-  let arguments = (ins Quantum_QubitType:$qubits);
-  let results = (outs Quantum_QubitType:$results);
+  let arguments = (ins Variadic<Quantum_QubitType>:$input);
+  let results = (outs Variadic<Quantum_QubitType>:$result);
 }
 
 //===----------------------------------------------------------------------===//

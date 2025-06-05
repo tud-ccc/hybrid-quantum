@@ -3,13 +3,10 @@
 /// @file
 /// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
 
-#include "mlir/IR/Dialect.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/Tools/mlir-lsp-server/MlirLspServerMain.h"
-#include "quantum-mlir/Dialect/QIR/IR/QIR.h"
 #include "quantum-mlir/Dialect/QIR/IR/QIRBase.h"
-#include "quantum-mlir/Dialect/Quantum/IR/Quantum.h"
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumBase.h"
 
 using namespace mlir;
