@@ -559,6 +559,40 @@ struct ConvertGateReturnOp
     }
 }; // struct ConvertGateReturnOp
 
+struct ConvertGateCallOp
+        : public QIRToQuantumOpConversionPattern<qir::GateCallOp> {
+    using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        GateCallOp op,
+        GateCallOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        SmallVector<Value> args;
+        for (auto arg : adaptor.getOperands())
+            args.push_back(mapping->lookup(arg));
+
+        SmallVector<Type> resultTypes;
+        if (failed(getTypeConverter()->convertTypes(
+                op->getOperandTypes(),
+                resultTypes)))
+            op.emitOpError("Failed to convert GateCallOp result types");
+
+        auto callOp = rewriter.create<quantum::GateCallOp>(
+            op->getLoc(),
+            adaptor.getCallee(),
+            resultTypes,
+            args);
+
+        for (auto [arg, result] :
+             llvm::zip_equal(adaptor.getOperands(), callOp->getResults()))
+            mapping->map(arg, result);
+
+        rewriter.eraseOp(op);
+        return success();
+    }
+}; // struct ConvertGateCallOp
+
 } // namespace
 
 void ConvertQIRToQuantumPass::runOnOperation()
@@ -642,7 +676,8 @@ void mlir::qir::populateConvertQIRToQuantumPatterns(
         ConvertMeasure,
         ConvertReset,
         ConvertGateOp,
-        ConvertGateReturnOp>(typeConverter, patterns.getContext(), &mapping);
+        ConvertGateReturnOp,
+        ConvertGateCallOp>(typeConverter, patterns.getContext(), &mapping);
 }
 
 std::unique_ptr<Pass> mlir::createConvertQIRToQuantumPass()
