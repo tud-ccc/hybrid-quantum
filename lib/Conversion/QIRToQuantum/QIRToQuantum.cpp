@@ -573,9 +573,10 @@ struct ConvertGateCallOp
             args.push_back(mapping->lookup(arg));
 
         SmallVector<Type> resultTypes;
-        if (failed(getTypeConverter()->convertTypes(
-                op->getOperandTypes(),
-                resultTypes)))
+        if (failed(
+                getTypeConverter()->convertTypes(
+                    op->getOperandTypes(),
+                    resultTypes)))
             op.emitOpError("Failed to convert GateCallOp result types");
 
         auto callOp = rewriter.create<quantum::GateCallOp>(
