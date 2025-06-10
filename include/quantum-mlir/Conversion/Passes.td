@@ -33,5 +33,16 @@ def ConvertQIRToLLVM : Pass<"convert-qir-to-llvm"> {
     ];
 }
 
+def ConvertQIRToQuantum : Pass<"lift-qir-to-quantum"> {
+    let summary = "Perform a dialect lifting from QIR to Quantum";
+
+    let constructor = "mlir::createConvertQIRToQuantumPass()";
+
+    let dependentDialects = [
+        "quantum::QuantumDialect",
+        "qir::QIRDialect",
+        "tensor::TensorDialect"
+    ];
+}
 
 #endif // QUANTUM_MLIR_CONVERSION_PASSES

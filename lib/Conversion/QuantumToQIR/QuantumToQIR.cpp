@@ -149,33 +149,38 @@ struct ConvertFunc : public OpConversionPattern<func::FuncOp> {
     }
 }; // struct ConvertFunc
 
-struct ConvertH : public OpConversionPattern<quantum::HOp> {
-    using OpConversionPattern::OpConversionPattern;
+template<typename SourceOp, typename TargetOp>
+struct ConvertUnaryOp : public OpConversionPattern<SourceOp> {
+    using OpConversionPattern<SourceOp>::OpConversionPattern;
 
     LogicalResult matchAndRewrite(
-        HOp op,
-        HOpAdaptor adaptor,
+        SourceOp op,
+        OpConversionPattern<SourceOp>::OpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        rewriter.create<qir::HOp>(op.getLoc(), adaptor.getInput());
+        rewriter.create<TargetOp>(op.getLoc(), adaptor.getInput());
         rewriter.replaceOp(op, adaptor.getInput());
         return success();
     }
-}; // struct ConvertHOp
+}; // struct ConvertUnaryOp
 
-struct ConvertNot : public OpConversionPattern<quantum::XOp> {
-    using OpConversionPattern::OpConversionPattern;
+template<typename SourceOp, typename TargetOp>
+struct ConvertRotationOp : public OpConversionPattern<SourceOp> {
+    using OpConversionPattern<SourceOp>::OpConversionPattern;
 
     LogicalResult matchAndRewrite(
-        XOp op,
-        XOpAdaptor adaptor,
+        SourceOp op,
+        OpConversionPattern<SourceOp>::OpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        rewriter.create<qir::XOp>(op.getLoc(), adaptor.getInput());
+        rewriter.create<TargetOp>(
+            op.getLoc(),
+            adaptor.getInput(),
+            adaptor.getTheta());
         rewriter.replaceOp(op, adaptor.getInput());
         return success();
     }
-}; // struct ConvertXOp
+}; // struct ConvertRotationOp
 
 struct ConvertSwap : public OpConversionPattern<quantum::SWAPOp> {
     using OpConversionPattern::OpConversionPattern;
@@ -221,9 +226,7 @@ void ConvertQuantumToQIRPass::runOnOperation()
     quantum::populateConvertQuantumToQIRPatterns(typeConverter, patterns);
 
     target.addIllegalDialect<quantum::QuantumDialect>();
-    target.markUnknownOpDynamicallyLegal([](Operation* op) { return true; });
     target.addLegalDialect<qir::QIRDialect>();
-    target.addLegalDialect<tensor::TensorDialect>();
     target.addDynamicallyLegalOp<func::FuncOp>([&](func::FuncOp op) {
         return typeConverter.isLegal(op.getFunctionType());
     });
@@ -242,8 +245,9 @@ void mlir::quantum::populateConvertQuantumToQIRPatterns(
     patterns.add<
         ConvertAlloc,
         ConvertMeasure,
-        ConvertH,
-        ConvertNot,
+        ConvertUnaryOp<quantum::HOp, qir::HOp>,
+        ConvertUnaryOp<quantum::XOp, qir::XOp>,
+        ConvertRotationOp<quantum::RzOp, qir::RzOp>,
         ConvertFunc,
         ConvertSwap,
         ConvertDealloc>(typeConverter, patterns.getContext(), /* benefit*/ 1);

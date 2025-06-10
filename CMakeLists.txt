@@ -18,7 +18,9 @@ project(quantum-mlir
 set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to conform to")
 
 # Set backend variables
-set(BACKEND_QIR "true" CACHE STRING "Use QIR runner backend")
+option(BACKEND_QIR "Use QIR runner backend" ON)
+# Set frontend variables
+option(FRONTEND_QASM "Use Qiskit OpenQASM frontend" ON)
 
 # Detect if this is a stand-alone build.
 if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
@@ -77,6 +79,12 @@ add_compile_options(
 add_subdirectory(docs)
 add_subdirectory(include)
 add_subdirectory(lib)
+add_subdirectory(lib/CAPI)
+add_subdirectory(frontend)
+if(MLIR_ENABLE_BINDINGS_PYTHON)
+    add_subdirectory(python)
+endif()
 add_subdirectory(test)
 add_subdirectory(tools)
 enable_testing()
+add_subdirectory(unittest)

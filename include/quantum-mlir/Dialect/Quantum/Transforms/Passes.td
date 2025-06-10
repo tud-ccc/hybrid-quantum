@@ -18,6 +18,15 @@ def QuantumOptimise : Pass<"quantum-optimise", "ModuleOp"> {
   let constructor = "mlir::quantum::createQuantumOptimisePass()";
 }
 
+def HermitianCancel : Pass<"hermitian-cancel", "ModuleOp"> {
+  let summary = "Hermitian Cancellation on the `quantum` dialect";
+
+  let description = [{
+  }];
+
+  let constructor = "mlir::quantum::createHermitianCancelPass()";
+}
+
 def MultiQubitLegalization : Pass<"quantum-multi-qubit-legalize", "ModuleOp"> {
   let summary = "Legalize multi-qubit registers in the `quantum` dialect";
 
@@ -30,6 +39,21 @@ def MultiQubitLegalization : Pass<"quantum-multi-qubit-legalize", "ModuleOp"> {
 
   let dependentDialects = [
     "tensor::TensorDialect"
+  ];
+}
+
+def ScfToRVSDG : Pass<"scf-to-rvsdg", "ModuleOp"> {
+  let summary = "Transform `scf.if` and `scf.for` to RVSDG variants of the `quantum` dialect.";
+
+  let description = [{
+  This pass transform structured control flow to the regionalized value state dependence
+  graph (RVSDG) elements from the `quantum` dialect.
+  }];
+
+  let constructor = "mlir::quantum::createScfToRVSDGPass()";
+
+  let dependentDialects = [
+    "scf::SCFDialect"
   ];
 }
 

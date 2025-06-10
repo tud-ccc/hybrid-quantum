@@ -1,6 +1,8 @@
 add_mlir_dialect_library(QuantumTransforms
-        Optimise.cpp
+        Hermitian.cpp
+        GateOptimization.cpp
         MultiQubitLegalization.cpp
+        ScfToRVSDG.cpp
 
     ENABLE_AGGREGATION
 
