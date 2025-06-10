@@ -1,29 +1,29 @@
-// RUN: quantum-opt %s -cse -loop-invariant-code-motion -control-flow-sink | FileCheck %s
+// RUN: quantum-opt %s --debug --mlir-print-ir-after-all -control-flow-hoisting | FileCheck %s
 
-module {
-    
-    // CHECK-LABEL: func.func @hoist_op_from_if(
-    func.func @hoist_op_from_if(%b : i1) -> () {
-        %q = "quantum.alloc" () : () -> (!quantum.qubit<2>)
-        // CHECK-DAG: "quantum.split"
-        %a1, %b1 = "quantum.split" (%q) : (!quantum.qubit<2>) -> (!quantum.qubit<1>, !quantum.qubit<1>)
-        // CHECK-NEXT: "quantum.H"
-        // CHECK-NEXT: quantum.if
-        %aout, %bout = quantum.if %b qubits(%ain = %a1, %bin = %b1) -> (!quantum.qubit<1>, !quantum.qubit<1>) {
-            %b2 = "quantum.X" (%bin) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
-            // CHECK-NOT "quantum.H"
-            %a2 = "quantum.H" (%ain) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
-            %b3 = "quantum.X" (%b2) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
-            "quantum.yield" (%a2, %b3) : (!quantum.qubit<1>, !quantum.qubit<1>) -> ()
-        } else {
-            %b2 = "quantum.Z" (%bin) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
-            // CHECK-NOT "quantum.H"
-            %a2 = "quantum.H" (%ain) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
-            %b3 = "quantum.Z" (%b2) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
-            "quantum.yield" (%a2, %b3) : (!quantum.qubit<1>, !quantum.qubit<1>) -> ()
-        }
-        %out = "quantum.merge" (%aout, %bout) : (!quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<2>)
-        "quantum.deallocate" (%out) : (!quantum.qubit<2>) -> ()
-        return
+// CHECK-LABEL: func.func @hoist_op_from_if(
+// CHECK-SAME: %[[Q1:.+]]: {{.*}}, %[[Q2:.+]]: {{.*}}, %[[B:.+]]: {{.*}})
+func.func @hoist_op_from_if(%q1 : !quantum.qubit<1>, %q2 : !quantum.qubit<1>, %b : i1) -> (!quantum.qubit<1>, !quantum.qubit<1>) {
+    // CHECK-DAG: %[[Q3]] = "quantum.H"(%[[Q1]]) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
+    // CHECK-DAG: %[[OUT2]] = quantum.if %[[B]] ins(%[[B0]] = %[[Q2]]) -> (!quantum.qubit<1>) {
+    %aout, %bout = quantum.if %b ins(%a0 = %q1, %b0 = %q2) -> (!quantum.qubit<1>, !quantum.qubit<1>) {
+        // CHECK-DAG: %[[B1]] = "quantum.X"(%[[B0]])
+        %b1 = "quantum.X" (%b0) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
+        // CHECK-NOT "quantum.H"
+        %a2 = "quantum.H" (%a0) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
+        // CHECK-DAG: %[[B2]] = "quantum.Y"(%[[B1]])
+        %b2 = "quantum.Y" (%b1) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
+        // CHECK-DAG: "quantum.yield"(%[[B2]])
+        "quantum.yield" (%a2, %b2) : (!quantum.qubit<1>, !quantum.qubit<1>) -> ()
+    } else {
+        // CHECK-NOT "quantum.H"
+        %a2 = "quantum.H" (%a0) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
+        // CHECK-DAG: %[[B1]] = "quantum.Z"(%[[B0]])
+        %b1 = "quantum.Z" (%b0) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
+        // CHECK-DAG: %[[B2]] = "quantum.Y"(%[[B1]])
+        %b2 = "quantum.Y" (%b1) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
+        // CHECK-DAG: "quantum.yield"(%[[B2]])
+        "quantum.yield" (%a2, %b2) : (!quantum.qubit<1>, !quantum.qubit<1>) -> ()
     }
+    // CHECK-DAG: return %[[Q3]], %[[OUT2]]
+    return %aout, %bout : !quantum.qubit<1>, !quantum.qubit<1>
 }

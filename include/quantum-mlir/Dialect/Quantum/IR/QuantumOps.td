@@ -424,6 +424,9 @@ def Quantum_IfOp : Quantum_Op<
     unsigned getNumRegionCapturedArgs() {
       return getBody()->getNumArguments(); // - getNumConditionVars();
     }
+
+    /// Return the number of invocations of a region
+    unsigned getNumRegionInvocations() { return 1; }
   }];
 
   let hasVerifier = 1;
