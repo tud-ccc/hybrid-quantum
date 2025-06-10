@@ -10,11 +10,11 @@
 #include "quantum-mlir/Dialect/Quantum/IR/Quantum.h"
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
 
-#include <algorithm>
 #include <llvm/ADT/STLExtras.h>
+#include <llvm/Support/Casting.h>
 #include <mlir/IR/OperationSupport.h>
+#include <mlir/IR/Value.h>
 #include <mlir/Support/LLVM.h>
-#include <optional>
 
 using namespace mlir;
 using namespace mlir::quantum;
@@ -53,31 +53,36 @@ struct HoistOperations : OpRewritePattern<IfOp> {
                  op.getElseRegion().getArguments())) {
             DenseMap<Value, Value> valuesMap;
             auto mapValue = [&](Value lhs, Value rhs) {
+                if (!dyn_cast<BlockArgument>(lhs)
+                    || !dyn_cast<BlockArgument>(rhs))
+                    return failure();
                 auto insertion = valuesMap.insert({lhs, rhs});
                 return success(insertion.first->second == rhs);
             };
-            for (auto thenOp : thenArg.getUsers()) {
-                for (auto elseOp : elseArg.getUsers()) {
-                    if (OperationEquivalence::isEquivalentTo(
-                            thenOp,
-                            elseOp,
-                            mapValue,
-                            mapValue,
-                            OperationEquivalence::IgnoreLocations)) {
-                        markMove.insert(thenOp);
-                        markDelete.insert(elseOp);
-                        hasApplied = true;
-                    }
+            for (auto [thenOp, elseOp] :
+                 llvm::zip(thenArg.getUsers(), elseArg.getUsers())) {
+                if (OperationEquivalence::isEquivalentTo(
+                        thenOp,
+                        elseOp,
+                        mapValue,
+                        mapValue,
+                        OperationEquivalence::IgnoreLocations)) {
+                    markMove.insert(thenOp);
+                    markDelete.insert(elseOp);
+                    hasApplied = true;
                 }
             }
         }
+
         for (auto moveOp : markMove) {
             SmallVector<Value, 4> operands;
             for (auto operand : moveOp->getOperands())
                 if (auto blockArg = dyn_cast<BlockArgument>(operand)) {
                     unsigned index = blockArg.getArgNumber();
+                    // IfOp has condition + block args
                     operands.push_back(op->getOperand(index + 1));
-                }
+                } else
+                    assert(false && "Not a block argument");
 
             rewriter.replaceAllUsesWith(
                 moveOp->getResults(),
@@ -89,7 +94,7 @@ struct HoistOperations : OpRewritePattern<IfOp> {
         for (auto delOp : markDelete)
             rewriter.replaceOp(delOp, delOp->getOperands());
 
-        return hasApplied ? success() : failure();
+        return success(hasApplied);
     }
 };
 
