@@ -1,4 +1,4 @@
-// RUN: quantum-opt %s --debug --mlir-print-ir-after-all -control-flow-hoisting | FileCheck %s
+// RUN: quantum-opt %s -control-flow-hoisting | FileCheck %s
 
 // CHECK-LABEL: func.func @hoist_op_from_if(
 // CHECK-SAME: %[[Q1:.+]]: {{.*}}, %[[Q2:.+]]: {{.*}}, %[[B:.+]]: {{.*}})
