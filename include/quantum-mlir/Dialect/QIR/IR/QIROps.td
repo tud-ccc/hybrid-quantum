@@ -368,7 +368,7 @@ def QIR_ReadMeasurementOp : QIR_Op<"read_measurement", [MemoryEffects<[MemRead]>
     QIR_ResultType:$input
   );
   let results = (outs
-    QIR_MeasurementType:$measurement
+    I1:$measurement
   );
 }
 

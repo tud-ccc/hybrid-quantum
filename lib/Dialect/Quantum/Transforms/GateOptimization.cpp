@@ -9,6 +9,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "quantum-mlir/Dialect/Quantum/IR/Quantum.h"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
 
 using namespace mlir;
 using namespace mlir::quantum;
@@ -41,7 +42,7 @@ struct DropPhaseBeforeMeasure : OpRewritePattern<ZOp> {
     matchAndRewrite(ZOp zOp, PatternRewriter &rewriter) const override
     {
         auto userOp = *zOp.getResult().getUsers().begin();
-        if (auto measureOp = dyn_cast<MeasureOp>(userOp)) {
+        if (dyn_cast<MeasureOp>(userOp) || dyn_cast<MeasureSingleOp>(userOp)) {
             rewriter.replaceOp(zOp, zOp.getInput());
             return success();
         }

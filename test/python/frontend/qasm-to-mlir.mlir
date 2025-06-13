@@ -47,7 +47,7 @@
 
 // CHECK-DAG: %[[ans0:.+]] = "qir.ralloc"() : () -> !qir.result
 // CHECK-DAG: "qir.measure"(%[[a1]], %[[ans0]]) : (!qir.qubit, !qir.result) -> ()
-// CHECK-DAG: %[[bit:.+]] = "qir.read_measurement"(%[[ans0]]) : (!qir.result) -> tensor<1xi1>
+// CHECK-DAG: %[[bit:.+]] = "qir.read_measurement"(%[[ans0]]) : (!qir.result) -> i1
 // CHECK-DAG: "qir.reset"(%[[a1]]) : (!qir.qubit) -> ()
 // CHECK: return
 // CHECK-NEXT:   }) : () -> ()

@@ -544,14 +544,11 @@ module {
     "qir.Rz" (%1, %297) : (!qir.qubit, f64) -> ()
     %298 = "qir.ralloc" () : () -> (!qir.result)
     "qir.measure" (%1, %298) : (!qir.qubit, !qir.result) -> ()
-    %299 = "qir.read_measurement" (%298) : (!qir.result) -> (tensor<1xi1>)
+    %m1 = "qir.read_measurement" (%298) : (!qir.result) -> i1
     %300 = "qir.ralloc" () : () -> (!qir.result)
     "qir.measure" (%5, %300) : (!qir.qubit, !qir.result) -> ()
-    %301 = "qir.read_measurement" (%300) : (!qir.result) -> (tensor<1xi1>)
+    %m2 = "qir.read_measurement" (%300) : (!qir.result) -> i1
    
-    %i = "index.constant" () {value = 0 : index} : () -> (index)
-    %m1 = "tensor.extract" (%299, %i) : (tensor<1xi1>, index) -> (i1)
-    %m2 = "tensor.extract" (%301, %i) : (tensor<1xi1>, index) -> (i1)
     vector.print %m1 : i1
     vector.print %m2 : i1
     return
