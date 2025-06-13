@@ -24,6 +24,7 @@ configure_lit_site_cfg(
 
 set(TEST_DEPENDS
     FileCheck count not
+    MLIRBufferizationDialect
     mlir-runner
     quantum-opt
     quantum-translate

@@ -1,4 +1,4 @@
-// RUN: quantum-translate --debug --mlir-to-openqasm %s | FileCheck %s
+// RUN: quantum-translate --mlir-to-openqasm %s | FileCheck %s
 
 module {
   // CHECK: OPENQASM 2.0;

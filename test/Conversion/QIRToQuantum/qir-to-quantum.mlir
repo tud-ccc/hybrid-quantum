@@ -1,5 +1,4 @@
 // RUN: quantum-opt %s -lift-qir-to-quantum | FileCheck %s
-// --debug --mlir-print-ir-after-all
 
 module {
   // CHECK: "quantum.gate"() <{function_type = (!quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>), sym_name = "test"}> ({
