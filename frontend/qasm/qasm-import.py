@@ -14,16 +14,18 @@ import logging
 import re
 import sys
 from enum import Enum
+from functools import reduce
 
-from mlir._mlir_libs._mlirDialectsQIR import QubitType, ResultType
+from mlir._mlir_libs._mlirDialectsQIR import QubitType
 from mlir._mlir_libs._mlirDialectsQIR import qir as qirdialect
-from mlir.dialects import arith, func, qir, tensor
+from mlir.dialects import arith, func, qir, scf
 from mlir.dialects.builtin import Block, IntegerType
 from mlir.ir import Context, F64Type, InsertionPoint, Location, Module, StringAttr, TypeAttr, Value
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Clbit, Instruction, Operation, ParameterExpression, Qubit
 from qiskit.circuit import library as lib
 from qiskit.circuit.classical.expr import Expr
+from qiskit.circuit.controlflow.if_else import IfElseOp
 from qiskit.qasm2 import loads as qasm2_loads
 from qiskit.qasm2.parse import LEGACY_CUSTOM_INSTRUCTIONS
 from qiskit.qasm2.parse import _DefinedGate as QASM2_Gate
@@ -149,7 +151,7 @@ class QASMToMLIRVisitor:
             else:
                 raise ParseError(f"Unknown instruction: {instr} of type {type(instr)}")
 
-    def visitQuantumRegister(self, reg: QuantumRegister) -> Value:
+    def visitQuantumBit(self, reg: Qubit) -> Value:
         if self.scope.findAlloc(reg) is None:
             alloc: qir.AllocOp = qir.AllocOp(loc=self.loc, ip=InsertionPoint(self.block))
             self.scope.setAlloc(reg, alloc.result)
@@ -157,7 +159,7 @@ class QASMToMLIRVisitor:
 
         return self.scope.findAlloc(reg)
 
-    def visitClassicalRegister(self, reg: ClassicalRegister) -> Value:
+    def visitClassicalBit(self, reg: Clbit) -> Value:
         if self.scope.findResult(reg) is None:
             ralloc: qir.AllocResultOp = qir.AllocResultOp(loc=self.loc, ip=InsertionPoint(self.block))
             self.scope.setResult(reg, ralloc.result)
@@ -179,123 +181,105 @@ class QASMToMLIRVisitor:
         raise NotImplementedError(f"Virtual quantum expressions are not supported for {instr}")
 
     # Instruction represents physical quantum instructions
-    def visitInstruction(self, instr: Instruction, qubits: list[QuantumRegister], clbits: list[ClassicalRegister]) -> None:
-        if isinstance(instr, lib.XGate):
-            with self.loc:
-                target: QubitType = self.visitQuantumRegister(qubits[0])
-                qir.XOp(target, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.YGate):
-            with self.loc:
-                target: QubitType = self.visitQuantumRegister(qubits[0])
-                qir.YOp(target, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.ZGate):
-            with self.loc:
-                target: QubitType = self.visitQuantumRegister(qubits[0])
-                qir.ZOp(target, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.HGate):
-            with self.loc:
-                target: QubitType = self.visitQuantumRegister(qubits[0])
-                qir.HOp(target, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.SGate):
-            with self.loc:
-                target: QubitType = self.visitQuantumRegister(qubits[0])
-                qir.SOp(target, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.SdgGate):
-            with self.loc:
-                target: QubitType = self.visitQuantumRegister(qubits[0])
-                qir.SdgOp(target, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.TGate):
-            with self.loc:
-                target: QubitType = self.visitQuantumRegister(qubits[0])
-                qir.TOp(target, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.TdgGate):
-            with self.loc:
-                target: QubitType = self.visitQuantumRegister(qubits[0])
-                qir.TdgOp(target, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.RZGate):
-            with self.loc:
-                target: QubitType = self.visitQuantumRegister(qubits[0])
-                angle = self.visitClassic(instr.params[0])
-                qir.RzOp(target, angle, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.RXGate):
-            with self.loc:
-                target: QubitType = self.visitQuantumRegister(qubits[0])
-                angle = self.visitClassic(instr.params[0])
-                qir.RxOp(target, angle, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.RYGate):
-            with self.loc:
-                target: QubitType = self.visitQuantumRegister(qubits[0])
-                angle = self.visitClassic(instr.params[0])
-                qir.RyOp(target, angle, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.U3Gate):
-            with self.loc:
-                target: QubitType = self.visitQuantumRegister(qubits[0])
-                theta, phi, lam = [self.visitClassic(param) for param in instr.params]
-                qir.U3Op(target, theta, phi, lam, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.U2Gate):
-            with self.loc:
-                target: QubitType = self.visitQuantumRegister(qubits[0])
-                phi, lam = [self.visitClassic(param) for param in instr.params]
-                qir.U2Op(target, phi, lam, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.U1Gate):
-            with self.loc:
-                target: QubitType = self.visitQuantumRegister(qubits[0])
-                lam = self.visitClassic(instr.params[0])
-                qir.U1Op(target, lam, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.SwapGate):
-            with self.loc:
-                lhs: QubitType = self.visitQuantumRegister(qubits[0])
-                rhs: QubitType = self.visitQuantumRegister(qubits[1])
-                qir.SwapOp(lhs, rhs, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.CZGate):
-            with self.loc:
-                control: QubitType = self.visitQuantumRegister(qubits[0])
-                target: QubitType = self.visitQuantumRegister(qubits[1])
-                qir.CZOp(control, target, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.CXGate):
-            with self.loc:
-                control: QubitType = self.visitQuantumRegister(qubits[0])
-                target: QubitType = self.visitQuantumRegister(qubits[1])
-                qir.CNOTOp(control, target, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.CRYGate):
-            with self.loc:
-                control: QubitType = self.visitQuantumRegister(qubits[0])
-                target: QubitType = self.visitQuantumRegister(qubits[1])
-                angle = self.visitClassic(instr.params[0])
-                qir.CRyOp(control, target, angle, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.CRZGate):
-            with self.loc:
-                control: QubitType = self.visitQuantumRegister(qubits[0])
-                target: QubitType = self.visitQuantumRegister(qubits[1])
-                angle = self.visitClassic(instr.params[0])
-                qir.CRzOp(control, target, angle, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.CCXGate):
-            with self.loc:
-                control1: QubitType = self.visitQuantumRegister(qubits[0])
-                control2: QubitType = self.visitQuantumRegister(qubits[1])
-                target: QubitType = self.visitQuantumRegister(qubits[2])
-                qir.CCXOp(control1, control2, target, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.Reset):
-            with self.loc:
-                qubit: QubitType = self.visitQuantumRegister(qubits[0])
-                qir.ResetOp(qubit, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.Barrier):
-            with self.loc:
-                args = [self.visitQuantumRegister(q) for q in qubits]
-                qir.BarrierOp(args, ip=InsertionPoint(self.block))
-        elif isinstance(instr, lib.Measure):
-            with self.loc:
-                qubit: QubitType = self.visitQuantumRegister(qubits[0])
-                bit: ResultType = self.visitClassicalRegister(clbits[0])
-                measureOp: qir.MeasureOp = qir.MeasureOp(qubit, bit, ip=InsertionPoint(self.block))
-                tensor1DI1: tensor.RankedTensorType = tensor.RankedTensorType.get([1], IntegerType.get_signless(1, self.context))
-                qir.ReadMeasurementOp(tensor1DI1, measureOp.result, ip=InsertionPoint(self.block))
-        elif isinstance(instr, QASM2_Gate):
-            self._visitDefinedGate(instr, qubits, clbits)
-        else:
-            raise NotImplementedError(f"{instr} of type {type(instr)}")
+    def visitInstruction(self, instr: Instruction, qubits: list[QubitSpecifier], clbits: list[ClbitSpecifier]) -> None:
+        match instr, len(qubits):
+            case lib.Barrier(), _:
+                with self.loc:
+                    args = [self.visitQuantumBit(q) for q in qubits]
+                    qir.BarrierOp(args, ip=InsertionPoint(self.block))
+            case QASM2_Gate(), _:
+                self._visitDefinedGate(instr, qubits, clbits)
+            case IfElseOp(), _:
+                self._visitIfElse(instr, qubits, clbits)
+            case lib.CCXGate(), 3:
+                with self.loc:
+                    control1: Value = self.visitQuantumBit(qubits[0])
+                    control2: Value = self.visitQuantumBit(qubits[1])
+                    target: Value = self.visitQuantumBit(qubits[2])
+                    qir.CCXOp(control1, control2, target, ip=InsertionPoint(self.block))
+            case _, 1:
+                self._visitUnaryGates(instr, qubits, clbits)
+            case _, 2:
+                self._visitBinaryGates(instr, qubits, clbits)
+            case _, _:
+                raise NotImplementedError(f"{instr} of type {type(instr)}")
 
-    def _visitDefinedGate(self, instr: QASM2_Gate, qubits: list[QuantumRegister], clbits: list[ClassicalRegister]) -> None:
+    def _visitUnaryGates(self, instr: Instruction, qubits: list[QubitSpecifier], clbits: list[ClbitSpecifier]) -> None:
+        assert len(qubits) == 1, f"Require unary gate, got: {instr}"
+        match qubits[0]:
+            case QuantumRegister():
+                raise NotImplementedError(f"Visiting instruction {instr} with QuantumRegister {qubits} and {clbits}")
+            case Qubit():
+                with self.loc:
+                    target: Value = self.visitQuantumBit(qubits[0])
+                    match instr:
+                        case lib.XGate():
+                            qir.XOp(target, ip=InsertionPoint(self.block))
+                        case lib.YGate():
+                            qir.YOp(target, ip=InsertionPoint(self.block))
+                        case lib.ZGate():
+                            qir.ZOp(target, ip=InsertionPoint(self.block))
+                        case lib.HGate():
+                            qir.HOp(target, ip=InsertionPoint(self.block))
+                        case lib.SGate():
+                            qir.SOp(target, ip=InsertionPoint(self.block))
+                        case lib.SdgGate():
+                            qir.SdgOp(target, ip=InsertionPoint(self.block))
+                        case lib.TGate():
+                            qir.TOp(target, ip=InsertionPoint(self.block))
+                        case lib.TdgGate():
+                            qir.TdgOp(target, ip=InsertionPoint(self.block))
+                        case lib.RZGate():
+                            angle = self.visitClassic(instr.params[0])
+                            qir.RzOp(target, angle, ip=InsertionPoint(self.block))
+                        case lib.RXGate():
+                            angle = self.visitClassic(instr.params[0])
+                            qir.RxOp(target, angle, ip=InsertionPoint(self.block))
+                        case lib.RYGate():
+                            angle = self.visitClassic(instr.params[0])
+                            qir.RyOp(target, angle, ip=InsertionPoint(self.block))
+                        case lib.U3Gate():
+                            theta, phi, lam = [self.visitClassic(param) for param in instr.params]
+                            qir.U3Op(target, theta, phi, lam, ip=InsertionPoint(self.block))
+                        case lib.U2Gate():
+                            phi, lam = [self.visitClassic(param) for param in instr.params]
+                            qir.U2Op(target, phi, lam, ip=InsertionPoint(self.block))
+                        case lib.U1Gate():
+                            lam = self.visitClassic(instr.params[0])
+                            qir.U1Op(target, lam, ip=InsertionPoint(self.block))
+                        case lib.Reset():
+                            qir.ResetOp(target, ip=InsertionPoint(self.block))
+                        case lib.Measure():
+                            bit: Value = self.visitClassicalBit(clbits[0])
+                            measureOp: qir.MeasureOp = qir.MeasureOp(target, bit, ip=InsertionPoint(self.block))
+                            qir.ReadMeasurementOp(measureOp.result, ip=InsertionPoint(self.block))
+                        case _:
+                            raise NotImplementedError(f"Unary gate {instr}")
+
+    def _visitBinaryGates(self, instr: Instruction, qubits: list[QubitSpecifier], clbits: list[ClbitSpecifier]) -> None:
+        assert len(qubits) == 2, f"Require binary gate, got: {instr}"
+        match qubits[0], qubits[1]:
+            case QuantumRegister(), QuantumRegister():
+                raise NotImplementedError(f"Visiting instruction {instr} with QuantumRegister {qubits} and {clbits}")
+            case Qubit(), Qubit():
+                with self.loc:
+                    lhs: Value = self.visitQuantumBit(qubits[0])
+                    rhs: Value = self.visitQuantumBit(qubits[1])
+                    match instr:
+                        case lib.SwapGate():
+                            qir.SwapOp(lhs, rhs, ip=InsertionPoint(self.block))
+                        case lib.CZGate():
+                            qir.CZOp(lhs, rhs, ip=InsertionPoint(self.block))
+                        case lib.CXGate():
+                            qir.CNOTOp(lhs, rhs, ip=InsertionPoint(self.block))
+                        case lib.CRYGate():
+                            angle = self.visitClassic(instr.params[0])
+                            qir.CRyOp(lhs, rhs, angle, ip=InsertionPoint(self.block))
+                        case lib.CRZGate():
+                            angle = self.visitClassic(instr.params[0])
+                            qir.CRzOp(lhs, rhs, angle, ip=InsertionPoint(self.block))
+
+    def _visitDefinedGate(self, instr: QASM2_Gate, qubits: list[QubitSpecifier], clbits: list[ClbitSpecifier]) -> None:
         if instr.definition is not None:
             if self.scope.findGate(instr) is None:
                 # Construct qir.GateOp for dDefined custom gate
@@ -320,10 +304,61 @@ class QASMToMLIRVisitor:
                 visitor.visitCircuit(circuit)
             # Construct qir.CallOp for defined custom gate
             callee: StringAttr = instr.name
-            operands: list[QubitType] = [self.visitQuantumRegister(q) for q in qubits]
+            operands: list[Value] = [self.visitQuantumBit(q) for q in qubits]
             qir.GateCallOp(callee, operands, loc=self.loc, ip=InsertionPoint(self.block))
         else:
-            ParseError(f"Expected gate with definition but got {instr}")
+            ParseError(f"Expected gate with definition, got: {instr}")
+
+    def _visitIfElse(self, instr: IfElseOp, qubits: list[QubitSpecifier], clbits: list[ClbitSpecifier]) -> None:
+        with self.loc:
+            condition: Value = self._visitIfElseCondition(instr.condition, qubits, clbits)
+            true_body, false_body = instr.params
+            hasElse: bool = false_body is not None
+
+            ifOp: scf.IfOp = scf.IfOp(condition, hasElse=hasElse, ip=InsertionPoint(self.block))
+
+            thenVisitor = QASMToMLIRVisitor.fromParent(self, block=ifOp.then_block)
+            thenVisitor.visitCircuit(true_body)
+            if hasElse:
+                elseVisitor = QASMToMLIRVisitor.fromParent(self, block=ifOp.else_block)
+                elseVisitor.visitCircuit(false_body)
+
+    def _visitIfElseCondition(
+        self,
+        condition: Expr | tuple[ClassicalRegister, int] | tuple[Clbit, int],
+        qubits: list[QubitSpecifier],
+        clbits: list[ClbitSpecifier],
+    ) -> Value:
+        match condition:
+            case Expr():
+                raise NotImplementedError(f" IfElseOp with condition of type {type(condition)}")
+            case (bitOrRegister, axiom):  # tuple[ClassicalRegister, int] | tuple[Clbit, int]
+                with self.loc:
+                    i1Type = IntegerType.get_signless(axiom)
+                    axiomval: Value = arith.ConstantOp(i1Type, axiom, ip=InsertionPoint(self.block)).result
+                    match bitOrRegister:
+                        case Clbit():
+                            clval: Value = self.visitClassicalBit(bitOrRegister)
+                            measurement: Value = qir.ReadMeasurementOp(clval, ip=InsertionPoint(self.block)).result
+                            return arith.CmpIOp(
+                                arith.CmpIPredicate.eq, measurement, axiomval, ip=InsertionPoint(self.block)
+                            ).result
+                        case ClassicalRegister():
+                            clvals: list[Value] = [self.visitClassicalBit(clbit) for clbit in clbits[0]._register]
+                            measurements: list[Value] = [
+                                qir.ReadMeasurementOp(clval, ip=InsertionPoint(self.block)).result for clval in clvals
+                            ]
+                            cmpis: list[Value] = [
+                                arith.CmpIOp(arith.CmpIPredicate.eq, measurement, axiomval, ip=InsertionPoint(self.block)).result
+                                for measurement in measurements
+                            ]
+                            return reduce(
+                                lambda cmps, cmp: arith.AndIOp(cmps, cmp, ip=InsertionPoint(self.block)).result,
+                                cmpis[1:],  # rest of the list
+                                cmpis[0],  # initial value
+                            )
+                        case _:
+                            raise NotImplementedError(f"condition of type {type(condition)}")
 
 
 def qasm_version(code: str) -> QASMVersion:

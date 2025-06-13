@@ -258,11 +258,7 @@ struct ReadMeasurementOpPattern
             fnDecl.getSymName(),
             ValueRange{inputResult});
 
-        auto tensor = rewriter.create<mlir::tensor::FromElementsOp>(
-            op.getLoc(),
-            ValueRange{measureOp.getResult()});
-
-        rewriter.replaceOp(op, tensor);
+        rewriter.replaceOp(op, measureOp);
 
         return success();
     }
@@ -1012,7 +1008,6 @@ void ConvertQIRToLLVMPass::runOnOperation()
 
     target.addIllegalDialect<qir::QIRDialect>();
     target.addLegalDialect<LLVM::LLVMDialect>();
-    target.addLegalDialect<tensor::TensorDialect>();
 
     if (failed(applyPartialConversion(
             getOperation(),

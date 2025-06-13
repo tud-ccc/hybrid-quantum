@@ -101,8 +101,8 @@ func.func @main() {
   "qir.measure"(%q2, %r2)         : (!qir.qubit, !qir.result) -> ()
 // CHECK-DAG: "qir.measure"(%[[Q2]], %[[R2]]) : (!qir.qubit, !qir.result) -> ()
 
-  %m0 = "qir.read_measurement"(%r0) : (!qir.result) -> (tensor<1xi1>)
-// CHECK-DAG: %[[M0:.+]] = "qir.read_measurement"(%[[R0]]) : (!qir.result) -> tensor<1xi1>
+  %m0 = "qir.read_measurement"(%r0) : (!qir.result) -> i1
+// CHECK-DAG: %[[M0:.+]] = "qir.read_measurement"(%[[R0]]) : (!qir.result) -> i1
 
   // Reset
   "qir.reset"(%q0)                : (!qir.qubit) -> ()

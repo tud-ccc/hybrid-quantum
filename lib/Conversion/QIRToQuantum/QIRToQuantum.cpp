@@ -451,14 +451,8 @@ struct ConvertMeasure : public QIRToQuantumOpConversionPattern<qir::MeasureOp> {
         auto input = mapping->lookup(adaptor.getInput());
         auto loc = op.getLoc();
 
-        auto i1Type = rewriter.getI1Type();
-        auto tensorType = mlir::RankedTensorType::get({1}, i1Type);
-
-        auto genMeasureOp = rewriter.create<quantum::MeasureOp>(
-            loc,
-            tensorType,
-            input.getType(),
-            input);
+        auto genMeasureOp =
+            rewriter.create<quantum::MeasureSingleOp>(loc, input);
 
         mapping->map(adaptor.getInput(), genMeasureOp.getResult());
 

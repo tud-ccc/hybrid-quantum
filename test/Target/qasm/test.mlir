@@ -1,4 +1,4 @@
-// RUN: quantum-translate --debug --mlir-to-openqasm %s | FileCheck %s
+// RUN: quantum-translate --mlir-to-openqasm %s | FileCheck %s
 
 module {
   // CHECK: OPENQASM 2.0;
@@ -65,7 +65,7 @@ module {
   // CHECK-NEXT: measure [[q2]] -> [[c1]][0];
   "qir.measure"(%q2, %r1) : (!qir.qubit, !qir.result) -> ()
   // CHECK-NOT: "qir.read_measurement"
-  %mread = "qir.read_measurement"(%r1) : (!qir.result) -> (tensor<1xi1>)
+  %mread = "qir.read_measurement"(%r1) : (!qir.result) -> i1
   // CHECK-NEXT: reset [[q2]];
   "qir.reset"(%q2) : (!qir.qubit) -> ()
 }
