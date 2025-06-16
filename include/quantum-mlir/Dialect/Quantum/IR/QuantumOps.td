@@ -444,7 +444,22 @@ class PrimitiveGate_Op<string mnemonic, list<Trait> traits = []> :
 
 //===----------------------------------------------------------------------===//
 // Single qubit gate operations.
-//===----------------------------------------------------------------------===//        
+//===----------------------------------------------------------------------===//
+
+def Quantum_IdOp : PrimitiveGate_Op<
+        "id",
+        [
+          AllTypesMatch<["input", "result"]>]> {
+  let summary = "Identity gate operation";
+  let description = [{
+    Example:
+    %q1 = "quantum.id" (%q0): !quantum.qubit<1> -> !quantum.qubit<1>
+  }];
+
+  let arguments = (ins Quantum_QubitType:$input);
+  let results = (outs Quantum_QubitType:$result);         
+}
+
 def Quantum_HOp : PrimitiveGate_Op<
         "H",
         [
@@ -487,6 +502,16 @@ def Quantum_SOp : PrimitiveGate_Op<"S",[NoMemoryEffect, AllTypesMatch<["input", 
   let description = [{
     Example:
     %q1 = "quantum.S"(%q0): !quantum.qubit<1> -> !quantum.qubit<1>
+  }];
+  let arguments = (ins Quantum_QubitType:$input);
+  let results = (outs Quantum_QubitType:$result);
+}
+
+def Quantum_SXOp : PrimitiveGate_Op<"SX",[NoMemoryEffect, AllTypesMatch<["input", "result"]>]> {
+  let summary = "SX (phase) gate";
+  let description = [{
+    Example:
+    %q1 = "quantum.SX"(%q0): !quantum.qubit<1> -> !quantum.qubit<1>
   }];
   let arguments = (ins Quantum_QubitType:$input);
   let results = (outs Quantum_QubitType:$result);
@@ -673,6 +698,16 @@ def Quantum_CRyOp : PrimitiveGate_Op<"CRy", [NoMemoryEffect, AllTypesMatch<["con
   let results = (outs Quantum_QubitType:$control_out, Quantum_QubitType:$target_out);
 }
 
+def Quantum_CU1Op : PrimitiveGate_Op<"CU1", [NoMemoryEffect, AllTypesMatch<["control", "target", "control_out", "target_out"]>]> {
+  let summary = "Controlled-U1 gate operation";
+  let description = [{
+    Example:
+    %q1, %q2 = "quantum.CU1"(%q0, %q1, %angle) : (!quantum.qubit<1>, !quantum.qubit<1>, f64) -> (!quantum.qubit<1>, !quantum.qubit<1>)
+  }];
+  let arguments = (ins Quantum_QubitType:$control, Quantum_QubitType:$target, F64:$angle);
+  let results = (outs Quantum_QubitType:$control_out, Quantum_QubitType:$target_out);
+}
+
 //===----------------------------------------------------------------------===//
 // Multiqubit/Universal/Custom gate operations.
 //===----------------------------------------------------------------------===//
@@ -684,6 +719,24 @@ def Quantum_CCXOp : PrimitiveGate_Op<"CCX",[NoMemoryEffect, AllTypesMatch<["cont
   }];
   let arguments = (ins Quantum_QubitType:$control1, Quantum_QubitType:$control2, Quantum_QubitType:$target);
   let results = (outs Quantum_QubitType:$control1_out, Quantum_QubitType:$control2_out, Quantum_QubitType:$target_out);
+}
+
+
+def Quantum_CSWAPOp : PrimitiveGate_Op<"CSWAP",[Hermitian, AllTypesMatch<["control", "control_out", "lhs", "rhs","lhs_out", "rhs_out"]>]> {
+  let summary = "Controlled-SWAP gate";
+  let description = [{
+    Controlled swap of the states of two qubits.
+  }];
+  let arguments = (ins
+    Quantum_QubitType:$control,    
+    Quantum_QubitType:$lhs,
+    Quantum_QubitType:$rhs
+  );
+  let results = (outs
+    Quantum_QubitType:$control_out,
+    Quantum_QubitType:$lhs_out,
+    Quantum_QubitType:$rhs_out
+  );
 }
 
 def Quantum_BarrierOp : PrimitiveGate_Op<"barrier", [AllTypesMatch<["input", "result"]>]> {

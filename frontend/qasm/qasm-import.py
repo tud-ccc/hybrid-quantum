@@ -197,6 +197,12 @@ class QASMToMLIRVisitor:
                     control2: Value = self.visitQuantumBit(qubits[1])
                     target: Value = self.visitQuantumBit(qubits[2])
                     qir.CCXOp(control1, control2, target, ip=InsertionPoint(self.block))
+            case lib.CSwapGate(), 3:
+                with self.loc:
+                    control: Value = self.visitQuantumBit(qubits[0])
+                    lhs: Value = self.visitQuantumBit(qubits[1])
+                    rhs: Value = self.visitQuantumBit(qubits[2])
+                    qir.CSwapOp(control, lhs, rhs, ip=InsertionPoint(self.block))
             case _, 1:
                 self._visitUnaryGates(instr, qubits, clbits)
             case _, 2:
@@ -223,6 +229,8 @@ class QASMToMLIRVisitor:
                             qir.HOp(target, ip=InsertionPoint(self.block))
                         case lib.SGate():
                             qir.SOp(target, ip=InsertionPoint(self.block))
+                        case lib.SXGate():
+                            qir.SXOp(target, ip=InsertionPoint(self.block))
                         case lib.SdgGate():
                             qir.SdgOp(target, ip=InsertionPoint(self.block))
                         case lib.TGate():
@@ -253,6 +261,8 @@ class QASMToMLIRVisitor:
                             bit: Value = self.visitClassicalBit(clbits[0])
                             measureOp: qir.MeasureOp = qir.MeasureOp(target, bit, ip=InsertionPoint(self.block))
                             qir.ReadMeasurementOp(measureOp.result, ip=InsertionPoint(self.block))
+                        case lib.IGate():
+                            qir.IdOp(target, ip=InsertionPoint(self.block))
                         case _:
                             raise NotImplementedError(f"Unary gate {instr}")
 
@@ -278,6 +288,9 @@ class QASMToMLIRVisitor:
                         case lib.CRZGate():
                             angle = self.visitClassic(instr.params[0])
                             qir.CRzOp(lhs, rhs, angle, ip=InsertionPoint(self.block))
+                        case lib.CU1Gate():
+                            angle = self.visitClassic(instr.params[0])
+                            qir.CU1Op(lhs, rhs, angle, ip=InsertionPoint(self.block))
 
     def _visitDefinedGate(self, instr: QASM2_Gate, qubits: list[QubitSpecifier], clbits: list[ClbitSpecifier]) -> None:
         if instr.definition is not None:

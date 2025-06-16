@@ -426,6 +426,61 @@ struct ConvertCRz : public QIRToQuantumOpConversionPattern<qir::CRzOp> {
     }
 };
 
+struct ConvertCU1 : public QIRToQuantumOpConversionPattern<qir::CU1Op> {
+    using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        qir::CU1Op op,
+        qir::CU1OpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        auto controlQubit = mapping->lookup(adaptor.getControl());
+        auto targetQubit = mapping->lookup(adaptor.getTarget());
+        auto angle = adaptor.getAngle();
+
+        auto cu1op = rewriter.create<quantum::CU1Op>(
+            op.getLoc(),
+            controlQubit,
+            targetQubit,
+            angle);
+
+        // Update the qubit map with outputs
+        mapping->map(adaptor.getControl(), cu1op.getControlOut());
+        mapping->map(adaptor.getTarget(), cu1op.getTargetOut());
+
+        rewriter.eraseOp(op);
+        return success();
+    }
+};
+
+struct ConvertCSwap : public QIRToQuantumOpConversionPattern<qir::CSwapOp> {
+    using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        qir::CSwapOp op,
+        qir::CSwapOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        auto controlQubit = mapping->lookup(adaptor.getControl());
+        auto lhs = mapping->lookup(adaptor.getLhs());
+        auto rhs = mapping->lookup(adaptor.getRhs());
+
+        auto cswap = rewriter.create<quantum::CSWAPOp>(
+            op.getLoc(),
+            controlQubit,
+            lhs,
+            rhs);
+
+        // Update the qubit map with outputs
+        mapping->map(adaptor.getControl(), cswap.getControlOut());
+        mapping->map(adaptor.getLhs(), cswap.getLhsOut());
+        mapping->map(adaptor.getRhs(), cswap.getRhsOut());
+
+        rewriter.eraseOp(op);
+        return success();
+    }
+};
+
 struct ConvertReset : public QIRToQuantumOpConversionPattern<qir::ResetOp> {
     using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
 
@@ -649,9 +704,11 @@ void mlir::qir::populateConvertQIRToQuantumPatterns(
         ConvertSwap,
         ConvertResultAlloc,
         ConvertUnaryOp<qir::HOp, quantum::HOp>,
+        ConvertUnaryOp<qir::SXOp, quantum::SXOp>,
         ConvertUnaryOp<qir::XOp, quantum::XOp>,
         ConvertUnaryOp<qir::YOp, quantum::YOp>,
         ConvertUnaryOp<qir::ZOp, quantum::ZOp>,
+        ConvertUnaryOp<qir::IdOp, quantum::IdOp>,
         ConvertRotation<qir::RzOp, quantum::RzOp>,
         ConvertRotation<qir::RxOp, quantum::RxOp>,
         ConvertRotation<qir::RyOp, quantum::RyOp>,
@@ -667,6 +724,7 @@ void mlir::qir::populateConvertQIRToQuantumPatterns(
         ConvertU1,
         ConvertCRy,
         ConvertCRz,
+        ConvertCU1,
         ConvertBarrierOp,
         ConvertMeasure,
         ConvertReset,

@@ -97,6 +97,11 @@ def QIR_SOp : PrimitiveGate_Op<"S"> {
   let description = [{ Phase gate (√Z). }];
 }
 
+def QIR_SXOp : PrimitiveGate_Op<"SX"> {
+  let summary = "SX gate operation";
+  let description = [{ SX. }];
+} 
+
 def QIR_SdgOp : PrimitiveGate_Op<"Sdg"> {
   let summary = "S-dagger gate operation";
   let description = [{ Adjoint of the S gate. }];
@@ -111,6 +116,11 @@ def QIR_TdgOp : PrimitiveGate_Op<"Tdg"> {
   let summary = "T-dagger gate operation";
   let description = [{ Adjoint of the T gate. }];
 }
+
+def QIR_IdOp : PrimitiveGate_Op<"Id"> {
+  let summary = "Identity gate operation";
+  let description = [{ Identitiy. }];
+} 
 
 
 //===----------------------------------------------------------------------===//
@@ -131,7 +141,6 @@ def QIR_CZOp : Gate_Op<"Cz"> {
   }];
   let arguments = (ins QIR_QubitType:$control, QIR_QubitType:$target);
 }
-
 
 def QIR_SwapOp : Gate_Op<"swap"> {
   let summary = "Swap gate operation";
@@ -211,6 +220,14 @@ def QIR_CRyOp : Gate_Op<"CRy"> {
   let arguments = (ins QIR_QubitType:$control, QIR_QubitType:$target, F64:$angle);
 }
 
+def QIR_CU1Op : Gate_Op<"CU1"> {
+  let summary = "Controlled-U1 gate";
+  let description = [{
+    The controlled-U1 (CU1) gate
+  }];
+  let arguments = (ins QIR_QubitType:$control, QIR_QubitType:$target, F64:$angle);
+}
+
 
 //===----------------------------------------------------------------------===//
 // Multiqubit/Universal/Custom gate operations.
@@ -219,6 +236,18 @@ def QIR_CCXOp : Gate_Op<"CCX"> {
   let summary = "Toffoli (CCX) gate";
   let description = [{ Controlled-controlled-X gate. Flips target if both controls are |1>. }];
   let arguments = (ins QIR_QubitType:$control1, QIR_QubitType:$control2, QIR_QubitType:$target);
+}
+
+def QIR_CSwapOp : Gate_Op<"cswap"> {
+  let summary = "Controlled-swap gate operation";
+  let description = [{
+    The controlled-swap gate exchanges the quantum states of two qubits.
+  }];
+  let arguments = (ins
+    QIR_QubitType:$control,
+    QIR_QubitType:$lhs,
+    QIR_QubitType:$rhs
+  );
 }
 
 def QIR_BarrierOp : Gate_Op<"barrier"> {
