@@ -228,6 +228,23 @@ struct ConvertSwap : public OpConversionPattern<quantum::SWAPOp> {
     }
 };
 
+struct ConvertCSwap : public OpConversionPattern<quantum::CSWAPOp> {
+    using OpConversionPattern::OpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        CSWAPOp op,
+        CSWAPOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        Value control = adaptor.getControl();
+        Value lhs = adaptor.getLhs();
+        Value rhs = adaptor.getRhs();
+        rewriter.create<qir::CSwapOp>(op.getLoc(), control, lhs, rhs);
+        rewriter.replaceOp(op, {control, lhs, rhs});
+        return success();
+    }
+};
+
 struct ConvertCU1 : public OpConversionPattern<quantum::CU1Op> {
     using OpConversionPattern::OpConversionPattern;
 
@@ -300,6 +317,7 @@ void mlir::quantum::populateConvertQuantumToQIRPatterns(
         ConvertUnaryOp<quantum::IdOp, qir::IdOp>,
         ConvertUnaryOp<quantum::SXOp, qir::SXOp>,
         ConvertRotationOp<quantum::RzOp, qir::RzOp>,
+        ConvertCSwap,
         ConvertFunc,
         ConvertSwap,
         ConvertDealloc>(typeConverter, patterns.getContext(), /* benefit*/ 1);

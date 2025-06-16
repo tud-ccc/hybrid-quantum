@@ -197,6 +197,12 @@ class QASMToMLIRVisitor:
                     control2: Value = self.visitQuantumBit(qubits[1])
                     target: Value = self.visitQuantumBit(qubits[2])
                     qir.CCXOp(control1, control2, target, ip=InsertionPoint(self.block))
+            case lib.CSwapGate(), 3:
+                with self.loc:
+                    control: Value = self.visitQuantumBit(qubits[0])
+                    lhs: Value = self.visitQuantumBit(qubits[1])
+                    rhs: Value = self.visitQuantumBit(qubits[2])
+                    qir.CSwapOp(control, lhs, rhs, ip=InsertionPoint(self.block))
             case _, 1:
                 self._visitUnaryGates(instr, qubits, clbits)
             case _, 2:

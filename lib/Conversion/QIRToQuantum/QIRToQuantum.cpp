@@ -453,6 +453,34 @@ struct ConvertCU1 : public QIRToQuantumOpConversionPattern<qir::CU1Op> {
     }
 };
 
+struct ConvertCSwap : public QIRToQuantumOpConversionPattern<qir::CSwapOp> {
+    using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        qir::CSwapOp op,
+        qir::CSwapOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        auto controlQubit = mapping->lookup(adaptor.getControl());
+        auto lhs = mapping->lookup(adaptor.getLhs());
+        auto rhs = mapping->lookup(adaptor.getRhs());
+
+        auto cswap = rewriter.create<quantum::CSWAPOp>(
+            op.getLoc(),
+            controlQubit,
+            lhs,
+            rhs);
+
+        // Update the qubit map with outputs
+        mapping->map(adaptor.getControl(), cswap.getControlOut());
+        mapping->map(adaptor.getLhs(), cswap.getLhsOut());
+        mapping->map(adaptor.getRhs(), cswap.getRhsOut());
+
+        rewriter.eraseOp(op);
+        return success();
+    }
+};
+
 struct ConvertReset : public QIRToQuantumOpConversionPattern<qir::ResetOp> {
     using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
 

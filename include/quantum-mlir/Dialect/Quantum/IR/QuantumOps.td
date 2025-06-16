@@ -721,6 +721,24 @@ def Quantum_CCXOp : PrimitiveGate_Op<"CCX",[NoMemoryEffect, AllTypesMatch<["cont
   let results = (outs Quantum_QubitType:$control1_out, Quantum_QubitType:$control2_out, Quantum_QubitType:$target_out);
 }
 
+
+def Quantum_CSWAPOp : PrimitiveGate_Op<"CSWAP",[Hermitian, AllTypesMatch<["control", "control_out", "lhs", "rhs","lhs_out", "rhs_out"]>]> {
+  let summary = "Controlled-SWAP gate";
+  let description = [{
+    Controlled swap of the states of two qubits.
+  }];
+  let arguments = (ins
+    Quantum_QubitType:$control,    
+    Quantum_QubitType:$lhs,
+    Quantum_QubitType:$rhs
+  );
+  let results = (outs
+    Quantum_QubitType:$control_out,
+    Quantum_QubitType:$lhs_out,
+    Quantum_QubitType:$rhs_out
+  );
+}
+
 def Quantum_BarrierOp : PrimitiveGate_Op<"barrier", [AllTypesMatch<["input", "result"]>]> {
   let summary = "Barrier operation";
   let description = [{

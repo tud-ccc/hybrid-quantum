@@ -238,6 +238,18 @@ def QIR_CCXOp : Gate_Op<"CCX"> {
   let arguments = (ins QIR_QubitType:$control1, QIR_QubitType:$control2, QIR_QubitType:$target);
 }
 
+def QIR_CSwapOp : Gate_Op<"cswap"> {
+  let summary = "Controlled-swap gate operation";
+  let description = [{
+    The controlled-swap gate exchanges the quantum states of two qubits.
+  }];
+  let arguments = (ins
+    QIR_QubitType:$control,
+    QIR_QubitType:$lhs,
+    QIR_QubitType:$rhs
+  );
+}
+
 def QIR_BarrierOp : Gate_Op<"barrier"> {
   let summary = "Barrier operation";
   let description = [{ A barrier operation that prevents optimization across it. }];
