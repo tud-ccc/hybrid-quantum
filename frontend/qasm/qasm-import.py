@@ -223,6 +223,8 @@ class QASMToMLIRVisitor:
                             qir.HOp(target, ip=InsertionPoint(self.block))
                         case lib.SGate():
                             qir.SOp(target, ip=InsertionPoint(self.block))
+                        case lib.SXGate():
+                            qir.SXOp(target, ip=InsertionPoint(self.block))
                         case lib.SdgGate():
                             qir.SdgOp(target, ip=InsertionPoint(self.block))
                         case lib.TGate():

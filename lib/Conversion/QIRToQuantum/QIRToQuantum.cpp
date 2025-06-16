@@ -649,6 +649,7 @@ void mlir::qir::populateConvertQIRToQuantumPatterns(
         ConvertSwap,
         ConvertResultAlloc,
         ConvertUnaryOp<qir::HOp, quantum::HOp>,
+        ConvertUnaryOp<qir::SXOp, quantum::SXOp>,
         ConvertUnaryOp<qir::XOp, quantum::XOp>,
         ConvertUnaryOp<qir::YOp, quantum::YOp>,
         ConvertUnaryOp<qir::ZOp, quantum::ZOp>,

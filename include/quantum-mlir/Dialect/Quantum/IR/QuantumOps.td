@@ -507,6 +507,16 @@ def Quantum_SOp : PrimitiveGate_Op<"S",[NoMemoryEffect, AllTypesMatch<["input", 
   let results = (outs Quantum_QubitType:$result);
 }
 
+def Quantum_SXOp : PrimitiveGate_Op<"SX",[NoMemoryEffect, AllTypesMatch<["input", "result"]>]> {
+  let summary = "SX (phase) gate";
+  let description = [{
+    Example:
+    %q1 = "quantum.SX"(%q0): !quantum.qubit<1> -> !quantum.qubit<1>
+  }];
+  let arguments = (ins Quantum_QubitType:$input);
+  let results = (outs Quantum_QubitType:$result);
+}
+
 def Quantum_TOp : PrimitiveGate_Op<"T", [NoMemoryEffect, AllTypesMatch<["input", "result"]>]> {
   let summary = "T (pi/8) gate";
   let description = [{

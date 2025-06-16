@@ -97,6 +97,11 @@ def QIR_SOp : PrimitiveGate_Op<"S"> {
   let description = [{ Phase gate (√Z). }];
 }
 
+def QIR_SXOp : PrimitiveGate_Op<"SX"> {
+  let summary = "SX gate operation";
+  let description = [{ SX. }];
+} 
+
 def QIR_SdgOp : PrimitiveGate_Op<"Sdg"> {
   let summary = "S-dagger gate operation";
   let description = [{ Adjoint of the S gate. }];
