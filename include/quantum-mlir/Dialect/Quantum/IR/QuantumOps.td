@@ -698,6 +698,16 @@ def Quantum_CRyOp : PrimitiveGate_Op<"CRy", [NoMemoryEffect, AllTypesMatch<["con
   let results = (outs Quantum_QubitType:$control_out, Quantum_QubitType:$target_out);
 }
 
+def Quantum_CU1Op : PrimitiveGate_Op<"CU1", [NoMemoryEffect, AllTypesMatch<["control", "target", "control_out", "target_out"]>]> {
+  let summary = "Controlled-U1 gate operation";
+  let description = [{
+    Example:
+    %q1, %q2 = "quantum.CU1"(%q0, %q1, %angle) : (!quantum.qubit<1>, !quantum.qubit<1>, f64) -> (!quantum.qubit<1>, !quantum.qubit<1>)
+  }];
+  let arguments = (ins Quantum_QubitType:$control, Quantum_QubitType:$target, F64:$angle);
+  let results = (outs Quantum_QubitType:$control_out, Quantum_QubitType:$target_out);
+}
+
 //===----------------------------------------------------------------------===//
 // Multiqubit/Universal/Custom gate operations.
 //===----------------------------------------------------------------------===//

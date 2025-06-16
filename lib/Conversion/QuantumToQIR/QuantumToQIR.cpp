@@ -227,6 +227,25 @@ struct ConvertSwap : public OpConversionPattern<quantum::SWAPOp> {
         return success();
     }
 };
+
+struct ConvertCU1 : public OpConversionPattern<quantum::CU1Op> {
+    using OpConversionPattern::OpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        CU1Op op,
+        CU1OpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        // Retrieve the two input qubits from the adaptor.
+        Value control = adaptor.getControl();
+        Value target = adaptor.getTarget();
+        Value angle = adaptor.getAngle();
+        rewriter.create<qir::CU1Op>(op.getLoc(), control, target, angle);
+        rewriter.replaceOp(op, {control, target});
+        return success();
+    }
+};
+
 } // namespace
 
 void ConvertQuantumToQIRPass::runOnOperation()

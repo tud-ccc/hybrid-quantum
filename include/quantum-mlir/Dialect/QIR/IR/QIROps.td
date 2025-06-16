@@ -142,7 +142,6 @@ def QIR_CZOp : Gate_Op<"Cz"> {
   let arguments = (ins QIR_QubitType:$control, QIR_QubitType:$target);
 }
 
-
 def QIR_SwapOp : Gate_Op<"swap"> {
   let summary = "Swap gate operation";
   let description = [{
@@ -218,6 +217,14 @@ def QIR_CRzOp : Gate_Op<"CRz"> {
 def QIR_CRyOp : Gate_Op<"CRy"> {
   let summary = "Controlled-Ry gate";
   let description = [{ Applies a Y rotation conditioned on the control qubit. }];
+  let arguments = (ins QIR_QubitType:$control, QIR_QubitType:$target, F64:$angle);
+}
+
+def QIR_CU1Op : Gate_Op<"CU1"> {
+  let summary = "Controlled-U1 gate";
+  let description = [{
+    The controlled-U1 (CU1) gate
+  }];
   let arguments = (ins QIR_QubitType:$control, QIR_QubitType:$target, F64:$angle);
 }
 

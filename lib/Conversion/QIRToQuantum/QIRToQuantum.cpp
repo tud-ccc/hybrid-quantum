@@ -426,6 +426,33 @@ struct ConvertCRz : public QIRToQuantumOpConversionPattern<qir::CRzOp> {
     }
 };
 
+struct ConvertCU1 : public QIRToQuantumOpConversionPattern<qir::CU1Op> {
+    using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        qir::CU1Op op,
+        qir::CU1OpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        auto controlQubit = mapping->lookup(adaptor.getControl());
+        auto targetQubit = mapping->lookup(adaptor.getTarget());
+        auto angle = adaptor.getAngle();
+
+        auto cu1op = rewriter.create<quantum::CU1Op>(
+            op.getLoc(),
+            controlQubit,
+            targetQubit,
+            angle);
+
+        // Update the qubit map with outputs
+        mapping->map(adaptor.getControl(), cu1op.getControlOut());
+        mapping->map(adaptor.getTarget(), cu1op.getTargetOut());
+
+        rewriter.eraseOp(op);
+        return success();
+    }
+};
+
 struct ConvertReset : public QIRToQuantumOpConversionPattern<qir::ResetOp> {
     using QIRToQuantumOpConversionPattern::QIRToQuantumOpConversionPattern;
 
@@ -669,6 +696,7 @@ void mlir::qir::populateConvertQIRToQuantumPatterns(
         ConvertU1,
         ConvertCRy,
         ConvertCRz,
+        ConvertCU1,
         ConvertBarrierOp,
         ConvertMeasure,
         ConvertReset,
