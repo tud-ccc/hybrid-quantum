@@ -26,7 +26,37 @@ using namespace mlir::qir;
 // QIRDialect
 //===----------------------------------------------------------------------===//
 
-//===----------------------------------------------------------------------===//
+// NOTE: We assume N qubit device that may or may not have passive qubits. The
+// required qubits is thus the max qubit index regardless of topology.
+LogicalResult AllocateDeviceOp::verify()
+{
+    int64_t num_qubits = getNumQubits();
+    ArrayAttr coupling_graph = getCouplingGraph();
+
+    // Check if the coupling graph is valid
+    for (Attribute edge : coupling_graph) {
+        // Each edge should be an array of two integers
+        ArrayAttr edgeArray = dyn_cast<ArrayAttr>(edge);
+        if (!edgeArray || edgeArray.size() != 2)
+            return emitOpError(
+                "each edge in coupling graph must be an array of two integers");
+
+        for (Attribute qubit : edgeArray) {
+            IntegerAttr qubitAttr = dyn_cast<IntegerAttr>(qubit);
+            if (!qubitAttr)
+                return emitOpError("each qubit in edge must be an integer");
+            int64_t q = qubitAttr.getInt();
+            if (q < 0 || q >= num_qubits)
+                return emitOpError(
+                    "qubit index " + Twine(q)
+                    + " is out of bounds for device with " + Twine(num_qubits)
+                    + " qubits");
+        }
+    }
+    return success();
+}
+
+//=----------------------------------------------------------------------===//
 // GateCallOp
 //===----------------------------------------------------------------------===//
 
