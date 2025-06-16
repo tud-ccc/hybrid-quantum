@@ -278,6 +278,7 @@ void mlir::quantum::populateConvertQuantumToQIRPatterns(
         ConvertSingleMeasure,
         ConvertUnaryOp<quantum::HOp, qir::HOp>,
         ConvertUnaryOp<quantum::XOp, qir::XOp>,
+        ConvertUnaryOp<quantum::IdOp, qir::IdOp>,
         ConvertRotationOp<quantum::RzOp, qir::RzOp>,
         ConvertFunc,
         ConvertSwap,

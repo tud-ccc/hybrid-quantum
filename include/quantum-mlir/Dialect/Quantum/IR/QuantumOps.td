@@ -444,7 +444,22 @@ class PrimitiveGate_Op<string mnemonic, list<Trait> traits = []> :
 
 //===----------------------------------------------------------------------===//
 // Single qubit gate operations.
-//===----------------------------------------------------------------------===//        
+//===----------------------------------------------------------------------===//
+
+def Quantum_IdOp : PrimitiveGate_Op<
+        "id",
+        [
+          AllTypesMatch<["input", "result"]>]> {
+  let summary = "Identity gate operation";
+  let description = [{
+    Example:
+    %q1 = "quantum.id" (%q0): !quantum.qubit<1> -> !quantum.qubit<1>
+  }];
+
+  let arguments = (ins Quantum_QubitType:$input);
+  let results = (outs Quantum_QubitType:$result);         
+}
+
 def Quantum_HOp : PrimitiveGate_Op<
         "H",
         [

@@ -112,6 +112,11 @@ def QIR_TdgOp : PrimitiveGate_Op<"Tdg"> {
   let description = [{ Adjoint of the T gate. }];
 }
 
+def QIR_IdOp : PrimitiveGate_Op<"Id"> {
+  let summary = "Identity gate operation";
+  let description = [{ Identitiy. }];
+} 
+
 
 //===----------------------------------------------------------------------===//
 // Two qubit gate operations.

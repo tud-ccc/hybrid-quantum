@@ -253,6 +253,8 @@ class QASMToMLIRVisitor:
                             bit: Value = self.visitClassicalBit(clbits[0])
                             measureOp: qir.MeasureOp = qir.MeasureOp(target, bit, ip=InsertionPoint(self.block))
                             qir.ReadMeasurementOp(measureOp.result, ip=InsertionPoint(self.block))
+                        case lib.IGate():
+                            qir.IdOp(target, ip=InsertionPoint(self.block))
                         case _:
                             raise NotImplementedError(f"Unary gate {instr}")
 
