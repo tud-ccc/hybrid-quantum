@@ -284,7 +284,7 @@ class QASMToMLIRVisitor:
                             qir.CRzOp(lhs, rhs, angle, ip=InsertionPoint(self.block))
                         case lib.CU1Gate():
                             angle = self.visitClassic(instr.params[0])
-                            qir.CU1Op(lhs, rhs, angle, angle, ip=InsertionPoint(self.block))
+                            qir.CU1Op(lhs, rhs, angle, ip=InsertionPoint(self.block))
 
     def _visitDefinedGate(self, instr: QASM2_Gate, qubits: list[QubitSpecifier], clbits: list[ClbitSpecifier]) -> None:
         if instr.definition is not None:
