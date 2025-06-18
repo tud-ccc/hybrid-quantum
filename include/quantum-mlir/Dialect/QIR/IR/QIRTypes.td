@@ -23,11 +23,4 @@ def QIR_ResultType : QIR_Type<"Result"> {
 
 def QIR_MeasurementType : 1DTensorOf<[I1]>;
 
-def QIR_DeviceType : QIR_Type<"Device"> {
-  let mnemonic = "device";
-  let description = "Quantum device type that holds information about the device size and coupling graph.";
-  let parameters = (ins "int64_t":$num_qubits, "ArrayAttr":$coupling_graph);
-  let assemblyFormat = "`<` $num_qubits `,` $coupling_graph `>`";
-}
-
 #endif

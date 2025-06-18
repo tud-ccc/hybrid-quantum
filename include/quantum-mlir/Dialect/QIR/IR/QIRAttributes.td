@@ -14,19 +14,4 @@ class QIR_Attr<string name, string attrMnemonic, list<Trait> traits = []>
   let mnemonic = attrMnemonic;
 }
 
-
-//Need to replace the DeviceType parameter with this attribute in the future.
-def QIR_CouplingGraphAttr : QIR_Attr<"CouplingGraph", "coupling_graph", [
-    OpAsmAttrInterface
-  ]> {
-  let summary = "CouplingGraphAttr is used to represent the coupling graph of a quantum device."
-  let parameters = (ins "ArrayAttr":$edges);
-  let builders = [
-    AttrBuilderWithInferredContext<(ins "Array":$edges), [{
-      return $_get(edges.getContext(), value);
-    }]>
-  ];
-  let assemblyFormat = "`<` $edges `>`";
-}
-
-#endif
+#endif // QIR_ATTRIBUTES

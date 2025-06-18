@@ -28,4 +28,5 @@ void QuantumDialect::initialize()
 {
     registerOps();
     registerTypes();
+    registerAttributes();
 }

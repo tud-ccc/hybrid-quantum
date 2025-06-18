@@ -17,7 +17,6 @@ include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 include "quantum-mlir/Dialect/QIR/IR/QIRBase.td"
 include "quantum-mlir/Dialect/QIR/IR/QIRTypes.td"
-include "quantum-mlir/Dialect/QIR/IR/QIRDeviceOps.td"
 include "mlir/IR/BuiltinTypes.td"
 
 

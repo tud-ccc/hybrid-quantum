@@ -786,4 +786,41 @@ def Quantum_MeasureOp : Memory_Op< "measure", [MemoryEffects<[MemRead]>,AllTypes
     );
 }
 
+//===----------------------------------------------------------------------===//
+// Quantum_DeviceOp: Defines a quantum device with a specific number of qubits
+// and their coupling graph.
+//===----------------------------------------------------------------------===//
+
+def Quantum_CircuitOp : Quantum_Op<"circuit", [
+    IsolatedFromAbove
+  ]> {
+  let summary = "Quantum circuit operation with coupling graph";
+  let description = [{ A quantum circuit operation that operates on a device with a specified coupling graph. }];
+  let arguments = (ins Quantum_DeviceType:$device);  // Only device is needed
+  let regions = (region
+    AnyRegion:$body
+  );
+  let builders = [
+    OpBuilder<(ins "DeviceType":$device)>
+  ];
+}
+
+def Quantum_DeviceOp : Quantum_Op<"device"> {
+  let summary = "Allocate a quantum device with a specified number of qubits and coupling graph.";
+  let description = [{
+    Allocates a quantum device with a specified number of qubits and coupling graph.
+  }];
+  let arguments = (ins
+    Quantum_CouplingGraphAttr:$coupling_graph
+  );
+  let results = (outs Quantum_DeviceType:$device);
+  let assemblyFormat = [{
+    `(` `)` attr-dict `:` `->` type($device)
+  }];
+  let hasVerifier = 1;
+  let builders = [
+    OpBuilder<(ins "CouplingGraphAttr":$coupling_graph)>
+  ];
+}
+
 #endif // QUANTUM_OPS

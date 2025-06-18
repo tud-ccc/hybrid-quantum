@@ -9,6 +9,7 @@
 
 include "mlir/IR/BuiltinAttributes.td"
 include "mlir/IR/BuiltinTypes.td"
+include "mlir/IR/AttrTypeBase.td"
 include "mlir/IR/OpBase.td"
 include "mlir/IR/EnumAttr.td"
 
@@ -22,7 +23,7 @@ def Quantum_Dialect : Dialect {
     }];
 
     let useDefaultTypePrinterParser = 1;
-    let hasOperationAttrVerify = 0;
+    let hasOperationAttrVerify = 1;
     // let useFoldAPI = kEmitFoldAdaptorFolder;
 
 
@@ -30,14 +31,15 @@ def Quantum_Dialect : Dialect {
     private:
         void registerOps();
         void registerTypes();
+        void registerAttributes();
     }];
 
     let dependentDialects = [
         "arith::ArithDialect"
     ];
 
-    let useDefaultAttributePrinterParser = 0;
-    // let useDefaultTypePrinterParser = 1;
+    let useDefaultAttributePrinterParser = 1;
+    let useDefaultTypePrinterParser = 1;
 }
 
 // Template for Types
@@ -48,5 +50,11 @@ class Quantum_Type<string name, list<Trait> traits = []>
 // Template for Ops
 class Quantum_Op<string mnemonic, list<Trait> traits = []>
         : Op<Quantum_Dialect, mnemonic, traits>;
+
+// Template for Attributes
+class Quantum_Attr<string attrName, string attrMnemonic, list<Trait> traits = []>
+    : AttrDef<Quantum_Dialect, attrName, traits> {
+  let mnemonic = attrMnemonic;
+}
       
 #endif // QUANTUM_BASE

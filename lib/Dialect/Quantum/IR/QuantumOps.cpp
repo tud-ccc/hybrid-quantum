@@ -6,6 +6,7 @@
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
 
 #include "mlir/Interfaces/FunctionImplementation.h"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumAttributes.h"
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h"
 
 #include <algorithm>
@@ -122,6 +123,38 @@ LogicalResult RyOp::canonicalize(RyOp op, PatternRewriter &rewriter)
 //===----------------------------------------------------------------------===//
 // Verifier
 //===----------------------------------------------------------------------===//
+
+// NOTE: We assume N qubit device that may or may not have passive qubits. The
+// required qubits is thus the max qubit index regardless of topology.
+// LogicalResult DeviceOp::verify()
+// {
+//     int64_t num_qubits = getQubits();
+//     ArrayAttr coupling_graph = getCouplingGraph();
+
+//     // Check if the coupling graph is valid
+//     for (Attribute edge : coupling_graph) {
+//         // Each edge should be an array of two integers
+//         ArrayAttr edgeArray = dyn_cast<ArrayAttr>(edge);
+//         if (!edgeArray || edgeArray.size() != 2)
+//             return emitOpError(
+//                 "each edge in coupling graph must be an array of two
+//                 integers");
+
+//         for (Attribute qubit : edgeArray) {
+//             IntegerAttr qubitAttr = dyn_cast<IntegerAttr>(qubit);
+//             if (!qubitAttr)
+//                 return emitOpError("each qubit in edge must be an integer");
+//             int64_t q = qubitAttr.getInt();
+//             if (q < 0 || q >= num_qubits)
+//                 return emitOpError(
+//                     "qubit index " + Twine(q)
+//                     + " is out of bounds for device with " +
+//                     Twine(num_qubits)
+//                     + " qubits");
+//         }
+//     }
+//     return success();
+// }
 
 template<typename ConcreteType>
 LogicalResult NoClone<ConcreteType>::verifyTrait(Operation* op)
@@ -530,6 +563,42 @@ void GateOp::build(
         /*resultAttrs=*/std::nullopt,
         getArgAttrsAttrName(state.name),
         getResAttrsAttrName(state.name));
+}
+
+//===----------------------------------------------------------------------===//
+// DeviceOp
+//===----------------------------------------------------------------------===//
+
+void DeviceOp::build(
+    OpBuilder &builder,
+    OperationState &state,
+    CouplingGraphAttr graphAttr)
+{
+    auto qubits = graphAttr.getQubits().getInt();
+    auto edges = graphAttr.getEdges();
+
+    // Construct result type using only raw values
+    auto type = quantum::DeviceType::get(builder.getContext(), qubits, edges);
+
+    build(builder, state, type, graphAttr);
+}
+
+LogicalResult DeviceOp::verify()
+{
+    auto device = getDevice().getType();
+    auto graph = getCouplingGraph();
+
+    if (graph.getQubits().getInt() != device.getQubits())
+        return emitOpError(
+            "Coupling graph's qubits and device's qubits do not "
+            "match");
+
+    if (graph.getEdges() != device.getEdges())
+        return emitOpError(
+            "Coupling graph's edges and device's edges do not "
+            "match");
+
+    return success();
 }
 
 //===----------------------------------------------------------------------===//

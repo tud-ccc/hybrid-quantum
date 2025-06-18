@@ -33,4 +33,14 @@ def Quantum_SingleQubitType : QubitArrayOfSize<1>;
 
 def Quantum_MeasurementType : 1DTensorOf<[I1]>;
 
+def Quantum_DeviceType : Quantum_Type<"Device"> {
+  let mnemonic = "device";
+  let description = "Quantum device type that holds information about the device size and coupling graph.";
+  let parameters = (ins
+    "int64_t":$qubits,
+    "ArrayAttr":$edges
+  );
+  let assemblyFormat = "`<` $qubits `,` $edges `>`";
+}
+
 #endif
