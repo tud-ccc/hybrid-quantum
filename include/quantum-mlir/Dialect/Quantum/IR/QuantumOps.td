@@ -170,15 +170,16 @@ def Quantum_GateCallOp : Gate_Op<"call", [
 
 def Quantum_ReturnOp : Quantum_Op<"return", [
   Pure,
-  HasParent<"GateOp">,
+  HasParent<"GateOp, CircuitOp">,
   ReturnLike,
   Terminator]> {
   let summary = "Quantum gate return operation";
   let description = [{
-    The `quantum.return` operation represents a return operation within a gate body.
+    The `quantum.return` operation represents a return operation within a
+    gate or circuit body.
     The operation takes variable number of operands and produces no results.
-    The operand number and types must match the signature of the function
-    that contains the operation.
+    The operand number and types must match the signature of the gate's or
+    circuit's function type that contains the operation.
     ```
   }];
 
@@ -792,17 +793,52 @@ def Quantum_MeasureOp : Memory_Op< "measure", [MemoryEffects<[MemRead]>,AllTypes
 //===----------------------------------------------------------------------===//
 
 def Quantum_CircuitOp : Quantum_Op<"circuit", [
-    IsolatedFromAbove
+  IsolatedFromAbove,
+  FunctionOpInterface
   ]> {
   let summary = "Quantum circuit operation with coupling graph";
   let description = [{ A quantum circuit operation that operates on a device with a specified coupling graph. }];
-  let arguments = (ins Quantum_DeviceType:$device);  // Only device is needed
-  let regions = (region
-    AnyRegion:$body
+  let arguments = (ins
+    SymbolNameAttr:$sym_name,
+    Quantum_DeviceType:$device,
+    OptionalAttr<DictArrayAttr>:$arg_attrs,
+    OptionalAttr<DictArrayAttr>:$res_attrs,
+    TypeAttrOf<FunctionType>:$function_type
   );
-  let builders = [
-    OpBuilder<(ins "DeviceType":$device)>
-  ];
+
+  let regions = (region AnyRegion:$body);
+
+  let builders = [OpBuilder<(ins
+    "StringRef":$name,
+    "DeviceType":$device,
+    "FunctionType":$type,
+    CArg<"ArrayRef<NamedAttribute>", "{}">:$attrs,
+    CArg<"ArrayRef<DictionaryAttr>", "{}">:$argAttrs)
+  >];
+
+  let extraClassDeclaration = [{
+    static CircuitOp create(Location location, StringRef name, DeviceType device,
+                         FunctionType type, ArrayRef<NamedAttribute> attrs = {});
+
+    //===------------------------------------------------------------------===//
+    // FunctionOpInterface Methods
+    //===------------------------------------------------------------------===//
+
+    /// Returns the region on the current operation that is callable.
+    ::mlir::Region *getCallableRegion() { return &getBody(); }
+
+    /// Returns the argument types of this function.
+    ArrayRef<Type> getArgumentTypes() { return getFunctionType().getInputs(); }
+
+    /// Returns the result types of this function.
+    ArrayRef<Type> getResultTypes() { return getFunctionType().getResults(); }
+    
+    //===------------------------------------------------------------------===//
+    // SymbolOpInterface Methods
+    //===------------------------------------------------------------------===//
+
+    bool isDeclaration() { return false; }
+  }];
 }
 
 def Quantum_DeviceOp : Quantum_Op<"device"> {

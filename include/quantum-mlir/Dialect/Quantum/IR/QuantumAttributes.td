@@ -26,7 +26,6 @@ def Quantum_CouplingGraphAttr : Quantum_Attr<"CouplingGraph", "coupling_graph"> 
   let builders = [
     AttrBuilderWithInferredContext<(ins "IntegerAttr":$qubits,
                                         "ArrayAttr":$edges), [{
-      assert(qubits && "invalid qubits");
       return $_get(qubits.getContext(), qubits, edges);
     }]>
   ];

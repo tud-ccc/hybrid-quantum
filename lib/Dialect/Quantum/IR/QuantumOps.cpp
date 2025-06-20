@@ -14,6 +14,7 @@
 #include <iterator>
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/ADT/SmallVector.h>
+#include <llvm/ADT/StringRef.h>
 #include <llvm/Support/Casting.h>
 #include <llvm/Support/Error.h>
 #include <llvm/Support/Format.h>
@@ -214,22 +215,37 @@ LogicalResult IfOp::verify()
 
 LogicalResult ReturnOp::verify()
 {
-    auto customGate = cast<GateOp>((*this)->getParentOp());
+    auto returnedValuesEqualSize =
+        [&](OperationName name, ArrayRef<Type> results) -> LogicalResult {
+        if (getNumOperands() != results.size())
+            return emitOpError("has ")
+                   << getNumOperands() << " operands, but enclosing function (@"
+                   << name << ") returns " << results.size();
 
-    // The operand number and types must match the function signature.
-    const auto &results = customGate.getFunctionType().getResults();
-    if (getNumOperands() != results.size())
-        return emitOpError("has ")
-               << getNumOperands() << " operands, but enclosing function (@"
-               << customGate.getName() << ") returns " << results.size();
+        for (unsigned i = 0, e = results.size(); i != e; ++i)
+            if (getOperand(i).getType() != results[i])
+                return emitError() << "type of return operand " << i << " ("
+                                   << getOperand(i).getType()
+                                   << ") doesn't match function result type ("
+                                   << results[i] << ")"
+                                   << " in function @" << name;
 
-    for (unsigned i = 0, e = results.size(); i != e; ++i)
-        if (getOperand(i).getType() != results[i])
-            return emitError() << "type of return operand " << i << " ("
-                               << getOperand(i).getType()
-                               << ") doesn't match function result type ("
-                               << results[i] << ")"
-                               << " in function @" << customGate.getName();
+        return success();
+    };
+
+    if (auto customGate = dyn_cast<GateOp>((*this)->getParentOp())) {
+        auto check = returnedValuesEqualSize(
+            customGate->getName(),
+            customGate.getFunctionType().getResults());
+        if (failed(check)) return check;
+    }
+
+    if (auto circ = dyn_cast<CircuitOp>((*this)->getParentOp())) {
+        auto check = returnedValuesEqualSize(
+            circ->getName(),
+            circ.getFunctionType().getResults());
+        if (failed(check)) return check;
+    }
 
     return success();
 }
@@ -600,6 +616,14 @@ LogicalResult DeviceOp::verify()
 
     return success();
 }
+
+//===----------------------------------------------------------------------===//
+// CircuitOp
+//===----------------------------------------------------------------------===//
+
+//===----------------------------------------------------------------------===//
+// InstantiateOp
+//===----------------------------------------------------------------------===//
 
 //===----------------------------------------------------------------------===//
 // QuantumDialect

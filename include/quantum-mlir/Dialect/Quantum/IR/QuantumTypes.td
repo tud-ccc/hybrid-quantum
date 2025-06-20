@@ -40,7 +40,11 @@ def Quantum_DeviceType : Quantum_Type<"Device"> {
     "int64_t":$qubits,
     "ArrayAttr":$edges
   );
-  let assemblyFormat = "`<` $qubits `,` $edges `>`";
+  //let assemblyFormat = "`<` $qubits `,` $edges `>`";
+  let extraClassDeclaration = [{
+    bool hasStaticSize() const;
+  }];
+  let hasCustomAssemblyFormat = 1;
 }
 
 #endif
