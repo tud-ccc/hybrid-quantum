@@ -1,5 +1,4 @@
-// RUN: quantum-opt %s --debug --mlir-print-ir-after-all -lift-qir-to-quantum | FileCheck %s
-// --debug --mlir-print-ir-after-all
+// RUN: quantum-opt %s -lift-qir-to-quantum | FileCheck %s
 
 module {
   // CHECK: "quantum.gate"() <{function_type = (!quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>), sym_name = "test"}> ({
@@ -48,10 +47,13 @@ module {
     // CHECK-DAG: %[[Q11:.+]], %[[Q12:.+]], %[[Q13:.+]] = "quantum.CCX"(%[[Q9]], %[[Q10]], %[[Q2]]) : (!quantum.qubit<1>, !quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>, !quantum.qubit<1>)
     "qir.CCX"(%q0, %q1, %q2) : (!qir.qubit, !qir.qubit, !qir.qubit) -> ()
 
-    // CHECK-DAG: %[[M:.+]], %[[Q14:.+]] = "quantum.measure"(%[[Q11]]) : (!quantum.qubit<1>) -> (tensor<1xi1>, !quantum.qubit<1>)
+    // CHECK-DAG: %[[M:.+]], %[[Q14:.+]] = "quantum.measure_single"(%[[Q11]]) : (!quantum.qubit<1>) -> (i1, !quantum.qubit<1>)
     "qir.measure" (%q0, %r0) : (!qir.qubit, !qir.result) -> ()
     // CHECK-NOT: "qir.read_measurement"
-    %mt = "qir.read_measurement" (%r0) : (!qir.result) -> (tensor<1xi1>)
+    %m = "qir.read_measurement" (%r0) : (!qir.result) -> i1
+
+    // CHECK-DAG: %[[MT:.+]] = tensor.from_elements %[[M]] : tensor<1xi1>
+    %mt = tensor.from_elements %m : tensor<1xi1>
 
     // CHECK-DAG: %[[Q15:.+]]:3 = "quantum.barrier"(%[[Q14]], %[[Q12]], %[[Q13]]) : (!quantum.qubit<1>, !quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>, !quantum.qubit<1>)
     "qir.barrier"(%q0, %q1, %q2) : (!qir.qubit, !qir.qubit, !qir.qubit) -> ()
@@ -65,7 +67,7 @@ module {
     "qir.reset" (%q1) : (!qir.qubit) -> ()
     // CHECK-DAG: "quantum.deallocate"(%[[Q15]]#2) : (!quantum.qubit<1>) -> ()
     "qir.reset" (%q2) : (!qir.qubit) -> ()
-    // CHECK-DAG: return %[[M]]
+    // CHECK-DAG: return %[[MT]]
     func.return %mt : tensor<1xi1>
   }
 

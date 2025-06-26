@@ -9,6 +9,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "quantum-mlir/Dialect/Quantum/IR/Quantum.h"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
 
 using namespace mlir;
 using namespace mlir::quantum;
@@ -41,15 +42,12 @@ struct DropPhaseBeforeMeasure : OpRewritePattern<PhaseOp> {
     LogicalResult
     matchAndRewrite(PhaseOp op, PatternRewriter &rewriter) const override
     {
-        // Check if op has 1 use and that use is a MeasureOp
-        //  If not, do nothing. Else, replace the op with its operand (the
-        //  only user).
-
-        if (!op.getResult().hasOneUse()) return failure();
-        auto* user = *op.getResult().user_begin();
-        if (!isa<quantum::MeasureOp>(user)) return failure();
-        rewriter.replaceOp(op, op.getOperand());
-        return success();
+        auto userOp = *op.getResult().getUsers().begin();
+        if (dyn_cast<MeasureOp>(userOp) || dyn_cast<MeasureSingleOp>(userOp)) {
+            rewriter.replaceOp(op, op.getOperand());
+            return success();
+        }
+        return failure();
     }
 };
 
@@ -65,11 +63,12 @@ void QuantumOptimisePass::runOnOperation()
 
 void mlir::quantum::populateQuantumOptimisePatterns(RewritePatternSet &patterns)
 {
-    patterns.add<DropPhaseBeforeMeasure<ZOp>>(patterns.getContext());
-    patterns.add<DropPhaseBeforeMeasure<SOp>>(patterns.getContext());
-    patterns.add<DropPhaseBeforeMeasure<TOp>>(patterns.getContext());
-    patterns.add<DropPhaseBeforeMeasure<SdgOp>>(patterns.getContext());
-    patterns.add<DropPhaseBeforeMeasure<TdgOp>>(patterns.getContext());
+    patterns.add<
+        DropPhaseBeforeMeasure<ZOp>,
+        DropPhaseBeforeMeasure<SOp>,
+        DropPhaseBeforeMeasure<TOp>,
+        DropPhaseBeforeMeasure<SdgOp>,
+        DropPhaseBeforeMeasure<TdgOp>>(patterns.getContext());
 }
 
 std::unique_ptr<Pass> mlir::quantum::createQuantumOptimisePass()

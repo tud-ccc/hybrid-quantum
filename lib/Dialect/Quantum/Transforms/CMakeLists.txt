@@ -3,6 +3,7 @@ add_mlir_dialect_library(QuantumTransforms
         GateOptimization.cpp
         MultiQubitLegalization.cpp
         ScfToRVSDG.cpp
+        ControlFlowHoisting.cpp
 
     ENABLE_AGGREGATION
 

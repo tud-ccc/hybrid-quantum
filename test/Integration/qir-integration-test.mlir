@@ -47,9 +47,7 @@ module {
 
       "qir.H"(%q) : (!qir.qubit) -> ()
       "qir.measure"(%q, %r) : (!qir.qubit, !qir.result) -> ()
-      %m_tensor = "qir.read_measurement"(%r) : (!qir.result) -> tensor<1xi1>
-      %idx = arith.constant 0 : index
-      %m = tensor.extract %m_tensor[%idx] : tensor<1xi1>
+      %m = "qir.read_measurement"(%r) : (!qir.result) -> i1
 
       %oneInt = arith.constant 1 : i32
       %zeroInt = arith.constant 0 : i32
@@ -76,15 +74,13 @@ func.func @test_qasm_output_correctness() -> ()  {
     "qir.swap" (%0, %1) : (!qir.qubit, !qir.qubit) -> ()
     "qir.measure" (%0, %2) : (!qir.qubit, !qir.result) -> ()
     
-    %5 = "qir.read_measurement" (%2) : (!qir.result) -> (tensor<1xi1>)
+    %5 = "qir.read_measurement" (%2) : (!qir.result) -> i1
     "qir.measure" (%1, %3) : (!qir.qubit, !qir.result) -> ()
-    %6 = "qir.read_measurement" (%3) : (!qir.result) -> (tensor<1xi1>)
+    %6 = "qir.read_measurement" (%3) : (!qir.result) -> i1
 
     "qir.reset" (%0) : (!qir.qubit) -> ()
     "qir.reset" (%1) : (!qir.qubit) -> ()
-    %i = "index.constant" () {value = 0 : index} : () -> (index)
-    %m = "tensor.extract" (%6, %i) : (tensor<1xi1>, index) -> (i1)
-    vector.print %m : i1
+    vector.print %6 : i1
     return
   }
 
@@ -100,4 +96,3 @@ func.func @test_qasm_output_correctness() -> ()  {
     return
   }
 }
-

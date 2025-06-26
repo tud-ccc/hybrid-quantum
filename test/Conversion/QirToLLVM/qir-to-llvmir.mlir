@@ -148,13 +148,11 @@ func.func @main() -> (i1) {
 
   "qir.measure"(%q0, %r0) : (!qir.qubit, !qir.result) -> ()
   // CHECK-DAG: llvm.call @__quantum__qis__mz__body(%[[Q0PTR]], %[[RPTR]]) : (!llvm.ptr, !llvm.ptr) -> ()
-  %mt = "qir.read_measurement"(%r0) : (!qir.result) -> (tensor<1xi1>)
+  %mt = "qir.read_measurement"(%r0) : (!qir.result) -> i1
   // CHECK-DAG: llvm.call @__quantum__qis__read_result__body(%[[RPTR]]) : (!llvm.ptr) -> i1
 
   "qir.reset"(%q0) : (!qir.qubit) -> ()
   // CHECK-DAG: llvm.call @__quantum__qis__reset__body(%[[Q0PTR]]) : (!llvm.ptr) -> ()
 
-  %idx = "index.constant"() {value = 0 : index} : () -> (index)
-  %bit = "tensor.extract"(%mt, %idx) : (tensor<1xi1>, index) -> (i1)
-  return %bit : i1
+  return %mt : i1
 }

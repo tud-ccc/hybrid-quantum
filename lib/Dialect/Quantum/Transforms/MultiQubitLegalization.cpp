@@ -9,6 +9,7 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/OneToNTypeConversion.h"
 #include "quantum-mlir/Dialect/Quantum/IR/Quantum.h"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumBase.h"
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h"
 #include "quantum-mlir/Dialect/Quantum/Transforms/Passes.h"
@@ -191,28 +192,25 @@ struct TransformMeasureOp : public OpConversionPattern<MeasureOp> {
 
         auto loc = op.getLoc();
         auto i1Type = rewriter.getI1Type();
-        auto genTensorType = mlir::RankedTensorType::get({1}, i1Type);
+        auto genTensorType = mlir::RankedTensorType::get({size}, i1Type);
 
         llvm::SmallVector<Value> qubitResults;
         llvm::SmallVector<Value> measureResults;
 
         for (int64_t i = 0; i < size; ++i) {
             auto inQubit = adaptor.getInput()[i];
-            auto measure = rewriter.create<MeasureOp>(
-                loc,
-                genTensorType,
-                QubitType::get(getContext(), 1),
-                inQubit);
+            auto measure = rewriter.create<MeasureSingleOp>(loc, inQubit);
 
             measureResults.push_back(measure.getMeasurement());
             qubitResults.push_back(measure.getResult());
         }
-        // TODO: Use fromElements
-        auto concatenatedTensor =
-            rewriter.create<tensor::ConcatOp>(loc, 0, measureResults);
+        auto concatenatedTensor = rewriter.create<tensor::FromElementsOp>(
+            loc,
+            genTensorType,
+            measureResults);
 
         SmallVector<ValueRange> replacements;
-        replacements.push_back({concatenatedTensor.getResult()});
+        replacements.push_back(concatenatedTensor.getResult());
         replacements.push_back(qubitResults);
         rewriter.replaceOpWithMultiple(op, replacements);
         return success();
@@ -252,6 +250,7 @@ void MultiQubitLegalizationPass::runOnOperation()
             return success();
         });
 
+    target.addLegalDialect<quantum::QuantumDialect>();
     target.addLegalDialect<tensor::TensorDialect>();
     target.addDynamicallyLegalOp<quantum::AllocOp>(
         [&](quantum::AllocOp op) { return converter.isLegal(op.getType()); });
@@ -270,6 +269,8 @@ void MultiQubitLegalizationPass::runOnOperation()
         [](quantum::SplitOp op) { return false; });
     target.addDynamicallyLegalOp<quantum::MergeOp>(
         [](quantum::MergeOp op) { return false; });
+
+    target.addIllegalOp<quantum::MeasureOp>();
 
     populateMultiQubitLegalizationPatterns(converter, patterns);
     populateFuncTypeConversionPatterns(converter, patterns);

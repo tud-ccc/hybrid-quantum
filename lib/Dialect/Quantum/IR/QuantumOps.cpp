@@ -8,6 +8,7 @@
 #include "mlir/Interfaces/FunctionImplementation.h"
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <iterator>
 #include <llvm/ADT/STLExtras.h>
@@ -125,13 +126,10 @@ LogicalResult RyOp::canonicalize(RyOp op, PatternRewriter &rewriter)
 template<typename ConcreteType>
 LogicalResult NoClone<ConcreteType>::verifyTrait(Operation* op)
 {
-    // Check whether the qubits capured by the IfOp
-    // are used more than a single time in each region
-    if (auto ifOp = llvm::dyn_cast_if_present<quantum::IfOp>(op)) {
-        // Check `thenRegion`
-        Region &thenRegion = ifOp.getThenRegion();
-        Block &thenBlock = thenRegion.getBlocks().front();
-        for (auto value : thenBlock.getArguments()) {
+    // For a region check if the region args are used more than once
+    for (auto &region : op->getRegions()) {
+        Block &block = region.getBlocks().front();
+        for (auto value : block.getArguments()) {
             // Ignore captured non-qubit types
             if (!llvm::dyn_cast<quantum::QubitType>(value.getType())) continue;
             auto uses = value.getUses();
@@ -140,21 +138,6 @@ LogicalResult NoClone<ConcreteType>::verifyTrait(Operation* op)
                 return op->emitOpError()
                        << "captured qubit #" << value.getArgNumber()
                        << " used more than once within the same block";
-            }
-        }
-
-        // Check optional `elseRegion`
-        Region &elseRegion = ifOp.getElseRegion();
-        if (!elseRegion.empty()) {
-            Block &elseBlock = elseRegion.getBlocks().front();
-            for (auto value : elseBlock.getArguments()) {
-                auto uses = value.getUses();
-                int numUses = std::distance(uses.begin(), uses.end());
-                if (numUses > 1) {
-                    return op->emitOpError()
-                           << "captured qubit #" << value.getArgNumber()
-                           << " used more than once within the same block";
-                }
             }
         }
     }

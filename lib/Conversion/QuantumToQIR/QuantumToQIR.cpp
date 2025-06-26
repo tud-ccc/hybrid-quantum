@@ -16,7 +16,6 @@
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h"
 
-#include <cstdint>
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/Support/Casting.h>
@@ -81,24 +80,54 @@ struct ConvertMeasure : public OpConversionPattern<quantum::MeasureOp> {
         MeasureOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
+        auto opType = op.getResult().getType();
+        if (!opType.isSingleQubit())
+            return rewriter.notifyMatchFailure(
+                op,
+                "Please run --quantum-multi-qubit-legalize to transform "
+                "multi-qubit into single-qubits.");
+
         auto loc = op.getLoc();
 
-        // Create new result type holding measurement value
         auto resultAlloc = rewriter.create<qir::AllocResultOp>(
             loc,
             qir::ResultType::get(op.getContext()));
-
-        // Create new measure op with memory semantics; read from qubit
-        // reference, store to result reference
         rewriter.create<qir::MeasureOp>(loc, adaptor.getInput(), resultAlloc);
-
-        auto i1Type = rewriter.getI1Type();
-        auto tensorType = mlir::RankedTensorType::get({1}, i1Type);
-
-        // Read measurement in computational basis from result reference
         auto readMeasurement = rewriter.create<qir::ReadMeasurementOp>(
             loc,
-            tensorType,
+            resultAlloc.getResult());
+
+        auto i1Type = rewriter.getI1Type();
+        auto genTensorType = mlir::RankedTensorType::get({1}, i1Type);
+        auto tensor = rewriter.create<tensor::FromElementsOp>(
+            loc,
+            genTensorType,
+            readMeasurement.getResult());
+
+        rewriter.replaceOpWithMultiple(
+            op,
+            {tensor.getResult(), adaptor.getInput()});
+        return success();
+    }
+}; // struct ConvertMeasure
+
+struct ConvertSingleMeasure
+        : public OpConversionPattern<quantum::MeasureSingleOp> {
+    using OpConversionPattern::OpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        MeasureSingleOp op,
+        MeasureSingleOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        auto loc = op.getLoc();
+
+        auto resultAlloc = rewriter.create<qir::AllocResultOp>(
+            loc,
+            qir::ResultType::get(op.getContext()));
+        rewriter.create<qir::MeasureOp>(loc, adaptor.getInput(), resultAlloc);
+        auto readMeasurement = rewriter.create<qir::ReadMeasurementOp>(
+            loc,
             resultAlloc.getResult());
 
         rewriter.replaceOp(
@@ -106,7 +135,7 @@ struct ConvertMeasure : public OpConversionPattern<quantum::MeasureOp> {
             {readMeasurement.getResult(), adaptor.getInput()});
         return success();
     }
-}; // struct ConvertMeasure
+}; // struct ConvertSingleMeasure
 
 struct ConvertDealloc : public OpConversionPattern<quantum::DeallocateOp> {
     using OpConversionPattern::OpConversionPattern;
@@ -198,6 +227,42 @@ struct ConvertSwap : public OpConversionPattern<quantum::SWAPOp> {
         return success();
     }
 };
+
+struct ConvertCSwap : public OpConversionPattern<quantum::CSWAPOp> {
+    using OpConversionPattern::OpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        CSWAPOp op,
+        CSWAPOpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        Value control = adaptor.getControl();
+        Value lhs = adaptor.getLhs();
+        Value rhs = adaptor.getRhs();
+        rewriter.create<qir::CSwapOp>(op.getLoc(), control, lhs, rhs);
+        rewriter.replaceOp(op, {control, lhs, rhs});
+        return success();
+    }
+};
+
+struct ConvertCU1 : public OpConversionPattern<quantum::CU1Op> {
+    using OpConversionPattern::OpConversionPattern;
+
+    LogicalResult matchAndRewrite(
+        CU1Op op,
+        CU1OpAdaptor adaptor,
+        ConversionPatternRewriter &rewriter) const override
+    {
+        // Retrieve the two input qubits from the adaptor.
+        Value control = adaptor.getControl();
+        Value target = adaptor.getTarget();
+        Value angle = adaptor.getAngle();
+        rewriter.create<qir::CU1Op>(op.getLoc(), control, target, angle);
+        rewriter.replaceOp(op, {control, target});
+        return success();
+    }
+};
+
 } // namespace
 
 void ConvertQuantumToQIRPass::runOnOperation()
@@ -226,6 +291,7 @@ void ConvertQuantumToQIRPass::runOnOperation()
     quantum::populateConvertQuantumToQIRPatterns(typeConverter, patterns);
 
     target.addIllegalDialect<quantum::QuantumDialect>();
+    target.addLegalDialect<tensor::TensorDialect>();
     target.addLegalDialect<qir::QIRDialect>();
     target.addDynamicallyLegalOp<func::FuncOp>([&](func::FuncOp op) {
         return typeConverter.isLegal(op.getFunctionType());
@@ -245,9 +311,13 @@ void mlir::quantum::populateConvertQuantumToQIRPatterns(
     patterns.add<
         ConvertAlloc,
         ConvertMeasure,
+        ConvertSingleMeasure,
         ConvertUnaryOp<quantum::HOp, qir::HOp>,
         ConvertUnaryOp<quantum::XOp, qir::XOp>,
+        ConvertUnaryOp<quantum::IdOp, qir::IdOp>,
+        ConvertUnaryOp<quantum::SXOp, qir::SXOp>,
         ConvertRotationOp<quantum::RzOp, qir::RzOp>,
+        ConvertCSwap,
         ConvertFunc,
         ConvertSwap,
         ConvertDealloc>(typeConverter, patterns.getContext(), /* benefit*/ 1);
