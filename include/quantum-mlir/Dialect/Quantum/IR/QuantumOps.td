@@ -793,21 +793,21 @@ def Quantum_MeasureOp : Memory_Op< "measure", [MemoryEffects<[MemRead]>,AllTypes
 //===----------------------------------------------------------------------===//
 
 def Quantum_CircuitOp : Quantum_Op<"circuit", [
-  IsolatedFromAbove,
-  FunctionOpInterface
+    IsolatedFromAbove
   ]> {
   let summary = "Quantum circuit operation with coupling graph";
   let description = [{ A quantum circuit operation that operates on a device with a specified coupling graph. }];
   let arguments = (ins
-    SymbolNameAttr:$sym_name,
-    Quantum_DeviceType:$device,
+    SymbolNameAttr:$name,
+    OptionalAttr<TypeAttrOf<Quantum_DeviceType>>:$device_type,
     OptionalAttr<DictArrayAttr>:$arg_attrs,
     OptionalAttr<DictArrayAttr>:$res_attrs,
-    TypeAttrOf<FunctionType>:$function_type
+    TypeAttrOf<FunctionType>:$circuit_type
   );
-
+  let results = (outs
+    Quantum_CircuitType:$circuit
+  );
   let regions = (region AnyRegion:$body);
-
   let builders = [OpBuilder<(ins
     "StringRef":$name,
     "DeviceType":$device,
@@ -821,23 +821,17 @@ def Quantum_CircuitOp : Quantum_Op<"circuit", [
                          FunctionType type, ArrayRef<NamedAttribute> attrs = {});
 
     //===------------------------------------------------------------------===//
-    // FunctionOpInterface Methods
+    // Methods to query the circuit function
     //===------------------------------------------------------------------===//
 
     /// Returns the region on the current operation that is callable.
     ::mlir::Region *getCallableRegion() { return &getBody(); }
 
     /// Returns the argument types of this function.
-    ArrayRef<Type> getArgumentTypes() { return getFunctionType().getInputs(); }
+    ArrayRef<Type> getArgumentTypes() { return getCircuitType().getInputs(); }
 
     /// Returns the result types of this function.
-    ArrayRef<Type> getResultTypes() { return getFunctionType().getResults(); }
-    
-    //===------------------------------------------------------------------===//
-    // SymbolOpInterface Methods
-    //===------------------------------------------------------------------===//
-
-    bool isDeclaration() { return false; }
+    ArrayRef<Type> getResultTypes() { return getCircuitType().getResults(); }
   }];
 }
 
@@ -857,6 +851,37 @@ def Quantum_DeviceOp : Quantum_Op<"device"> {
   let builders = [
     OpBuilder<(ins "CouplingGraphAttr":$coupling_graph)>
   ];
+}
+
+def Quantum_InstantiateOp : Quantum_Op<"instantiate"> {
+  let summary = "Reifies a quantum circuit with a specific device.";
+  let description = [{
+    Reifies a quantum circuit with a specific device. The result is a
+    circuit that uses physical qubits and a circuit that obeys
+    the device's coupling topology.
+  }];
+  let arguments = (ins
+    Quantum_DeviceType:$device,
+    Quantum_CircuitType:$circuit
+  );
+  let results = (outs
+    Quantum_CircuitType:$result
+  );
+}
+
+def Quantum_ExecuteOp : Quantum_Op<"execute"> {
+  let summary = "Executed a quantum circuit.";
+  let description = [{
+    Execute a quantum circuit. If the circuit has free parameters
+    these must be provided to the execute operation.
+  }];
+  let arguments = (ins
+    Quantum_CircuitType:$circuit,
+    Variadic<AnyType>:$inputs,
+    OptionalAttr<DictArrayAttr>:$arg_attrs,
+    OptionalAttr<DictArrayAttr>:$res_attrs
+  );
+  let results = (outs Variadic<AnyType>);
 }
 
 #endif // QUANTUM_OPS

@@ -243,7 +243,7 @@ LogicalResult ReturnOp::verify()
     if (auto circ = dyn_cast<CircuitOp>((*this)->getParentOp())) {
         auto check = returnedValuesEqualSize(
             circ->getName(),
-            circ.getFunctionType().getResults());
+            circ.getCircuitType().getResults());
         if (failed(check)) return check;
     }
 
@@ -620,7 +620,49 @@ LogicalResult DeviceOp::verify()
 //===----------------------------------------------------------------------===//
 // CircuitOp
 //===----------------------------------------------------------------------===//
+CircuitOp CircuitOp::create(
+    Location location,
+    StringRef name,
+    DeviceType device,
+    FunctionType type,
+    ArrayRef<NamedAttribute> attrs)
+{
+    OpBuilder builder(location->getContext());
+    OperationState state(location, getOperationName());
+    CircuitOp::build(builder, state, name, device, type, attrs);
+    return cast<CircuitOp>(Operation::create(state));
+}
 
+void CircuitOp::build(
+    OpBuilder &builder,
+    OperationState &state,
+    StringRef name,
+    DeviceType device,
+    FunctionType type,
+    ArrayRef<NamedAttribute> attrs,
+    ArrayRef<DictionaryAttr> argAttrs)
+{
+    state.addAttribute(
+        SymbolTable::getSymbolAttrName(),
+        builder.getStringAttr(name));
+    state.addAttribute(
+        getDeviceTypeAttrName(state.name),
+        TypeAttr::get(device));
+    state.addAttribute(getCircuitTypeAttrName(state.name), TypeAttr::get(type));
+    state.attributes.append(attrs.begin(), attrs.end());
+    state.addRegion();
+
+    if (argAttrs.empty()) return;
+    assert(type.getNumInputs() == argAttrs.size());
+    // call_interface_impl
+    function_interface_impl::addArgAndResultAttrs(
+        builder,
+        state,
+        argAttrs,
+        /*resultAttrs=*/std::nullopt,
+        getArgAttrsAttrName(state.name),
+        getResAttrsAttrName(state.name));
+}
 //===----------------------------------------------------------------------===//
 // InstantiateOp
 //===----------------------------------------------------------------------===//

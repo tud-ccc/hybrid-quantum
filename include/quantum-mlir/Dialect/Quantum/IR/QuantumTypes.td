@@ -47,4 +47,9 @@ def Quantum_DeviceType : Quantum_Type<"Device"> {
   let hasCustomAssemblyFormat = 1;
 }
 
+def Quantum_CircuitType : Quantum_Type<"Circuit"> {
+  let mnemonic = "circuit";
+  let description = "Quantum circuit type refers to a circuit that contains quantum operations.";
+}
+
 #endif
