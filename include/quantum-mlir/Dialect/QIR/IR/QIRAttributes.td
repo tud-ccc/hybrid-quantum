@@ -9,4 +9,9 @@
 
 include "quantum-mlir/Dialect/QIR/IR/QIRBase.td"
 
-#endif
+class QIR_Attr<string name, string attrMnemonic, list<Trait> traits = []>
+    : AttrDef<QIR_Dialect, name, traits> {
+  let mnemonic = attrMnemonic;
+}
+
+#endif // QIR_ATTRIBUTES

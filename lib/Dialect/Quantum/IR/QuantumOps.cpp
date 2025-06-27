@@ -6,6 +6,7 @@
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
 
 #include "mlir/Interfaces/FunctionImplementation.h"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumAttributes.h"
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h"
 
 #include <algorithm>
@@ -13,6 +14,7 @@
 #include <iterator>
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/ADT/SmallVector.h>
+#include <llvm/ADT/StringRef.h>
 #include <llvm/Support/Casting.h>
 #include <llvm/Support/Error.h>
 #include <llvm/Support/Format.h>
@@ -123,6 +125,38 @@ LogicalResult RyOp::canonicalize(RyOp op, PatternRewriter &rewriter)
 // Verifier
 //===----------------------------------------------------------------------===//
 
+// NOTE: We assume N qubit device that may or may not have passive qubits. The
+// required qubits is thus the max qubit index regardless of topology.
+// LogicalResult DeviceOp::verify()
+// {
+//     int64_t num_qubits = getQubits();
+//     ArrayAttr coupling_graph = getCouplingGraph();
+
+//     // Check if the coupling graph is valid
+//     for (Attribute edge : coupling_graph) {
+//         // Each edge should be an array of two integers
+//         ArrayAttr edgeArray = dyn_cast<ArrayAttr>(edge);
+//         if (!edgeArray || edgeArray.size() != 2)
+//             return emitOpError(
+//                 "each edge in coupling graph must be an array of two
+//                 integers");
+
+//         for (Attribute qubit : edgeArray) {
+//             IntegerAttr qubitAttr = dyn_cast<IntegerAttr>(qubit);
+//             if (!qubitAttr)
+//                 return emitOpError("each qubit in edge must be an integer");
+//             int64_t q = qubitAttr.getInt();
+//             if (q < 0 || q >= num_qubits)
+//                 return emitOpError(
+//                     "qubit index " + Twine(q)
+//                     + " is out of bounds for device with " +
+//                     Twine(num_qubits)
+//                     + " qubits");
+//         }
+//     }
+//     return success();
+// }
+
 template<typename ConcreteType>
 LogicalResult NoClone<ConcreteType>::verifyTrait(Operation* op)
 {
@@ -181,22 +215,37 @@ LogicalResult IfOp::verify()
 
 LogicalResult ReturnOp::verify()
 {
-    auto customGate = cast<GateOp>((*this)->getParentOp());
+    auto returnedValuesEqualSize =
+        [&](OperationName name, ArrayRef<Type> results) -> LogicalResult {
+        if (getNumOperands() != results.size())
+            return emitOpError("has ")
+                   << getNumOperands() << " operands, but enclosing function (@"
+                   << name << ") returns " << results.size();
 
-    // The operand number and types must match the function signature.
-    const auto &results = customGate.getFunctionType().getResults();
-    if (getNumOperands() != results.size())
-        return emitOpError("has ")
-               << getNumOperands() << " operands, but enclosing function (@"
-               << customGate.getName() << ") returns " << results.size();
+        for (unsigned i = 0, e = results.size(); i != e; ++i)
+            if (getOperand(i).getType() != results[i])
+                return emitError() << "type of return operand " << i << " ("
+                                   << getOperand(i).getType()
+                                   << ") doesn't match function result type ("
+                                   << results[i] << ")"
+                                   << " in function @" << name;
 
-    for (unsigned i = 0, e = results.size(); i != e; ++i)
-        if (getOperand(i).getType() != results[i])
-            return emitError() << "type of return operand " << i << " ("
-                               << getOperand(i).getType()
-                               << ") doesn't match function result type ("
-                               << results[i] << ")"
-                               << " in function @" << customGate.getName();
+        return success();
+    };
+
+    if (auto customGate = dyn_cast<GateOp>((*this)->getParentOp())) {
+        auto check = returnedValuesEqualSize(
+            customGate->getName(),
+            customGate.getFunctionType().getResults());
+        if (failed(check)) return check;
+    }
+
+    if (auto circ = dyn_cast<CircuitOp>((*this)->getParentOp())) {
+        auto check = returnedValuesEqualSize(
+            circ->getName(),
+            circ.getCircuitType().getResults());
+        if (failed(check)) return check;
+    }
 
     return success();
 }
@@ -531,6 +580,92 @@ void GateOp::build(
         getArgAttrsAttrName(state.name),
         getResAttrsAttrName(state.name));
 }
+
+//===----------------------------------------------------------------------===//
+// DeviceOp
+//===----------------------------------------------------------------------===//
+
+void DeviceOp::build(
+    OpBuilder &builder,
+    OperationState &state,
+    CouplingGraphAttr graphAttr)
+{
+    auto qubits = graphAttr.getQubits().getInt();
+    auto edges = graphAttr.getEdges();
+
+    // Construct result type using only raw values
+    auto type = quantum::DeviceType::get(builder.getContext(), qubits, edges);
+
+    build(builder, state, type, graphAttr);
+}
+
+LogicalResult DeviceOp::verify()
+{
+    auto device = getDevice().getType();
+    auto graph = getCouplingGraph();
+
+    if (graph.getQubits().getInt() != device.getQubits())
+        return emitOpError(
+            "Coupling graph's qubits and device's qubits do not "
+            "match");
+
+    if (graph.getEdges() != device.getEdges())
+        return emitOpError(
+            "Coupling graph's edges and device's edges do not "
+            "match");
+
+    return success();
+}
+
+//===----------------------------------------------------------------------===//
+// CircuitOp
+//===----------------------------------------------------------------------===//
+CircuitOp CircuitOp::create(
+    Location location,
+    StringRef name,
+    DeviceType device,
+    FunctionType type,
+    ArrayRef<NamedAttribute> attrs)
+{
+    OpBuilder builder(location->getContext());
+    OperationState state(location, getOperationName());
+    CircuitOp::build(builder, state, name, device, type, attrs);
+    return cast<CircuitOp>(Operation::create(state));
+}
+
+void CircuitOp::build(
+    OpBuilder &builder,
+    OperationState &state,
+    StringRef name,
+    DeviceType device,
+    FunctionType type,
+    ArrayRef<NamedAttribute> attrs,
+    ArrayRef<DictionaryAttr> argAttrs)
+{
+    state.addAttribute(
+        SymbolTable::getSymbolAttrName(),
+        builder.getStringAttr(name));
+    state.addAttribute(
+        getDeviceTypeAttrName(state.name),
+        TypeAttr::get(device));
+    state.addAttribute(getCircuitTypeAttrName(state.name), TypeAttr::get(type));
+    state.attributes.append(attrs.begin(), attrs.end());
+    state.addRegion();
+
+    if (argAttrs.empty()) return;
+    assert(type.getNumInputs() == argAttrs.size());
+    // call_interface_impl
+    function_interface_impl::addArgAndResultAttrs(
+        builder,
+        state,
+        argAttrs,
+        /*resultAttrs=*/std::nullopt,
+        getArgAttrsAttrName(state.name),
+        getResAttrsAttrName(state.name));
+}
+//===----------------------------------------------------------------------===//
+// InstantiateOp
+//===----------------------------------------------------------------------===//
 
 //===----------------------------------------------------------------------===//
 // QuantumDialect

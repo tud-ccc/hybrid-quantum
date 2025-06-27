@@ -20,3 +20,22 @@ using namespace mlir::quantum;
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumAttributes.cpp.inc"
 
 //===----------------------------------------------------------------------===//
+
+LogicalResult
+QuantumDialect::verifyOperationAttribute(mlir::Operation*, mlir::NamedAttribute)
+{
+    // TODO
+    return success();
+}
+
+//===----------------------------------------------------------------------===//
+// QuantumDialect
+//===----------------------------------------------------------------------===//
+
+void QuantumDialect::registerAttributes()
+{
+    addAttributes<
+#define GET_ATTRDEF_LIST
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumAttributes.cpp.inc"
+        >();
+}
