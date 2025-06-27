@@ -347,24 +347,28 @@ class QASMToMLIRVisitor:
                 raise NotImplementedError(f" IfElseOp with condition of type {type(condition)}")
             case (bitOrRegister, axiom):  # tuple[ClassicalRegister, int] | tuple[Clbit, int]
                 with self.loc:
-                    i1Type = IntegerType.get_signless(axiom)
-                    axiomval: Value = arith.ConstantOp(i1Type, axiom, ip=InsertionPoint(self.block)).result
+                    i1Type = IntegerType.get_signless(1)
                     match bitOrRegister:
                         case Clbit():
                             clval: Value = self.visitClassicalBit(bitOrRegister)
                             measurement: Value = qir.ReadMeasurementOp(clval, ip=InsertionPoint(self.block)).result
+                            axiomval: Value = arith.ConstantOp(i1Type, axiom, ip=InsertionPoint(self.block)).result
                             return arith.CmpIOp(
                                 arith.CmpIPredicate.eq, measurement, axiomval, ip=InsertionPoint(self.block)
                             ).result
                         case ClassicalRegister():
-                            clvals: list[Value] = [self.visitClassicalBit(clbit) for clbit in clbits[0]._register]
-                            measurements: list[Value] = [
-                                qir.ReadMeasurementOp(clval, ip=InsertionPoint(self.block)).result for clval in clvals
+                            clvals: list[tuple[int, Value]] = [
+                                (bit_at(axiom, i), self.visitClassicalBit(clbit)) for i, clbit in enumerate(clbits[0]._register)
                             ]
-                            cmpis: list[Value] = [
-                                arith.CmpIOp(arith.CmpIPredicate.eq, measurement, axiomval, ip=InsertionPoint(self.block)).result
-                                for measurement in measurements
-                            ]
+                            cmpis: list[Value] = []
+                            for b, clval in clvals:
+                                measurement: Value = qir.ReadMeasurementOp(clval, ip=InsertionPoint(self.block)).result
+                                axiomval: Value = arith.ConstantOp(i1Type, b, ip=InsertionPoint(self.block)).result
+                                cmpis.append(
+                                    arith.CmpIOp(
+                                        arith.CmpIPredicate.eq, measurement, axiomval, ip=InsertionPoint(self.block)
+                                    ).result
+                                )
                             return reduce(
                                 lambda cmps, cmp: arith.AndIOp(cmps, cmp, ip=InsertionPoint(self.block)).result,
                                 cmpis[1:],  # rest of the list
@@ -441,6 +445,11 @@ def main():
         open(args.output, "w").write(mlir)
     else:
         print(mlir)
+
+
+def bit_at(n: int, i: int) -> int:
+    """Return the value (0 or 1) of bit *i* of n."""
+    return (n >> i) & 1
 
 
 if __name__ == "__main__":
