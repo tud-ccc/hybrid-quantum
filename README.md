@@ -31,7 +31,7 @@ pre-commit install
 
 ### Dependencies
 
-The project is build against and tested with [LLVM](https://github.com/llvm/llvm-project) version `20.1.6` (`47addd4`).
+The project is build against and tested with [LLVM](https://github.com/llvm/llvm-project) version `20.1.7` (`6146a88`).
 You have to set `MLIR_ENABLE_BINDINGS_PYTHON` to build [MLIR Python bindings](https://github.com/llvm/llvm-project/blob/main/mlir/docs/Bindings/Python.md) if you want to use our Python frontend.
 
 ```sh
