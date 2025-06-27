@@ -12,5 +12,5 @@
 }) : () -> (!quantum.circuit)
 
 %phys_circ = "quantum.instantiate"(%dev, %circ) : (!quantum.device<3, [[0, 1], [1, 2]]>, !quantum.circuit) -> (!quantum.circuit)
-
-%out = "quantum.execute"(%phys_circ) : (!quantum.circuit) -> (i1)
+%theta = arith.constant 3.2 : f64
+%out = "quantum.execute"(%phys_circ, %theta) : (!quantum.circuit, f64) -> (i1)
