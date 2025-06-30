@@ -646,6 +646,19 @@ def Quantum_RzOp : PrimitiveGate_Op<"Rz",[NoMemoryEffect, AllTypesMatch<["input"
   let hasCanonicalizeMethod = 1;
 }
 
+def Quantum_PhaseOp : PrimitiveGate_Op<"P", [NoMemoryEffect, AllTypesMatch<["input", "result"]>]> {
+  let summary = "Phase gate";
+  let description = [{
+    Example:
+    %q1 = "quantum.P"(%q0, %theta): !quantum.qubit<1> -> !quantum.qubit<1>
+  }];
+  let arguments = (ins
+    Quantum_QubitType:$input,
+    F64:$theta
+  );
+  let results = (outs Quantum_QubitType:$result);
+}
+
 def Quantum_U3Op : PrimitiveGate_Op<"U3",[NoMemoryEffect,AllTypesMatch<["input", "result"]>]> {
   let summary = "U3 universal single-qubit gate operation";
   let description = [{
