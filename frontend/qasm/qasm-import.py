@@ -255,6 +255,10 @@ class QASMToMLIRVisitor:
                         case lib.U1Gate():
                             lam = self.visitClassic(instr.params[0])
                             qir.U1Op(target, lam, ip=InsertionPoint(self.block))
+                        case lib.UGate():
+                            # TODO: https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.library.UGate
+                            theta, phi, lam = [self.visitClassic(param) for param in instr.params]
+                            qir.U3Op(target, theta, phi, lam, ip=InsertionPoint(self.block))
                         case lib.Reset():
                             qir.ResetOp(target, ip=InsertionPoint(self.block))
                         case lib.Measure():
@@ -263,6 +267,9 @@ class QASMToMLIRVisitor:
                             qir.ReadMeasurementOp(measureOp.result, ip=InsertionPoint(self.block))
                         case lib.IGate():
                             qir.IdOp(target, ip=InsertionPoint(self.block))
+                        case lib.PhaseGate():
+                            angle = self.visitClassic(instr.params[0])
+                            qir.PhaseOp(target, angle, ip=InsertionPoint(self.block))
                         case _:
                             raise NotImplementedError(f"Unary gate {instr}")
 

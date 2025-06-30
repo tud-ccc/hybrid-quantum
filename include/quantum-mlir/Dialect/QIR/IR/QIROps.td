@@ -123,8 +123,7 @@ def QIR_TdgOp : PrimitiveGate_Op<"Tdg"> {
 def QIR_IdOp : PrimitiveGate_Op<"Id"> {
   let summary = "Identity gate operation";
   let description = [{ Identitiy. }];
-} 
-
+}
 
 //===----------------------------------------------------------------------===//
 // Two qubit gate operations.
@@ -185,6 +184,12 @@ def QIR_RyOp : Gate_Op<"Ry"> {
   }];
   let arguments = (ins QIR_QubitType:$input, F64:$angle);
 }
+
+def QIR_PhaseOp : Gate_Op<"P"> {
+  let summary = "Phase gate operation";
+  let description = [{ Phase gate with rotation around Z axis. }];
+  let arguments = (ins QIR_QubitType:$input, F64:$angle);
+} 
 
 // U: a universal single-qubit gate with three angles.
 def QIR_U3Op : Gate_Op<"U3"> {

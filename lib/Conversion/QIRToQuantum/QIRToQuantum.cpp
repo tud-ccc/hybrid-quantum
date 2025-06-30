@@ -712,6 +712,7 @@ void mlir::qir::populateConvertQIRToQuantumPatterns(
         ConvertRotation<qir::RzOp, quantum::RzOp>,
         ConvertRotation<qir::RxOp, quantum::RxOp>,
         ConvertRotation<qir::RyOp, quantum::RyOp>,
+        ConvertRotation<qir::PhaseOp, quantum::PhaseOp>,
         ConvertUnaryOp<qir::SOp, quantum::SOp>,
         ConvertUnaryOp<qir::TOp, quantum::TOp>,
         ConvertUnaryOp<qir::SdgOp, quantum::SdgOp>,
