@@ -1,2 +1,2 @@
 add_subdirectory(Quantum)
-add_subdirectory(QIR)
+add_subdirectory(QILLR)

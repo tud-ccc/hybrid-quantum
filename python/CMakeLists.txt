@@ -13,15 +13,15 @@ add_compile_definitions("MLIR_PYTHON_PACKAGE_PREFIX=mlir.")
 # Sources
 ################################################################################
 
-declare_mlir_python_sources(QIRPythonSources)
+declare_mlir_python_sources(QILLRPythonSources)
 
 declare_mlir_dialect_python_bindings(
-  ADD_TO_PARENT QIRPythonSources
+  ADD_TO_PARENT QILLRPythonSources
   ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
-  TD_FILE dialects/QIROps.td
+  TD_FILE dialects/QILLROps.td
   SOURCES
-    dialects/qir.py
-  DIALECT_NAME qir
+    dialects/qillr.py
+  DIALECT_NAME qillr
 )
 
 ################################################################################
@@ -34,31 +34,31 @@ declare_mlir_dialect_python_bindings(
 
 set(PYTHON_SOURCE_DIR "${CMAKE_SOURCE_DIR}/lib/Bindings/Python")
 
-declare_mlir_python_extension(QIRPythonSources.NanobindExtension
-  MODULE_NAME _mlirDialectsQIR
-  ADD_TO_PARENT QIRPythonSources
+declare_mlir_python_extension(QILLRPythonSources.NanobindExtension
+  MODULE_NAME _mlirDialectsQILLR
+  ADD_TO_PARENT QILLRPythonSources
   ROOT_DIR "${PYTHON_SOURCE_DIR}"
   PYTHON_BINDINGS_LIBRARY nanobind
   SOURCES
-    DialectQIR.cpp
+    DialectQILLR.cpp
   PRIVATE_LINK_LIBS
     LLVMSupport
   EMBED_CAPI_LINK_LIBS
     MLIRCAPIIR
-    MLIRCAPIQIR
+    MLIRCAPIQILLR
 )   
 
 ################################################################################
 # Common CAPI
 ################################################################################
 
-add_mlir_python_common_capi_library(QIRPythonCAPI
-  INSTALL_COMPONENT QIRPythonModules
+add_mlir_python_common_capi_library(QILLRPythonCAPI
+  INSTALL_COMPONENT QILLRPythonModules
   INSTALL_DESTINATION python_packages/quantum-mlir/mlir/_mlir_libs
   OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python_packages/quantum-mlir/mlir/_mlir_libs"
   RELATIVE_INSTALL_ROOT "../../../.."
   DECLARED_SOURCES
-    QIRPythonSources
+    QILLRPythonSources
     MLIRPythonExtension.RegisterEverything
     MLIRPythonSources.Core
 )
@@ -67,13 +67,13 @@ add_mlir_python_common_capi_library(QIRPythonCAPI
 # Instantiation of all Python modules
 ################################################################################
 
-add_mlir_python_modules(QIRPythonModules
+add_mlir_python_modules(QILLRPythonModules
   ROOT_PREFIX "${CMAKE_BINARY_DIR}/python_packages/quantum-mlir/mlir"
   INSTALL_PREFIX "python_packages/quantum-mlir/mlir"
   DECLARED_SOURCES
-    QIRPythonSources
+    QILLRPythonSources
     MLIRPythonExtension.RegisterEverything
     MLIRPythonSources
   COMMON_CAPI_LINK_LIBS
-    QIRPythonCAPI
+    QILLRPythonCAPI
 )

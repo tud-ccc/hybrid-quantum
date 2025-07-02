@@ -4,68 +4,68 @@ module {
   // CHECK: OPENQASM 2.0;
   // CHECK-NEXT: include "qelib1.inc";
   // CHECK-DAG: qreg [[q0:reg.+]][1]; 
-  %q0 = "qir.alloc"() : () -> (!qir.qubit)
+  %q0 = "qillr.alloc"() : () -> (!qillr.qubit)
   // CHECK-NEXT: qreg [[q1:reg.+]][1];
-  %q1 = "qir.alloc"() : () -> (!qir.qubit)
+  %q1 = "qillr.alloc"() : () -> (!qillr.qubit)
   // CHECK-NEXT: qreg [[q2:reg.+]][1];
-  %q2 = "qir.alloc"() : () -> (!qir.qubit)
+  %q2 = "qillr.alloc"() : () -> (!qillr.qubit)
   // CHECK-NEXT: creg [[c0:reg.+]][1];
-  %r0 = "qir.ralloc"() : () -> (!qir.result)
+  %r0 = "qillr.ralloc"() : () -> (!qillr.result)
   // CHECK-NEXT: creg [[c1:reg.+]][1];
-  %r1 = "qir.ralloc"() : () -> (!qir.result)
+  %r1 = "qillr.ralloc"() : () -> (!qillr.result)
   // Basic gates and operations
   // CHECK-NEXT: h [[q0]];
-  "qir.H"(%q0): (!qir.qubit) -> ()
+  "qillr.H"(%q0): (!qillr.qubit) -> ()
   // CHECK-NEXT: x [[q1]];
-  "qir.X"(%q1): (!qir.qubit) -> ()
+  "qillr.X"(%q1): (!qillr.qubit) -> ()
   // CHECK-NOT: arith.constant
   %c1 = arith.constant 0.1 : f64
   %c2 = arith.constant 0.2 : f64
   %c3 = arith.constant 0.3 : f64
   // CHECK-NEXT: u3({{.+}},{{.+}},{{.+}}) [[q2]];
-  "qir.U3"(%q2, %c1, %c2, %c3) : (!qir.qubit, f64, f64, f64) -> ()
+  "qillr.U3"(%q2, %c1, %c2, %c3) : (!qillr.qubit, f64, f64, f64) -> ()
   // CHECK-NEXT: cx [[q0]], [[q1]];
-  "qir.CNOT"(%q0, %q1) : (!qir.qubit, !qir.qubit) -> ()
+  "qillr.CNOT"(%q0, %q1) : (!qillr.qubit, !qillr.qubit) -> ()
   // CHECK-NEXT: z [[q0]];
-  "qir.Z"(%q0)      : (!qir.qubit) -> ()
+  "qillr.Z"(%q0)      : (!qillr.qubit) -> ()
   // CHECK-NEXT: y [[q1]];
-  "qir.Y"(%q1)      : (!qir.qubit) -> ()
+  "qillr.Y"(%q1)      : (!qillr.qubit) -> ()
   // CHECK-NEXT: rx({{.*}}) [[q2]];
-  "qir.Rx"(%q2, %c1) : (!qir.qubit, f64) -> ()
+  "qillr.Rx"(%q2, %c1) : (!qillr.qubit, f64) -> ()
   // CHECK-NEXT: ry({{.*}}) [[q0]];
-  "qir.Ry"(%q0, %c2) : (!qir.qubit, f64) -> ()
+  "qillr.Ry"(%q0, %c2) : (!qillr.qubit, f64) -> ()
   // CHECK-NEXT: rz({{.*}}) [[q1]];
-  "qir.Rz"(%q1, %c3) : (!qir.qubit, f64) -> ()
+  "qillr.Rz"(%q1, %c3) : (!qillr.qubit, f64) -> ()
   // CHECK-NEXT: u2({{.*}},{{.*}}) [[q2]];
-  "qir.U2"(%q2, %c1, %c2) : (!qir.qubit, f64, f64) -> ()
+  "qillr.U2"(%q2, %c1, %c2) : (!qillr.qubit, f64, f64) -> ()
   // CHECK-NEXT: u1({{.*}}) [[q0]];
-  "qir.U1"(%q0, %c3) : (!qir.qubit, f64) -> ()
+  "qillr.U1"(%q0, %c3) : (!qillr.qubit, f64) -> ()
   // CHECK-NEXT: s [[q1]];
-  "qir.S"(%q1)      : (!qir.qubit) -> ()
+  "qillr.S"(%q1)      : (!qillr.qubit) -> ()
   // CHECK-NEXT: sdg [[q2]];
-  "qir.Sdg"(%q2)    : (!qir.qubit) -> ()
+  "qillr.Sdg"(%q2)    : (!qillr.qubit) -> ()
   // CHECK-NEXT: t [[q0]];
-  "qir.T"(%q0)      : (!qir.qubit) -> ()
+  "qillr.T"(%q0)      : (!qillr.qubit) -> ()
   // CHECK-NEXT: tdg [[q1]];
-  "qir.Tdg"(%q1)    : (!qir.qubit) -> ()
+  "qillr.Tdg"(%q1)    : (!qillr.qubit) -> ()
   // Extended multi-qubit gates
   // CHECK-NEXT: cz [[q0]], [[q2]];
-  "qir.Cz"(%q0, %q2)   : (!qir.qubit, !qir.qubit) -> ()
+  "qillr.Cz"(%q0, %q2)   : (!qillr.qubit, !qillr.qubit) -> ()
   // CHECK-NEXT: crz({{.*}}) [[q1]], [[q0]];
-  "qir.CRz"(%q1, %q0, %c3) : (!qir.qubit, !qir.qubit, f64) -> ()
+  "qillr.CRz"(%q1, %q0, %c3) : (!qillr.qubit, !qillr.qubit, f64) -> ()
   // CHECK-NEXT: cry({{.*}}) [[q2]], [[q1]];
-  "qir.CRy"(%q2, %q1, %c2) : (!qir.qubit, !qir.qubit, f64) -> ()
+  "qillr.CRy"(%q2, %q1, %c2) : (!qillr.qubit, !qillr.qubit, f64) -> ()
   // CHECK-NEXT: ccx [[q0]], [[q1]], [[q2]];
-  "qir.CCX"(%q0, %q1, %q2) : (!qir.qubit, !qir.qubit, !qir.qubit) -> ()
+  "qillr.CCX"(%q0, %q1, %q2) : (!qillr.qubit, !qillr.qubit, !qillr.qubit) -> ()
   // CHECK-NEXT: barrier [[q0]], [[q1]], [[q2]];
-  "qir.barrier"(%q0, %q1, %q2) : (!qir.qubit, !qir.qubit, !qir.qubit) -> ()
+  "qillr.barrier"(%q0, %q1, %q2) : (!qillr.qubit, !qillr.qubit, !qillr.qubit) -> ()
   // CHECK-NEXT: swap [[q1]], [[q2]];
-  "qir.swap"(%q1, %q2) : (!qir.qubit, !qir.qubit) -> ()
+  "qillr.swap"(%q1, %q2) : (!qillr.qubit, !qillr.qubit) -> ()
   // Measurement utilities
   // CHECK-NEXT: measure [[q2]] -> [[c1]][0];
-  "qir.measure"(%q2, %r1) : (!qir.qubit, !qir.result) -> ()
-  // CHECK-NOT: "qir.read_measurement"
-  %mread = "qir.read_measurement"(%r1) : (!qir.result) -> i1
+  "qillr.measure"(%q2, %r1) : (!qillr.qubit, !qillr.result) -> ()
+  // CHECK-NOT: "qillr.read_measurement"
+  %mread = "qillr.read_measurement"(%r1) : (!qillr.result) -> i1
   // CHECK-NEXT: reset [[q2]];
-  "qir.reset"(%q2) : (!qir.qubit) -> ()
+  "qillr.reset"(%q2) : (!qillr.qubit) -> ()
 }

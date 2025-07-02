@@ -1,6 +1,6 @@
 # Quantum MLIR Examples
 
-This directory contains several MLIR examples demonstrating various quantum algorithms. These examples illustrate how quantum circuits and protocols can be represented using MLIR and the QIR dialect. The following examples are included:
+This directory contains several MLIR examples demonstrating various quantum algorithms. These examples illustrate how quantum circuits and protocols can be represented using MLIR and the QILLR dialect. The following examples are included:
 
 - `bell_states.mlir`
 - `simple_vqe.mlir`
@@ -80,4 +80,3 @@ The measurement outcomes (extracted from 1D tensor outputs using `tensor.extract
 A final measurement on `q2` confirms that the state has been successfully teleported.
 
 ---
-

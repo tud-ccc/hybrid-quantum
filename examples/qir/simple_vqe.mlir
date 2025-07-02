@@ -38,10 +38,10 @@ module {
 
   // Quantum kernel function that uses theta from memrefs for rotations
   func.func @quantum_kernel(%theta_memref: memref<2xf64>) -> i32 {
-    %q0 = "qir.alloc"() : () -> (!qir.qubit)
-    %q1 = "qir.alloc"() : () -> (!qir.qubit)
-    %r0 = "qir.ralloc"() : () -> (!qir.result)
-    %r1 = "qir.ralloc"() : () -> (!qir.result)
+    %q0 = "qillr.alloc"() : () -> (!qillr.qubit)
+    %q1 = "qillr.alloc"() : () -> (!qillr.qubit)
+    %r0 = "qillr.ralloc"() : () -> (!qillr.result)
+    %r1 = "qillr.ralloc"() : () -> (!qillr.result)
     %zero = arith.constant 0 : i32
     %one = arith.constant 1 : i32
 
@@ -52,19 +52,19 @@ module {
     %theta2 = memref.load %theta_memref[%c1] : memref<2xf64>
 
     // Create superposition state
-    "qir.H"(%q0) : (!qir.qubit) -> ()
+    "qillr.H"(%q0) : (!qillr.qubit) -> ()
 
     // Apply parameterized rotations using the loaded theta values
-    "qir.Rx"(%q0, %theta1) : (!qir.qubit, f64) -> ()
-    "qir.Rz"(%q1, %theta2) : (!qir.qubit, f64) -> ()
+    "qillr.Rx"(%q0, %theta1) : (!qillr.qubit, f64) -> ()
+    "qillr.Rz"(%q1, %theta2) : (!qillr.qubit, f64) -> ()
 
     // Measure the qubits and get the results
-    "qir.measure"(%q0, %r0) : (!qir.qubit, !qir.result) -> ()
-    "qir.measure"(%q1, %r1) : (!qir.qubit, !qir.result) -> ()
+    "qillr.measure"(%q0, %r0) : (!qillr.qubit, !qillr.result) -> ()
+    "qillr.measure"(%q1, %r1) : (!qillr.qubit, !qillr.result) -> ()
     
     // Read measurements (returns a tensor<1xi1>) and extract the scalar value.
-    %m_out0_tensor = "qir.read_measurement"(%r0) : (!qir.result) -> tensor<1xi1>
-    %m_out1_tensor = "qir.read_measurement"(%r1) : (!qir.result) -> tensor<1xi1>
+    %m_out0_tensor = "qillr.read_measurement"(%r0) : (!qillr.result) -> tensor<1xi1>
+    %m_out1_tensor = "qillr.read_measurement"(%r1) : (!qillr.result) -> tensor<1xi1>
     %c_index = arith.constant 0 : index
     %m_out0 = tensor.extract %m_out0_tensor[%c_index] : tensor<1xi1>
     %m_out1 = tensor.extract %m_out1_tensor[%c_index] : tensor<1xi1>
