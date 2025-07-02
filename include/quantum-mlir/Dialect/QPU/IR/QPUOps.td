@@ -7,7 +7,13 @@
 #ifndef QPU_OPS
 #define QPU_OPS
 
+include "quantum-mlir/Dialect/QPU/IR/QPUBase.td"
 include "quantum-mlir/Dialect/QPU/IR/QPUTypes.td"
+include "mlir/IR/BuiltinAttributes.td"
+include "mlir/IR/BuiltinTypes.td"
+include "mlir/IR/AttrTypeBase.td"
+include "mlir/IR/OpBase.td"
+include "mlir/IR/EnumAttr.td"
 include "mlir/Interfaces/CastInterfaces.td"
 include "mlir/Interfaces/ControlFlowInterfaces.td"
 include "mlir/IR/SymbolInterfaces.td"

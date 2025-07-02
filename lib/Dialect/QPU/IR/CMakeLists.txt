@@ -1,8 +1,8 @@
 add_mlir_dialect_library(QPUIR
-        QPUAttributes.cpp
         QPUBase.cpp
-        QPUOps.cpp
+        QPUAttributes.cpp
         QPUTypes.cpp
+        QPUOps.cpp
         
     DEPENDS
         QPUIncGen
