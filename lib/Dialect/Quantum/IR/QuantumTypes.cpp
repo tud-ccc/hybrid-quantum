@@ -50,65 +50,6 @@ LogicalResult QubitType::verify(
 }
 
 //===----------------------------------------------------------------------===//
-// DeviceType
-//===----------------------------------------------------------------------===//
-
-bool DeviceType::hasStaticSize() const
-{
-    return getQubits() == ShapedType::kDynamic;
-}
-
-Type DeviceType::parse(::mlir::AsmParser &parser)
-{
-    if (parser.parseLess()) {
-        parser.emitError(parser.getNameLoc(), "DeviceType starts with `<`");
-        return Type();
-    }
-
-    int64_t qubits;
-    if (!parser.parseOptionalInteger(qubits).has_value()) {
-        if (!parser.parseQuestion()) {
-            qubits = ShapedType::kDynamic;
-        } else {
-            parser.emitError(
-                parser.getNameLoc(),
-                "Device requires a qubit size.");
-            return Type();
-        }
-    }
-
-    if (parser.parseComma()) {
-        parser.emitError(parser.getNameLoc(), "Device requires a topology.");
-        return Type();
-    }
-
-    ArrayAttr edges;
-    if (!parser.parseOptionalAttribute(edges, IntegerType()).has_value()) {
-        if (!parser.parseQuestion()) {
-            edges = ArrayAttr::get(
-                parser.getContext(),
-                ArrayRef<Attribute>(IntegerAttr::get(
-                    IntegerType::get(parser.getContext(), 64),
-                    ShapedType::kDynamic)));
-        } else {
-            parser.emitError(
-                parser.getNameLoc(),
-                "Device requires a topology.");
-            return Type();
-        }
-    }
-
-    if (parser.parseGreater()) {
-        parser.emitError(parser.getNameLoc(), "DeviceType ends with `>`");
-        return Type();
-    }
-
-    return DeviceType::get(parser.getContext(), qubits, edges);
-}
-
-void DeviceType::print(::mlir::AsmPrinter &printer) const {}
-
-//===----------------------------------------------------------------------===//
 // QuantumDialect
 //===----------------------------------------------------------------------===//
 

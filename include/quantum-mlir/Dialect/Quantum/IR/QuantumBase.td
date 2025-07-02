@@ -38,7 +38,7 @@ def Quantum_Dialect : Dialect {
         "arith::ArithDialect"
     ];
 
-    let useDefaultAttributePrinterParser = 1;
+    //let useDefaultAttributePrinterParser = 1;
     let useDefaultTypePrinterParser = 1;
 }
 
