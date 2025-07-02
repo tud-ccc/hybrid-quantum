@@ -1,6 +1,6 @@
-//===- TargetQASMRegistration.cpp - Register QIR to OpenQASM Translation --===//
+//===- TargetQASMRegistration.cpp - Register QILLR to OpenQASM Translation-===//
 //
-// Registers the QIR to OpenQASM translation
+// Registers the QILLR to OpenQASM translation
 //
 /// @file
 /// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
@@ -9,26 +9,26 @@
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
-#include "quantum-mlir/Dialect/QIR/IR/QIRBase.h"
+#include "quantum-mlir/Dialect/QILLR/IR/QILLRBase.h"
 #include "quantum-mlir/Target/qasm/TargetQASM.h"
 
 using namespace mlir;
-using namespace mlir::qir;
+using namespace mlir::qillr;
 
 //===----------------------------------------------------------------------===//
-// QIR to QASM registration
+// QILLR to QASM registration
 //===----------------------------------------------------------------------===//
 
-void mlir::qir::registerQIRToOpenQASMTranslation()
+void mlir::qillr::registerQILLRToOpenQASMTranslation()
 {
     TranslateFromMLIRRegistration registration(
         "mlir-to-openqasm",
-        "Translate QIR dialect to OpenQASM 2.0",
+        "Translate QILLR dialect to OpenQASM 2.0",
         [](Operation* op, raw_ostream &os) -> LogicalResult {
-            return qir::QIRTranslateToQASM(op, os);
+            return qillr::QILLRTranslateToQASM(op, os);
         },
         [](DialectRegistry &registry) {
-            registry.insert<qir::QIRDialect>();
+            registry.insert<qillr::QILLRDialect>();
             registry.insert<arith::ArithDialect>();
         });
 }

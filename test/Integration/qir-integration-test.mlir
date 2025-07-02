@@ -1,8 +1,8 @@
 // RUN: quantum-opt %s \
 // RUN:   --pass-pipeline="builtin.module( \
-// RUN:       convert-quantum-to-qir, \
+// RUN:       convert-quantum-to-qillr, \
 // RUN:       func.func(convert-scf-to-cf), \
-// RUN:       convert-qir-to-llvm, \
+// RUN:       convert-qillr-to-llvm, \
 // RUN:       convert-func-to-llvm, \
 // RUN:       convert-cf-to-llvm, \
 // RUN:       convert-vector-to-llvm, \
@@ -38,16 +38,16 @@ module {
 
     //Seed 23 always results in 7/10 shots measurement to return 1. so accumulated result is always 7. 
     %seed = arith.constant 23 : i64
-    "qir.seed"(%seed): (i64) -> () 
+    "qillr.seed"(%seed): (i64) -> () 
     %finalCount = scf.for %i = %zeroIdx to %numShots step %oneIdx iter_args(%curr = %accum0) -> i32 {
       //Initialise the simulator on each shot. 
-      "qir.init"() : () -> () 
-      %q = "qir.alloc"() : () -> (!qir.qubit)
-      %r = "qir.ralloc"() : () -> (!qir.result)
+      "qillr.init"() : () -> () 
+      %q = "qillr.alloc"() : () -> (!qillr.qubit)
+      %r = "qillr.ralloc"() : () -> (!qillr.result)
 
-      "qir.H"(%q) : (!qir.qubit) -> ()
-      "qir.measure"(%q, %r) : (!qir.qubit, !qir.result) -> ()
-      %m = "qir.read_measurement"(%r) : (!qir.result) -> i1
+      "qillr.H"(%q) : (!qillr.qubit) -> ()
+      "qillr.measure"(%q, %r) : (!qillr.qubit, !qillr.result) -> ()
+      %m = "qillr.read_measurement"(%r) : (!qillr.result) -> i1
 
       %oneInt = arith.constant 1 : i32
       %zeroInt = arith.constant 0 : i32
@@ -60,26 +60,26 @@ module {
   }
 
 func.func @test_qasm_output_correctness() -> ()  {
-    %0 = "qir.alloc" () : () -> (!qir.qubit)
-    %1 = "qir.alloc" () : () -> (!qir.qubit)
-    %2 = "qir.ralloc" () : () -> (!qir.result)
-    %3 = "qir.ralloc" () : () -> (!qir.result)
+    %0 = "qillr.alloc" () : () -> (!qillr.qubit)
+    %1 = "qillr.alloc" () : () -> (!qillr.qubit)
+    %2 = "qillr.ralloc" () : () -> (!qillr.result)
+    %3 = "qillr.ralloc" () : () -> (!qillr.result)
 
-    "qir.H" (%0) : (!qir.qubit) -> ()
-    "qir.X" (%0) : (!qir.qubit) -> ()
+    "qillr.H" (%0) : (!qillr.qubit) -> ()
+    "qillr.X" (%0) : (!qillr.qubit) -> ()
 
     %4 = arith.constant 3.141500 : f64
-    "qir.Rx" (%0, %4) : (!qir.qubit, f64) -> ()
-    "qir.CNOT" (%0, %1) : (!qir.qubit, !qir.qubit) -> ()
-    "qir.swap" (%0, %1) : (!qir.qubit, !qir.qubit) -> ()
-    "qir.measure" (%0, %2) : (!qir.qubit, !qir.result) -> ()
+    "qillr.Rx" (%0, %4) : (!qillr.qubit, f64) -> ()
+    "qillr.CNOT" (%0, %1) : (!qillr.qubit, !qillr.qubit) -> ()
+    "qillr.swap" (%0, %1) : (!qillr.qubit, !qillr.qubit) -> ()
+    "qillr.measure" (%0, %2) : (!qillr.qubit, !qillr.result) -> ()
     
-    %5 = "qir.read_measurement" (%2) : (!qir.result) -> i1
-    "qir.measure" (%1, %3) : (!qir.qubit, !qir.result) -> ()
-    %6 = "qir.read_measurement" (%3) : (!qir.result) -> i1
+    %5 = "qillr.read_measurement" (%2) : (!qillr.result) -> i1
+    "qillr.measure" (%1, %3) : (!qillr.qubit, !qillr.result) -> ()
+    %6 = "qillr.read_measurement" (%3) : (!qillr.result) -> i1
 
-    "qir.reset" (%0) : (!qir.qubit) -> ()
-    "qir.reset" (%1) : (!qir.qubit) -> ()
+    "qillr.reset" (%0) : (!qillr.qubit) -> ()
+    "qillr.reset" (%1) : (!qillr.qubit) -> ()
     vector.print %6 : i1
     return
   }

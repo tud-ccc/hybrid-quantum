@@ -11,8 +11,8 @@
 #include "mlir/InitAllPasses.h"
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
 #include "quantum-mlir/Conversion/Passes.h"
-#include "quantum-mlir/Dialect/QIR/IR/QIR.h"
-#include "quantum-mlir/Dialect/QIR/Transforms/Passes.h"
+#include "quantum-mlir/Dialect/QILLR/IR/QILLR.h"
+#include "quantum-mlir/Dialect/QILLR/Transforms/Passes.h"
 #include "quantum-mlir/Dialect/Quantum/IR/Quantum.h"
 
 using namespace mlir;
@@ -23,12 +23,12 @@ int main(int argc, char* argv[])
     registerAllDialects(registry);
 
     registry.insert<quantum::QuantumDialect>();
-    registry.insert<qir::QIRDialect>();
+    registry.insert<qillr::QILLRDialect>();
 
     registerAllPasses();
     quantum::registerQuantumPasses();
     quantum::registerConversionPasses();
-    qir::registerQIRPasses();
+    qillr::registerQILLRPasses();
 
     return asMainReturnCode(
         MlirOptMain(argc, argv, "quantum-mlir optimizer driver\n", registry));

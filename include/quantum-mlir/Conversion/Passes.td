@@ -9,38 +9,38 @@
 
 include "mlir/Pass/PassBase.td"
 
-def ConvertQuantumToQIR : Pass<"convert-quantum-to-qir"> {
-    let summary = "Perform a dialect conversion from Quantum to QIR";
+def ConvertQuantumToQILLR : Pass<"convert-quantum-to-qillr"> {
+    let summary = "Perform a dialect conversion from Quantum to QILLR";
 
-    let constructor = "mlir::createConvertQuantumToQIRPass()";
+    let constructor = "mlir::createConvertQuantumToQILLRPass()";
 
     let dependentDialects = [
         "quantum::QuantumDialect",
-        "qir::QIRDialect",
+        "qillr::QILLRDialect",
         "tensor::TensorDialect"
     ];
 }
 
-def ConvertQIRToLLVM : Pass<"convert-qir-to-llvm"> {
-    let summary = "Perform a dialect conversion from QIR to LLVM MLIR";
+def ConvertQILLRToLLVM : Pass<"convert-qillr-to-llvm"> {
+    let summary = "Perform a dialect conversion from QILLR to LLVM MLIR";
 
-    let constructor = "mlir::createConvertQIRToLLVMPass()";
+    let constructor = "mlir::createConvertQILLRToLLVMPass()";
     
     let dependentDialects = [
-        "qir::QIRDialect",
+        "qillr::QILLRDialect",
         "LLVM::LLVMDialect",
         "tensor::TensorDialect"
     ];
 }
 
-def ConvertQIRToQuantum : Pass<"lift-qir-to-quantum"> {
-    let summary = "Perform a dialect lifting from QIR to Quantum";
+def ConvertQILLRToQuantum : Pass<"lift-qillr-to-quantum"> {
+    let summary = "Perform a dialect lifting from QILLR to Quantum";
 
-    let constructor = "mlir::createConvertQIRToQuantumPass()";
+    let constructor = "mlir::createConvertQILLRToQuantumPass()";
 
     let dependentDialects = [
         "quantum::QuantumDialect",
-        "qir::QIRDialect",
+        "qillr::QILLRDialect",
         "tensor::TensorDialect"
     ];
 }

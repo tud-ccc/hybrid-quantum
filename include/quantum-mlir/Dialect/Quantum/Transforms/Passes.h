@@ -43,7 +43,7 @@ std::unique_ptr<Pass> createQuantumOptimisePass();
 std::unique_ptr<Pass> createHermitianCancelPass();
 
 /// Pass that legalizes multi-qubit quantum programs
-/// such that they can be lowered to QIR
+/// such that they can be lowered to QILLR
 std::unique_ptr<Pass> createMultiQubitLegalizationPass();
 
 std::unique_ptr<Pass> createScfToRVSDGPass();

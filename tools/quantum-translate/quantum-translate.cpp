@@ -14,7 +14,7 @@ using namespace mlir;
 int main(int argc, char** argv)
 {
     registerAllTranslations();
-    qir::registerQIRToOpenQASMTranslation();
+    qillr::registerQILLRToOpenQASMTranslation();
     return failed(
         mlirTranslateMain(argc, argv, "MLIR Translation Testing Tool"));
 }

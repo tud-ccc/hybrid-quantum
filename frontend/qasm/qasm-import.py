@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-#   Frontend generating QIR dialect code from QASM2 and QASM3 code.
+#   Frontend generating QILLR dialect code from QASM2 and QASM3 code.
 #   Usage: `python qasm-import.py -i input.qasm -o output.mlir`
 #
 # @author  Washim Neupane (washim.neupane@outlook.com)
@@ -16,9 +16,9 @@ import sys
 from enum import Enum
 from functools import reduce
 
-from mlir._mlir_libs._mlirDialectsQIR import QubitType
-from mlir._mlir_libs._mlirDialectsQIR import qir as qirdialect
-from mlir.dialects import arith, func, qir, scf
+from mlir._mlir_libs._mlirDialectsQILLR import QubitType
+from mlir._mlir_libs._mlirDialectsQILLR import qillr as qillrdialect
+from mlir.dialects import arith, func, qillr, scf
 from mlir.dialects.builtin import Block, IntegerType
 from mlir.ir import Context, F64Type, InsertionPoint, Location, Module, StringAttr, TypeAttr, Value
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
@@ -75,14 +75,14 @@ type ClbitSpecifier = Clbit | ClassicalRegister
 
 
 class Scope:
-    def __init__(self, visited: dict[str, qir.GateOp] | None = None) -> None:
-        self.qregs: dict[str, qir.AllocOp] = {}
-        self.cregs: dict[str, qir.AllocResultOp] = {}
-        self.visitedGates: dict[str, qir.GateOp] = visited if visited is not None else {}
+    def __init__(self, visited: dict[str, qillr.GateOp] | None = None) -> None:
+        self.qregs: dict[str, qillr.AllocOp] = {}
+        self.cregs: dict[str, qillr.AllocResultOp] = {}
+        self.visitedGates: dict[str, qillr.GateOp] = visited if visited is not None else {}
 
     @classmethod
     def fromList(
-        cls, qregs: list[QubitSpecifier], cregs: list[ClbitSpecifier], visited: dict[str, qir.GateOp] | None = None
+        cls, qregs: list[QubitSpecifier], cregs: list[ClbitSpecifier], visited: dict[str, qillr.GateOp] | None = None
     ) -> Scope:
         s = cls(visited)
         s.qregs = {str(q): None for qreg in qregs for q in qreg}
@@ -92,31 +92,31 @@ class Scope:
     @classmethod
     def fromMap(
         cls,
-        qregs: dict[str, qir.AllocOp],
-        cregs: dict[str, qir.AllocResultOp],
-        visited: dict[str, qir.GateOp] | None = None,
+        qregs: dict[str, qillr.AllocOp],
+        cregs: dict[str, qillr.AllocResultOp],
+        visited: dict[str, qillr.GateOp] | None = None,
     ) -> Scope:
         s = cls(visited)
         s.qregs = qregs
         s.cregs = cregs
         return s
 
-    def findAlloc(self, reg: QubitSpecifier) -> qir.AllocOp:
+    def findAlloc(self, reg: QubitSpecifier) -> qillr.AllocOp:
         return self.qregs.get(str(reg))
 
-    def setAlloc(self, reg: QubitSpecifier, alloc: qir.AllocOp) -> None:
+    def setAlloc(self, reg: QubitSpecifier, alloc: qillr.AllocOp) -> None:
         self.qregs[str(reg)] = alloc
 
-    def findResult(self, reg: ClbitSpecifier) -> qir.AllocResultOp:
+    def findResult(self, reg: ClbitSpecifier) -> qillr.AllocResultOp:
         return self.qregs.get(str(reg))
 
-    def setResult(self, reg: ClbitSpecifier, ralloc: qir.AllocResultOp) -> None:
+    def setResult(self, reg: ClbitSpecifier, ralloc: qillr.AllocResultOp) -> None:
         self.qregs[str(reg)] = ralloc
 
-    def findGate(self, gate: QASM2_Gate) -> qir.GateOp:
+    def findGate(self, gate: QASM2_Gate) -> qillr.GateOp:
         return self.visitedGates.get(str(gate.name))
 
-    def setGate(self, gate: QASM2_Gate, newGate: qir.GateOp) -> None:
+    def setGate(self, gate: QASM2_Gate, newGate: qillr.GateOp) -> None:
         self.visitedGates[str(gate.name)] = newGate
 
 
@@ -153,7 +153,7 @@ class QASMToMLIRVisitor:
 
     def visitQuantumBit(self, reg: Qubit) -> Value:
         if self.scope.findAlloc(reg) is None:
-            alloc: qir.AllocOp = qir.AllocOp(loc=self.loc, ip=InsertionPoint(self.block))
+            alloc: qillr.AllocOp = qillr.AllocOp(loc=self.loc, ip=InsertionPoint(self.block))
             self.scope.setAlloc(reg, alloc.result)
             return alloc.result
 
@@ -161,7 +161,7 @@ class QASMToMLIRVisitor:
 
     def visitClassicalBit(self, reg: Clbit) -> Value:
         if self.scope.findResult(reg) is None:
-            ralloc: qir.AllocResultOp = qir.AllocResultOp(loc=self.loc, ip=InsertionPoint(self.block))
+            ralloc: qillr.AllocResultOp = qillr.AllocResultOp(loc=self.loc, ip=InsertionPoint(self.block))
             self.scope.setResult(reg, ralloc.result)
             return ralloc.result
 
@@ -186,7 +186,7 @@ class QASMToMLIRVisitor:
             case lib.Barrier(), _:
                 with self.loc:
                     args = [self.visitQuantumBit(q) for q in qubits]
-                    qir.BarrierOp(args, ip=InsertionPoint(self.block))
+                    qillr.BarrierOp(args, ip=InsertionPoint(self.block))
             case QASM2_Gate(), _:
                 self._visitDefinedGate(instr, qubits, clbits)
             case IfElseOp(), _:
@@ -196,13 +196,13 @@ class QASMToMLIRVisitor:
                     control1: Value = self.visitQuantumBit(qubits[0])
                     control2: Value = self.visitQuantumBit(qubits[1])
                     target: Value = self.visitQuantumBit(qubits[2])
-                    qir.CCXOp(control1, control2, target, ip=InsertionPoint(self.block))
+                    qillr.CCXOp(control1, control2, target, ip=InsertionPoint(self.block))
             case lib.CSwapGate(), 3:
                 with self.loc:
                     control: Value = self.visitQuantumBit(qubits[0])
                     lhs: Value = self.visitQuantumBit(qubits[1])
                     rhs: Value = self.visitQuantumBit(qubits[2])
-                    qir.CSwapOp(control, lhs, rhs, ip=InsertionPoint(self.block))
+                    qillr.CSwapOp(control, lhs, rhs, ip=InsertionPoint(self.block))
             case _, 1:
                 self._visitUnaryGates(instr, qubits, clbits)
             case _, 2:
@@ -220,56 +220,56 @@ class QASMToMLIRVisitor:
                     target: Value = self.visitQuantumBit(qubits[0])
                     match instr:
                         case lib.XGate():
-                            qir.XOp(target, ip=InsertionPoint(self.block))
+                            qillr.XOp(target, ip=InsertionPoint(self.block))
                         case lib.YGate():
-                            qir.YOp(target, ip=InsertionPoint(self.block))
+                            qillr.YOp(target, ip=InsertionPoint(self.block))
                         case lib.ZGate():
-                            qir.ZOp(target, ip=InsertionPoint(self.block))
+                            qillr.ZOp(target, ip=InsertionPoint(self.block))
                         case lib.HGate():
-                            qir.HOp(target, ip=InsertionPoint(self.block))
+                            qillr.HOp(target, ip=InsertionPoint(self.block))
                         case lib.SGate():
-                            qir.SOp(target, ip=InsertionPoint(self.block))
+                            qillr.SOp(target, ip=InsertionPoint(self.block))
                         case lib.SXGate():
-                            qir.SXOp(target, ip=InsertionPoint(self.block))
+                            qillr.SXOp(target, ip=InsertionPoint(self.block))
                         case lib.SdgGate():
-                            qir.SdgOp(target, ip=InsertionPoint(self.block))
+                            qillr.SdgOp(target, ip=InsertionPoint(self.block))
                         case lib.TGate():
-                            qir.TOp(target, ip=InsertionPoint(self.block))
+                            qillr.TOp(target, ip=InsertionPoint(self.block))
                         case lib.TdgGate():
-                            qir.TdgOp(target, ip=InsertionPoint(self.block))
+                            qillr.TdgOp(target, ip=InsertionPoint(self.block))
                         case lib.RZGate():
                             angle = self.visitClassic(instr.params[0])
-                            qir.RzOp(target, angle, ip=InsertionPoint(self.block))
+                            qillr.RzOp(target, angle, ip=InsertionPoint(self.block))
                         case lib.RXGate():
                             angle = self.visitClassic(instr.params[0])
-                            qir.RxOp(target, angle, ip=InsertionPoint(self.block))
+                            qillr.RxOp(target, angle, ip=InsertionPoint(self.block))
                         case lib.RYGate():
                             angle = self.visitClassic(instr.params[0])
-                            qir.RyOp(target, angle, ip=InsertionPoint(self.block))
+                            qillr.RyOp(target, angle, ip=InsertionPoint(self.block))
                         case lib.U3Gate():
                             theta, phi, lam = [self.visitClassic(param) for param in instr.params]
-                            qir.U3Op(target, theta, phi, lam, ip=InsertionPoint(self.block))
+                            qillr.U3Op(target, theta, phi, lam, ip=InsertionPoint(self.block))
                         case lib.U2Gate():
                             phi, lam = [self.visitClassic(param) for param in instr.params]
-                            qir.U2Op(target, phi, lam, ip=InsertionPoint(self.block))
+                            qillr.U2Op(target, phi, lam, ip=InsertionPoint(self.block))
                         case lib.U1Gate():
                             lam = self.visitClassic(instr.params[0])
-                            qir.U1Op(target, lam, ip=InsertionPoint(self.block))
+                            qillr.U1Op(target, lam, ip=InsertionPoint(self.block))
                         case lib.UGate():
                             # TODO: https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.library.UGate
                             theta, phi, lam = [self.visitClassic(param) for param in instr.params]
-                            qir.U3Op(target, theta, phi, lam, ip=InsertionPoint(self.block))
+                            qillr.U3Op(target, theta, phi, lam, ip=InsertionPoint(self.block))
                         case lib.Reset():
-                            qir.ResetOp(target, ip=InsertionPoint(self.block))
+                            qillr.ResetOp(target, ip=InsertionPoint(self.block))
                         case lib.Measure():
                             bit: Value = self.visitClassicalBit(clbits[0])
-                            measureOp: qir.MeasureOp = qir.MeasureOp(target, bit, ip=InsertionPoint(self.block))
-                            qir.ReadMeasurementOp(measureOp.result, ip=InsertionPoint(self.block))
+                            measureOp: qillr.MeasureOp = qillr.MeasureOp(target, bit, ip=InsertionPoint(self.block))
+                            qillr.ReadMeasurementOp(measureOp.result, ip=InsertionPoint(self.block))
                         case lib.IGate():
-                            qir.IdOp(target, ip=InsertionPoint(self.block))
+                            qillr.IdOp(target, ip=InsertionPoint(self.block))
                         case lib.PhaseGate():
                             angle = self.visitClassic(instr.params[0])
-                            qir.PhaseOp(target, angle, ip=InsertionPoint(self.block))
+                            qillr.PhaseOp(target, angle, ip=InsertionPoint(self.block))
                         case _:
                             raise NotImplementedError(f"Unary gate {instr}")
 
@@ -284,29 +284,29 @@ class QASMToMLIRVisitor:
                     rhs: Value = self.visitQuantumBit(qubits[1])
                     match instr:
                         case lib.SwapGate():
-                            qir.SwapOp(lhs, rhs, ip=InsertionPoint(self.block))
+                            qillr.SwapOp(lhs, rhs, ip=InsertionPoint(self.block))
                         case lib.CZGate():
-                            qir.CZOp(lhs, rhs, ip=InsertionPoint(self.block))
+                            qillr.CZOp(lhs, rhs, ip=InsertionPoint(self.block))
                         case lib.CXGate():
-                            qir.CNOTOp(lhs, rhs, ip=InsertionPoint(self.block))
+                            qillr.CNOTOp(lhs, rhs, ip=InsertionPoint(self.block))
                         case lib.CRYGate():
                             angle = self.visitClassic(instr.params[0])
-                            qir.CRyOp(lhs, rhs, angle, ip=InsertionPoint(self.block))
+                            qillr.CRyOp(lhs, rhs, angle, ip=InsertionPoint(self.block))
                         case lib.CRZGate():
                             angle = self.visitClassic(instr.params[0])
-                            qir.CRzOp(lhs, rhs, angle, ip=InsertionPoint(self.block))
+                            qillr.CRzOp(lhs, rhs, angle, ip=InsertionPoint(self.block))
                         case lib.CU1Gate():
                             angle = self.visitClassic(instr.params[0])
-                            qir.CU1Op(lhs, rhs, angle, ip=InsertionPoint(self.block))
+                            qillr.CU1Op(lhs, rhs, angle, ip=InsertionPoint(self.block))
 
     def _visitDefinedGate(self, instr: QASM2_Gate, qubits: list[QubitSpecifier], clbits: list[ClbitSpecifier]) -> None:
         if instr.definition is not None:
             if self.scope.findGate(instr) is None:
-                # Construct qir.GateOp for dDefined custom gate
+                # Construct qillr.GateOp for dDefined custom gate
                 # Insert into module body and recursively visit gate body
                 inputs: list[QubitType] = [QubitType.get(self.context) for _ in range(instr.num_qubits)]
                 gty: func.FunctionType = func.FunctionType.get(inputs=inputs, results=[], context=self.context)
-                gate: qir.GateOp = qir.GateOp(
+                gate: qillr.GateOp = qillr.GateOp(
                     StringAttr.get(str(instr.name)),
                     TypeAttr.get(gty),
                     loc=self.loc,
@@ -322,10 +322,10 @@ class QASMToMLIRVisitor:
                 innerGateScope: Scope = Scope.fromMap(gateQregs, {}, self.scope.visitedGates)
                 visitor: QASMToMLIRVisitor = QASMToMLIRVisitor.fromParent(self, block=gateBody, scope=innerGateScope)
                 visitor.visitCircuit(circuit)
-            # Construct qir.CallOp for defined custom gate
+            # Construct qillr.CallOp for defined custom gate
             callee: StringAttr = instr.name
             operands: list[Value] = [self.visitQuantumBit(q) for q in qubits]
-            qir.GateCallOp(callee, operands, loc=self.loc, ip=InsertionPoint(self.block))
+            qillr.GateCallOp(callee, operands, loc=self.loc, ip=InsertionPoint(self.block))
         else:
             ParseError(f"Expected gate with definition, got: {instr}")
 
@@ -358,7 +358,7 @@ class QASMToMLIRVisitor:
                     match bitOrRegister:
                         case Clbit():
                             clval: Value = self.visitClassicalBit(bitOrRegister)
-                            measurement: Value = qir.ReadMeasurementOp(clval, ip=InsertionPoint(self.block)).result
+                            measurement: Value = qillr.ReadMeasurementOp(clval, ip=InsertionPoint(self.block)).result
                             axiomval: Value = arith.ConstantOp(i1Type, axiom, ip=InsertionPoint(self.block)).result
                             return arith.CmpIOp(
                                 arith.CmpIPredicate.eq, measurement, axiomval, ip=InsertionPoint(self.block)
@@ -369,7 +369,7 @@ class QASMToMLIRVisitor:
                             ]
                             cmpis: list[Value] = []
                             for b, clval in clvals:
-                                measurement: Value = qir.ReadMeasurementOp(clval, ip=InsertionPoint(self.block)).result
+                                measurement: Value = qillr.ReadMeasurementOp(clval, ip=InsertionPoint(self.block)).result
                                 axiomval: Value = arith.ConstantOp(i1Type, b, ip=InsertionPoint(self.block)).result
                                 cmpis.append(
                                     arith.CmpIOp(
@@ -418,7 +418,7 @@ def QASMToMLIR(code: str) -> Module:
 
     context: Context = Context()
     context.allow_unregistered_dialects = True
-    qirdialect.register_dialect(context)
+    qillrdialect.register_dialect(context)
 
     with context:
         location: Location = Location.unknown()

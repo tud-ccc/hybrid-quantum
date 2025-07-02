@@ -27,7 +27,7 @@ set(TEST_DEPENDS
     mlir-runner
     quantum-opt
     quantum-translate
-    MLIRCAPIQIR
+    MLIRCAPIQILLR
 )
 
 # Create the test suite.

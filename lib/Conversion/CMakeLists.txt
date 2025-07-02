@@ -1,3 +1,3 @@
-add_subdirectory(QuantumToQIR)
-add_subdirectory(QIRToQuantum)
-add_subdirectory(QIRToLLVM)
+add_subdirectory(QuantumToQILLR)
+add_subdirectory(QILLRToQuantum)
+add_subdirectory(QILLRToLLVM)

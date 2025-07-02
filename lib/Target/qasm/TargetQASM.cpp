@@ -1,6 +1,6 @@
-//===- TargetQASM.cpp - QIR to OpenQASM Translation -----------------------===//
+//===- TargetQASM.cpp - QILLR to OpenQASM Translation ---------------------===//
 //
-// Translate QIR dialect ops into OpenQASM 2.0.
+// Translate QILLR dialect ops into OpenQASM 2.0.
 //
 /// @file
 /// @author     Washim Neupane (washim.neupane@outlook.com)
@@ -11,7 +11,7 @@
 
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Support/LogicalResult.h"
-#include "quantum-mlir/Dialect/QIR/IR/QIROps.h"
+#include "quantum-mlir/Dialect/QILLR/IR/QILLROps.h"
 
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/TypeSwitch.h"
@@ -26,7 +26,7 @@
 #include <mlir/IR/Operation.h>
 #include <string>
 using namespace mlir;
-using namespace mlir::qir;
+using namespace mlir::qillr;
 
 using llvm::formatv;
 
@@ -291,7 +291,7 @@ LogicalResult QASMEmitter::emitOperation(Operation &op)
     return result;
 }
 
-LogicalResult qir::QIRTranslateToQASM(Operation* op, raw_ostream &os)
+LogicalResult qillr::QILLRTranslateToQASM(Operation* op, raw_ostream &os)
 {
     QASMEmitter emitter(os);
 
@@ -302,6 +302,6 @@ LogicalResult qir::QIRTranslateToQASM(Operation* op, raw_ostream &os)
         return WalkResult::advance();
     });
     if (walk.wasInterrupted())
-        emitError(op->getLoc(), "Interrupt of QIR to QASM translation.");
+        emitError(op->getLoc(), "Interrupt of QILLR to QASM translation.");
     return result;
 }

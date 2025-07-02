@@ -100,7 +100,7 @@ cmake -S . -B build \
 ninja -C build
 
 # Add the generated `python_packages` to the virtual environment
-echo $PWD/build/python_packages/quantum-mlir > $(python3 -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")/qir-python-bindings.pth
+echo $PWD/build/python_packages/quantum-mlir > $(python3 -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")/qillr-python-bindings.pth
 
 # Tests
 # MLIR dialect tests
