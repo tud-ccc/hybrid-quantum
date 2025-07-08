@@ -22,18 +22,18 @@ def QPU_TargetAttr : QPU_Attr<"Target", "target"> {
   }];
   let parameters = (ins
     "IntegerAttr":$qubits,
-    "ArrayAttr":$edges
+    "ArrayAttr":$coupling
   );
   let assemblyFormat = [{
     `<`
     `qubits` `=` $qubits `,`
-    `coupling_graph` `=` $edges
+    `coupling_graph` `=` $coupling
     `>`
   }];
   let builders = [
     AttrBuilderWithInferredContext<(ins "IntegerAttr":$qubits,
-                                        "ArrayAttr":$edges), [{
-      return $_get(qubits.getContext(), qubits, edges);
+                                        "ArrayAttr":$coupling), [{
+      return $_get(qubits.getContext(), qubits, coupling);
     }]>
   ];
   let skipDefaultBuilders = 0;

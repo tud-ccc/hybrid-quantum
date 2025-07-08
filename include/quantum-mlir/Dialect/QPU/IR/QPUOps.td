@@ -79,7 +79,7 @@ def QPU_CircuitOp : QPU_Op<"circuit", [
                          FunctionType type, ArrayRef<NamedAttribute> attrs = {});
 
     //===------------------------------------------------------------------===//
-    // Methods to query the circuit function
+    // FunctionOpInterface Methods
     //===------------------------------------------------------------------===//
 
     /// Returns the region on the current operation that is callable.
@@ -90,6 +90,12 @@ def QPU_CircuitOp : QPU_Op<"circuit", [
 
     /// Returns the result types of this function.
     ArrayRef<Type> getResultTypes() { return getFunctionType().getResults(); }
+
+    //===------------------------------------------------------------------===//
+    // SymbolOpInterface Methods
+    //===------------------------------------------------------------------===//
+
+    bool isDeclaration() { return false; }
   }];
 }
 
@@ -112,6 +118,30 @@ def QPU_ExecuteOp : QPU_Op<"execute", [
     custom<ExecuteResults>($circuitResults, type($circuitResults))
     attr-dict
   }];
+}
+
+def QPU_ReturnOp : QPU_Op<"return", [
+  Pure,
+  HasParent<"CircuitOp">,
+  ReturnLike,
+  Terminator]> {
+  let summary = "Quantum gate return operation";
+  let description = [{
+    The `qpu.return` operation represents a return operation within a
+    circuit body.
+    The operation takes variable number of operands and produces no results.
+    The operand number and types must match the signature of the circuit's
+    function type that contains the operation.
+    ```
+  }];
+
+  let arguments = (ins Variadic<AnyType>:$operands);
+
+  let builders = [OpBuilder<(ins), [{
+    build($_builder, $_state, std::nullopt);
+  }]>];
+
+  //let hasVerifier = 1;
 }
 
 #endif // QPU_OPS

@@ -9,5 +9,17 @@
 
 include "mlir/Pass/PassBase.td"
 
+def SabreSwap : Pass<"sabre-swap", "QPUModuleOp"> {
+    let summary = "Implements the SABRE swap algorithm";
+
+    let description = [{
+    }];
+
+    let constructor = "mlir::qpu::createSabreSwapPass()";
+
+    let dependentDialects = [
+        "quantum::QuantumDialect"
+    ];
+}
 
 #endif // QPU_PASSES

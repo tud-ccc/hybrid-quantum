@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
 
 namespace mlir {
@@ -18,6 +17,9 @@ namespace mlir {
 //===----------------------------------------------------------------------===//
 
 namespace qpu {
+
+/// Constructs the SABRE swap algorithm pass.
+std::unique_ptr<Pass> createSabreSwapPass();
 
 //===----------------------------------------------------------------------===//
 // Registration
