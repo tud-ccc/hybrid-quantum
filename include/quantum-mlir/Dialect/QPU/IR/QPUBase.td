@@ -24,6 +24,9 @@ def QPU_Dialect : Dialect {
         code transformation is captured.
     }];
 
+    let hasOperationAttrVerify = 1;    
+    let useDefaultAttributePrinterParser = 1;
+
     let dependentDialects = [
         "::mlir::quantum::QuantumDialect"
     ];
@@ -34,11 +37,6 @@ def QPU_Dialect : Dialect {
         void registerTypes();
         void registerAttributes();
     }];
-
-    let useDefaultTypePrinterParser = 1;
-    let hasOperationAttrVerify = 1;    
-    let useDefaultAttributePrinterParser = 1;
-    let useDefaultTypePrinterParser = 1;
 }
 
 // Template for Types
@@ -55,6 +53,5 @@ class QPU_Attr<string attrName, string attrMnemonic, list<Trait> traits = []>
     : AttrDef<QPU_Dialect, attrName, traits> {
   let mnemonic = attrMnemonic;
 }
-
 
 #endif // QPU_BASE

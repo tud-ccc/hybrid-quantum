@@ -16,4 +16,5 @@ qpu.module @test
 }
 
 %theta = arith.constant 3.2 : f64
-%out = "qpu.execute" @test::@test_circuit(%theta) : (f64) -> (i1)
+%res = arith.constant false
+qpu.execute @test::@test_circuit args(%theta : f64) outs(%res : i1)

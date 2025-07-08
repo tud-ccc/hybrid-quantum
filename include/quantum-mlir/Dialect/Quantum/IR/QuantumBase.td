@@ -25,7 +25,7 @@ def Quantum_Dialect : Dialect {
     let useDefaultTypePrinterParser = 1;
     let hasOperationAttrVerify = 1;
     // let useFoldAPI = kEmitFoldAdaptorFolder;
-
+    //let useDefaultAttributePrinterParser = 1;
 
     code extraClassDeclaration = [{
     private:
@@ -37,9 +37,6 @@ def Quantum_Dialect : Dialect {
     let dependentDialects = [
         "arith::ArithDialect"
     ];
-
-    //let useDefaultAttributePrinterParser = 1;
-    let useDefaultTypePrinterParser = 1;
 }
 
 // Template for Types

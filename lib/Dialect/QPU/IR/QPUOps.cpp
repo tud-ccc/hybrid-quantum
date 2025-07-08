@@ -36,6 +36,82 @@
 using namespace mlir;
 using namespace mlir::qpu;
 
+//===----------------------------------------------------------------------===//
+// ExecuteOp
+//===----------------------------------------------------------------------===//
+
+static ParseResult parseExecuteOperands(
+    OpAsmParser &parser,
+    SmallVectorImpl<OpAsmParser::UnresolvedOperand> &operandNames,
+    SmallVectorImpl<Type> &operandTypes)
+{
+    if (parser.parseOptionalKeyword("args")) return success();
+    auto parseElement = [&]() -> ParseResult {
+        return failure(
+            parser.parseOperand(operandNames.emplace_back())
+            || parser.parseColonType(operandTypes.emplace_back()));
+    };
+
+    return parser.parseCommaSeparatedList(
+        OpAsmParser::Delimiter::Paren,
+        parseElement,
+        "in argument list");
+}
+
+static void printExecuteOperands(
+    OpAsmPrinter &printer,
+    Operation*,
+    OperandRange operands,
+    TypeRange types)
+{
+    if (operands.empty()) return;
+    printer << "args(";
+    llvm::interleaveComma(
+        llvm::zip_equal(operands, types),
+        printer,
+        [&](const auto &pair) {
+            auto [operand, type] = pair;
+            printer << operand << " : " << type;
+        });
+    printer << ")";
+}
+
+static ParseResult parseExecuteResults(
+    OpAsmParser &parser,
+    SmallVectorImpl<OpAsmParser::UnresolvedOperand> &operandNames,
+    SmallVectorImpl<Type> &operandTypes)
+{
+    if (parser.parseOptionalKeyword("outs")) return success();
+    auto parseElement = [&]() -> ParseResult {
+        return failure(
+            parser.parseOperand(operandNames.emplace_back())
+            || parser.parseColonType(operandTypes.emplace_back()));
+    };
+
+    return parser.parseCommaSeparatedList(
+        OpAsmParser::Delimiter::Paren,
+        parseElement,
+        "in outs list");
+}
+
+static void printExecuteResults(
+    OpAsmPrinter &printer,
+    Operation*,
+    OperandRange operands,
+    TypeRange types)
+{
+    if (operands.empty()) return;
+    printer << "outs(";
+    llvm::interleaveComma(
+        llvm::zip_equal(operands, types),
+        printer,
+        [&](const auto &pair) {
+            auto [operand, type] = pair;
+            printer << operand << " : " << type;
+        });
+    printer << ")";
+}
+
 //===- Generated implementation -------------------------------------------===//
 
 #define GET_OP_CLASSES
@@ -44,54 +120,17 @@ using namespace mlir::qpu;
 //===----------------------------------------------------------------------===//
 
 //===----------------------------------------------------------------------===//
-// DeviceOp
-//===----------------------------------------------------------------------===//
-
-// void DeviceOp::build(
-//     OpBuilder &builder,
-//     OperationState &state,
-//     CouplingGraphAttr graphAttr)
-// {
-//     auto qubits = graphAttr.getQubits().getInt();
-//     auto edges = graphAttr.getEdges();
-
-//     // Construct result type using only raw values
-//     auto type = qpu::DeviceType::get(builder.getContext(), qubits, edges);
-
-//     build(builder, state, type, graphAttr);
-// }
-
-// LogicalResult DeviceOp::verify()
-// {
-//     auto device = getDevice().getType();
-//     auto graph = getCouplingGraph();
-
-//     if (graph.getQubits().getInt() != device.getQubits())
-//         return emitOpError(
-//             "Coupling graph's qubits and device's qubits do not "
-//             "match");
-
-//     if (graph.getEdges() != device.getEdges())
-//         return emitOpError(
-//             "Coupling graph's edges and device's edges do not "
-//             "match");
-
-//     return success();
-// }
-
-//===----------------------------------------------------------------------===//
 // CircuitOp
 //===----------------------------------------------------------------------===//
 CircuitOp CircuitOp::create(
     Location location,
     StringRef name,
-    DeviceType device,
     FunctionType type,
     ArrayRef<NamedAttribute> attrs)
 {
     OpBuilder builder(location->getContext());
     OperationState state(location, getOperationName());
-    CircuitOp::build(builder, state, name, device, type, attrs);
+    CircuitOp::build(builder, state, name, type, attrs);
     return cast<CircuitOp>(Operation::create(state));
 }
 
@@ -99,7 +138,6 @@ void CircuitOp::build(
     OpBuilder &builder,
     OperationState &state,
     StringRef name,
-    DeviceType device,
     FunctionType type,
     ArrayRef<NamedAttribute> attrs,
     ArrayRef<DictionaryAttr> argAttrs)
@@ -108,9 +146,8 @@ void CircuitOp::build(
         SymbolTable::getSymbolAttrName(),
         builder.getStringAttr(name));
     state.addAttribute(
-        getDeviceTypeAttrName(state.name),
-        TypeAttr::get(device));
-    state.addAttribute(getCircuitTypeAttrName(state.name), TypeAttr::get(type));
+        getFunctionTypeAttrName(state.name),
+        TypeAttr::get(type));
     state.attributes.append(attrs.begin(), attrs.end());
     state.addRegion();
 
@@ -125,9 +162,6 @@ void CircuitOp::build(
         getArgAttrsAttrName(state.name),
         getResAttrsAttrName(state.name));
 }
-//===----------------------------------------------------------------------===//
-// InstantiateOp
-//===----------------------------------------------------------------------===//
 
 //===----------------------------------------------------------------------===//
 // QPUDialect
