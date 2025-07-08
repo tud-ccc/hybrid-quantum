@@ -7,22 +7,29 @@
 #ifndef QPU_ATTRIBUTES
 #define QPU_ATTRIBUTES
 
+include "mlir/IR/AttrTypeBase.td"
+include "mlir/IR/OpBase.td"
 include "quantum-mlir/Dialect/QPU/IR/QPUBase.td"
 
-//Need to replace the DeviceType parameter with this attribute in the future.
-def QPU_CouplingGraphAttr : QPU_Attr<"CouplingGraph", "coupling_graph"> {
-  let summary = "CouplingGraphAttr is used to represent the coupling graph of a QPU device.";
+//===----------------------------------------------------------------------===//
+// QPU Target Attributes.
+//===----------------------------------------------------------------------===//
+
+def QPU_TargetAttr : QPU_Attr<"Target", "target"> {
+  let summary = "Generic QPU target attribute with coupling graph and qubits.";
   let description = [{
-    Examples:
-    ```mlir
-    #qpu.coupling_graph<5: [[0,1], [1,4]]>
-    ```
-  }]; 
+
+  }];
   let parameters = (ins
     "IntegerAttr":$qubits,
     "ArrayAttr":$edges
   );
-  let assemblyFormat = "`<` $qubits `,` $edges `>`";
+  let assemblyFormat = [{
+    `<`
+    `qubits` `=` $qubits `,`
+    `coupling_graph` `=` $edges
+    `>`
+  }];
   let builders = [
     AttrBuilderWithInferredContext<(ins "IntegerAttr":$qubits,
                                         "ArrayAttr":$edges), [{
@@ -31,5 +38,11 @@ def QPU_CouplingGraphAttr : QPU_Attr<"CouplingGraph", "coupling_graph"> {
   ];
   let skipDefaultBuilders = 0;
 }
+
+def QPU_TargetArrayAttr : TypedArrayAttrBase<QPU_TargetAttr,
+  "array of QPU target attributes">;
+
+def QPU_NonEmptyTargetArrayAttr :
+  ConfinedAttr<QPU_TargetArrayAttr, [ArrayMinCount<1>]>;
 
 #endif // QPU_ATTRIBUTES

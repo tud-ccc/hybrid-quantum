@@ -47,37 +47,37 @@ using namespace mlir::qpu;
 // DeviceOp
 //===----------------------------------------------------------------------===//
 
-void DeviceOp::build(
-    OpBuilder &builder,
-    OperationState &state,
-    CouplingGraphAttr graphAttr)
-{
-    auto qubits = graphAttr.getQubits().getInt();
-    auto edges = graphAttr.getEdges();
+// void DeviceOp::build(
+//     OpBuilder &builder,
+//     OperationState &state,
+//     CouplingGraphAttr graphAttr)
+// {
+//     auto qubits = graphAttr.getQubits().getInt();
+//     auto edges = graphAttr.getEdges();
 
-    // Construct result type using only raw values
-    auto type = qpu::DeviceType::get(builder.getContext(), qubits, edges);
+//     // Construct result type using only raw values
+//     auto type = qpu::DeviceType::get(builder.getContext(), qubits, edges);
 
-    build(builder, state, type, graphAttr);
-}
+//     build(builder, state, type, graphAttr);
+// }
 
-LogicalResult DeviceOp::verify()
-{
-    auto device = getDevice().getType();
-    auto graph = getCouplingGraph();
+// LogicalResult DeviceOp::verify()
+// {
+//     auto device = getDevice().getType();
+//     auto graph = getCouplingGraph();
 
-    if (graph.getQubits().getInt() != device.getQubits())
-        return emitOpError(
-            "Coupling graph's qubits and device's qubits do not "
-            "match");
+//     if (graph.getQubits().getInt() != device.getQubits())
+//         return emitOpError(
+//             "Coupling graph's qubits and device's qubits do not "
+//             "match");
 
-    if (graph.getEdges() != device.getEdges())
-        return emitOpError(
-            "Coupling graph's edges and device's edges do not "
-            "match");
+//     if (graph.getEdges() != device.getEdges())
+//         return emitOpError(
+//             "Coupling graph's edges and device's edges do not "
+//             "match");
 
-    return success();
-}
+//     return success();
+// }
 
 //===----------------------------------------------------------------------===//
 // CircuitOp

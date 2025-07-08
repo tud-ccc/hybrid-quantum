@@ -7,7 +7,6 @@
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
-#include "quantum-mlir/Dialect/QPU/IR/QPU.h"
 
 #include "llvm/ADT/TypeSwitch.h"
 

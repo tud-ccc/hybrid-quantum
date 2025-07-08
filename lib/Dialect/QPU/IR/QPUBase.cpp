@@ -5,8 +5,6 @@
 
 #include "quantum-mlir/Dialect/QPU/IR/QPUBase.h"
 
-#include "quantum-mlir/Dialect/QPU/IR/QPU.h"
-
 #define DEBUG_TYPE "qpu-base"
 
 using namespace mlir;

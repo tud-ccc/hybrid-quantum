@@ -25,7 +25,7 @@ def QPU_Dialect : Dialect {
     }];
 
     let dependentDialects = [
-        "quantum::QuantumDialect"
+        "::mlir::quantum::QuantumDialect"
     ];
 
     code extraClassDeclaration = [{

@@ -7,7 +7,6 @@
 #ifndef QPU_TYPES
 #define QPU_TYPES
 
-include "quantum-mlir/Dialect/QPU/IR/QPUBase.td"
 include "quantum-mlir/Dialect/QPU/IR/QPUAttributes.td"
 include "mlir/IR/BuiltinTypeInterfaces.td"
 
