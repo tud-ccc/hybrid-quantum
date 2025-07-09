@@ -240,13 +240,6 @@ LogicalResult ReturnOp::verify()
         if (failed(check)) return check;
     }
 
-    if (auto circ = dyn_cast<CircuitOp>((*this)->getParentOp())) {
-        auto check = returnedValuesEqualSize(
-            circ->getName(),
-            circ.getCircuitType().getResults());
-        if (failed(check)) return check;
-    }
-
     return success();
 }
 
@@ -580,92 +573,6 @@ void GateOp::build(
         getArgAttrsAttrName(state.name),
         getResAttrsAttrName(state.name));
 }
-
-//===----------------------------------------------------------------------===//
-// DeviceOp
-//===----------------------------------------------------------------------===//
-
-void DeviceOp::build(
-    OpBuilder &builder,
-    OperationState &state,
-    CouplingGraphAttr graphAttr)
-{
-    auto qubits = graphAttr.getQubits().getInt();
-    auto edges = graphAttr.getEdges();
-
-    // Construct result type using only raw values
-    auto type = quantum::DeviceType::get(builder.getContext(), qubits, edges);
-
-    build(builder, state, type, graphAttr);
-}
-
-LogicalResult DeviceOp::verify()
-{
-    auto device = getDevice().getType();
-    auto graph = getCouplingGraph();
-
-    if (graph.getQubits().getInt() != device.getQubits())
-        return emitOpError(
-            "Coupling graph's qubits and device's qubits do not "
-            "match");
-
-    if (graph.getEdges() != device.getEdges())
-        return emitOpError(
-            "Coupling graph's edges and device's edges do not "
-            "match");
-
-    return success();
-}
-
-//===----------------------------------------------------------------------===//
-// CircuitOp
-//===----------------------------------------------------------------------===//
-CircuitOp CircuitOp::create(
-    Location location,
-    StringRef name,
-    DeviceType device,
-    FunctionType type,
-    ArrayRef<NamedAttribute> attrs)
-{
-    OpBuilder builder(location->getContext());
-    OperationState state(location, getOperationName());
-    CircuitOp::build(builder, state, name, device, type, attrs);
-    return cast<CircuitOp>(Operation::create(state));
-}
-
-void CircuitOp::build(
-    OpBuilder &builder,
-    OperationState &state,
-    StringRef name,
-    DeviceType device,
-    FunctionType type,
-    ArrayRef<NamedAttribute> attrs,
-    ArrayRef<DictionaryAttr> argAttrs)
-{
-    state.addAttribute(
-        SymbolTable::getSymbolAttrName(),
-        builder.getStringAttr(name));
-    state.addAttribute(
-        getDeviceTypeAttrName(state.name),
-        TypeAttr::get(device));
-    state.addAttribute(getCircuitTypeAttrName(state.name), TypeAttr::get(type));
-    state.attributes.append(attrs.begin(), attrs.end());
-    state.addRegion();
-
-    if (argAttrs.empty()) return;
-    assert(type.getNumInputs() == argAttrs.size());
-    // call_interface_impl
-    function_interface_impl::addArgAndResultAttrs(
-        builder,
-        state,
-        argAttrs,
-        /*resultAttrs=*/std::nullopt,
-        getArgAttrsAttrName(state.name),
-        getResAttrsAttrName(state.name));
-}
-//===----------------------------------------------------------------------===//
-// InstantiateOp
-//===----------------------------------------------------------------------===//
 
 //===----------------------------------------------------------------------===//
 // QuantumDialect

@@ -1,4 +1,4 @@
-/// Declaration of the Quantum dialect ops.
+/// Declaration of the QPU dialect ops.
 ///
 /// @file
 
@@ -20,35 +20,15 @@
 #include "mlir/Interfaces/InferIntRangeInterface.h"
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
-#include "quantum-mlir/Dialect/Quantum/IR/QuantumBase.h"
-#include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h"
+#include "quantum-mlir/Dialect/QPU/IR/QPUBase.h"
+#include "quantum-mlir/Dialect/QPU/IR/QPUTypes.h"
 
 #include "llvm/ADT/STLExtras.h"
 
 #include <llvm/Support/Casting.h>
 
 namespace mlir {
-namespace quantum {
-
-void buildTerminatedBody(
-    OpBuilder &builder,
-    Location loc,
-    Value condition,
-    ValueRange capturedArgs);
-
-template<typename ConcreteType>
-class NoClone : public OpTrait::TraitBase<ConcreteType, NoClone> {
-public:
-    static LogicalResult verifyTrait(Operation* op);
-};
-
-template<typename ConcreteType>
-class Hermitian : public OpTrait::TraitBase<ConcreteType, Hermitian> {
-public:
-    static LogicalResult verifyTrait(Operation* op);
-};
-} // namespace quantum
-
+namespace qpu {} // namespace qpu
 } // namespace mlir
 
 //===----------------------------------------------------------------------===//
@@ -56,7 +36,6 @@ public:
 //-------------------------------------------------===//
 
 #define GET_OP_CLASSES
-#include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h.inc"
+#include "quantum-mlir/Dialect/QPU/IR/QPUOps.h.inc"
 
-// namespace mlir::Quantum
 //===----------------------------------------------------------------------===//

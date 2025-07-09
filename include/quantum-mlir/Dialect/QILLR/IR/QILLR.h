@@ -6,3 +6,4 @@
 #pragma once
 
 #include "quantum-mlir/Dialect/QILLR/IR/QILLROps.h"
+#include "quantum-mlir/Dialect/QILLR/Transforms/Passes.h"

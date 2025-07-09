@@ -7,6 +7,7 @@
 #include "mlir/InitAllDialects.h"
 #include "mlir/Tools/mlir-lsp-server/MlirLspServerMain.h"
 #include "quantum-mlir/Dialect/QILLR/IR/QILLRBase.h"
+#include "quantum-mlir/Dialect/QPU/IR/QPUBase.h"
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumBase.h"
 
 using namespace mlir;
@@ -22,6 +23,7 @@ int main(int argc, char* argv[])
     registerAllDialects(registry);
 
     registry.insert<quantum::QuantumDialect>();
+    registry.insert<qpu::QPUDialect>();
     registry.insert<qillr::QILLRDialect>();
 
     return asMainReturnCode(MlirLspServerMain(argc, argv, registry));
