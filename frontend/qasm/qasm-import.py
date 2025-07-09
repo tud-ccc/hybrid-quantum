@@ -302,7 +302,7 @@ class QASMToMLIRVisitor:
     def _visitDefinedGate(self, instr: QASM2_Gate, qubits: list[QubitSpecifier], clbits: list[ClbitSpecifier]) -> None:
         if instr.definition is not None:
             if self.scope.findGate(instr) is None:
-                # Construct qillr.GateOp for dDefined custom gate
+                # Construct qillr.GateOp for defined custom gate
                 # Insert into module body and recursively visit gate body
                 inputs: list[QubitType] = [QubitType.get(self.context) for _ in range(instr.num_qubits)]
                 gty: func.FunctionType = func.FunctionType.get(inputs=inputs, results=[], context=self.context)
@@ -315,13 +315,14 @@ class QASMToMLIRVisitor:
                 arg_locs = [self.loc for _ in inputs]
                 gate.body.blocks.append(*inputs, arg_locs=arg_locs)
                 gateBody: Block = gate.body.blocks[0]
-                self.scope.setGate(instr, gate)
 
+                self.scope.setGate(instr, gate)
                 circuit: QuantumCircuit = instr.definition
                 gateQregs = {str(q): a for q, a in zip(circuit.qubits, gate.body.blocks[0].arguments)}
                 innerGateScope: Scope = Scope.fromMap(gateQregs, {}, self.scope.visitedGates)
                 visitor: QASMToMLIRVisitor = QASMToMLIRVisitor.fromParent(self, block=gateBody, scope=innerGateScope)
                 visitor.visitCircuit(circuit)
+                qillr.ReturnOp(loc=self.loc, ip=InsertionPoint(gateBody))
             # Construct qillr.CallOp for defined custom gate
             callee: StringAttr = instr.name
             operands: list[Value] = [self.visitQuantumBit(q) for q in qubits]
@@ -339,9 +340,11 @@ class QASMToMLIRVisitor:
 
             thenVisitor = QASMToMLIRVisitor.fromParent(self, block=ifOp.then_block)
             thenVisitor.visitCircuit(true_body)
+            scf.YieldOp(results_=[], ip=InsertionPoint(ifOp.then_block))
             if hasElse:
                 elseVisitor = QASMToMLIRVisitor.fromParent(self, block=ifOp.else_block)
                 elseVisitor.visitCircuit(false_body)
+                scf.YieldOp(results_=[], ip=InsertionPoint(ifOp.else_block))
 
     def _visitIfElseCondition(
         self,
