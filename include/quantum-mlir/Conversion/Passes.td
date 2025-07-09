@@ -41,7 +41,8 @@ def ConvertQILLRToQuantum : Pass<"lift-qillr-to-quantum"> {
     let dependentDialects = [
         "quantum::QuantumDialect",
         "qillr::QILLRDialect",
-        "tensor::TensorDialect"
+        "mlir::tensor::TensorDialect",
+        "mlir::scf::SCFDialect"
     ];
 }
 

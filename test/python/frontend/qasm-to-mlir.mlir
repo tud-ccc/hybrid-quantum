@@ -1,11 +1,12 @@
 // RUN: %PYTHON qasm-import -i %s | FileCheck %s
 
-// CHECK: "builtin.module"() ({
+// CHECK: module {
 // CHECK: "qillr.gate"() <{function_type = (!qillr.qubit, !qillr.qubit, !qillr.qubit) -> (), sym_name = "unmaj"}> ({
 // CHECK-NEXT: ^bb0(%[[arg3:.+]]: {{.*}}, %[[arg4:.+]]: {{.*}}, %[[arg5:.+]]: {{.*}}):
 // CHECK-DAG: "qillr.CCX"(%[[arg3]], %[[arg4]], %[[arg5]]) : (!qillr.qubit, !qillr.qubit, !qillr.qubit) -> ()
 // CHECK-DAG: "qillr.CNOT"(%[[arg5]], %[[arg3]]) : (!qillr.qubit, !qillr.qubit) -> ()
 // CHECK-DAG: "qillr.CNOT"(%[[arg3]], %[[arg4]]) : (!qillr.qubit, !qillr.qubit) -> ()
+// CHECK-NEXT: "qillr.return"() : () -> ()
 // CHECK-NEXT: }) : () -> ()
 
 // CHECK: "qillr.gate"() <{function_type = (!qillr.qubit, !qillr.qubit, !qillr.qubit) -> (), sym_name = "majority"}> ({
@@ -13,9 +14,10 @@
 // CHECK-DAG: "qillr.CNOT"(%[[arg2]], %[[arg1]]) : (!qillr.qubit, !qillr.qubit) -> ()
 // CHECK-DAG: "qillr.CNOT"(%[[arg2]], %[[arg0]]) : (!qillr.qubit, !qillr.qubit) -> ()
 // CHECK-DAG: "qillr.CCX"(%[[arg0]], %[[arg1]], %[[arg2]]) : (!qillr.qubit, !qillr.qubit, !qillr.qubit) -> ()
+// CHECK-NEXT: "qillr.return"() : () -> ()
 // CHECK-NEXT: }) : () -> ()
 
-// CHECK: "func.func"() <{function_type = () -> (), sym_name = "qasm_main", sym_visibility = "private"}> ({
+// CHECK: func.func private @qasm_main() { 
 // CHECK-DAG: %[[a0:.+]] = "qillr.alloc"() : () -> !qillr.qubit
 // CHECK-DAG: "qillr.X"(%[[a0]]) : (!qillr.qubit) -> ()
 // CHECK-DAG: %[[b0:.+]] = "qillr.alloc"() : () -> !qillr.qubit
@@ -50,8 +52,8 @@
 // CHECK-DAG: %[[bit:.+]] = "qillr.read_measurement"(%[[ans0]]) : (!qillr.result) -> i1
 // CHECK-DAG: "qillr.reset"(%[[a1]]) : (!qillr.qubit) -> ()
 // CHECK: return
-// CHECK-NEXT:   }) : () -> ()
-// CHECK-NEXT: }) : () -> ()
+// CHECK-NEXT:   }
+// CHECK-NEXT: }
 
 OPENQASM 2.0;
 include "qelib1.inc";
