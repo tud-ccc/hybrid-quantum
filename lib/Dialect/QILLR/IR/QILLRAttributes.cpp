@@ -20,3 +20,15 @@ using namespace mlir::qillr;
 #include "quantum-mlir/Dialect/QILLR/IR/QILLRAttributes.cpp.inc"
 
 //===----------------------------------------------------------------------===//
+
+//===----------------------------------------------------------------------===//
+// QILLRDialect
+//===----------------------------------------------------------------------===//
+
+void QILLRDialect::registerAttributes()
+{
+    addAttributes<
+#define GET_ATTRDEF_LIST
+#include "quantum-mlir/Dialect/QILLR/IR/QILLRAttributes.cpp.inc"
+        >();
+}

@@ -30,4 +30,5 @@ void QILLRDialect::initialize()
 {
     registerOps();
     registerTypes();
+    registerAttributes();
 }

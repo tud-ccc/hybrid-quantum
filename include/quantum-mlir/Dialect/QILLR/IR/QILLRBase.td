@@ -35,6 +35,7 @@ def QILLR_Dialect : Dialect {
     private:
         void registerOps();
         void registerTypes();
+        void registerAttributes();
     }];
 }
 
