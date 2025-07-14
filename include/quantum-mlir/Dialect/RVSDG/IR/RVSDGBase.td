@@ -19,13 +19,13 @@ def RVSDG_Dialect : Dialect {
 
     let summary = "RVSDG Dialect Base Definition";
     let description = [{
-        Contains all base def. 
+        Regionalized Value State Dependency Graph
     }];
 
     let useDefaultTypePrinterParser = 1;
     let hasOperationAttrVerify = 1;
     // let useFoldAPI = kEmitFoldAdaptorFolder;
-    //let useDefaultAttributePrinterParser = 1;
+    let useDefaultAttributePrinterParser = 1;
 
     code extraClassDeclaration = [{
     private:
@@ -46,7 +46,7 @@ class RVSDG_Type<string name, list<Trait> traits = []>
 
 // Template for Ops
 class RVSDG_Op<string mnemonic, list<Trait> traits = []>
-        : Op<RVSDG_Dialect, mnemonic, traits>;
+    : Op<RVSDG_Dialect, mnemonic, traits>;
 
 // Template for Attributes
 class RVSDG_Attr<string attrName, string attrMnemonic, list<Trait> traits = []>

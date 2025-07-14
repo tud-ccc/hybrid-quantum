@@ -8,6 +8,7 @@
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "quantum-mlir/Dialect/RVSDG/IR/RVSDG.h"
+#include "quantum-mlir/Dialect/RVSDG/IR/RVSDGBase.h"
 
 #include "llvm/ADT/TypeSwitch.h"
 
@@ -20,6 +21,13 @@ using namespace mlir::rvsdg;
 #include "quantum-mlir/Dialect/RVSDG/IR/RVSDGAttributes.cpp.inc"
 
 //===----------------------------------------------------------------------===//
+
+LogicalResult
+RVSDGDialect::verifyOperationAttribute(mlir::Operation*, mlir::NamedAttribute)
+{
+    // TODO
+    return success();
+}
 
 //===----------------------------------------------------------------------===//
 // RVSDGDialect

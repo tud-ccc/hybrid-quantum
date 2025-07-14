@@ -1,4 +1,4 @@
-// RUN: quantum-opt %s -debug -lift-qillr-to-quantum -split-input-file| FileCheck %s
+// RUN: quantum-opt %s -lift-qillr-to-quantum -split-input-file| FileCheck %s
 
 // CHECK: "quantum.gate"() <{function_type = (!quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>), sym_name = "test"}> ({
 "qillr.gate"() <{function_type = (!qillr.qubit, !qillr.qubit) -> (), sym_name = "test"}> ({
