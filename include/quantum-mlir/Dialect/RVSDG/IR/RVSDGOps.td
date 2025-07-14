@@ -52,7 +52,7 @@ def RVSDG_ConstantCtrl: RVSDG_Op<"constantCtrl", [Pure]> {
     let assemblyFormat = "attr-dict $value `:` type($output)";
 }
 
-def RVSDG_Match: RVSDG_Op<"match", [Pure]> {
+def RVSDG_MatchOp: RVSDG_Op<"match", [Pure]> {
     let summary = "Match operator. Lookup table that converts integers into control values";
     let description = [{
         Match operator. Lookup table that converts integers into control values.

@@ -236,7 +236,7 @@ LogicalResult YieldOp::verify()
     return success();
 }
 
-LogicalResult Match::verify()
+LogicalResult MatchOp::verify()
 {
     auto mappingAttr = this->getMapping();
     auto numOptions = this->getOutput().getType().getNumOptions();

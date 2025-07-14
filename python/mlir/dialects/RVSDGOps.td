@@ -1,12 +1,12 @@
-//===-- QILLROps.td - Entry point for QILLR bindings -----*- tablegen -*-===//
+//===-- RVSDGOps.td - Entry point for RVSDG bindings -----*- tablegen ---*-===//
 //                                                                               
 // @author  Lars Schütze (lars.schuetze@tu-dresden.de)                                 
 //===----------------------------------------------------------------------===// 
 
 
-#ifndef PYTHON_BINDINGS_QILLR_OPS
-#define PYTHON_BINDINGS_QILLR_OPS
+#ifndef PYTHON_BINDINGS_RVSDG_OPS
+#define PYTHON_BINDINGS_RVSDG_OPS
 
-include "quantum-mlir/Dialect/QILLR/IR/QILLROps.td"
+include "quantum-mlir/Dialect/RVSDG/IR/RVSDGOps.td"
 
-#endif // PYTHON_BINDINGS_QILLR_OPS
+#endif // PYTHON_BINDINGS_RVSDG_OPS

@@ -11,7 +11,7 @@ include "quantum-mlir/Dialect/RVSDG/IR/RVSDGAttributes.td"
 include "mlir/IR/EnumAttr.td"
 include "mlir/IR/BuiltinTypeInterfaces.td"
 
-def RVSDG_Ctrl : RVSDG_Type<"RVSDG_CTRL"> {
+def RVSDG_Ctrl : RVSDG_Type<"Control"> {
     let mnemonic = "ctrl";
     let summary = "Type used as predicate for gamma and theta nodes";
     let description = [{
@@ -32,10 +32,10 @@ def RVSDG_Ctrl : RVSDG_Type<"RVSDG_CTRL"> {
 
 class RVSDG_Ctrl<int N>: 
 ConfinedType<RVSDG_Ctrl, 
-    [CPred<"$_self.cast<::mlir::rvsdg::RVSDG_CTRLType>().getNumOptions() == " # N # "">],
+    [CPred<"$_self.cast<::mlir::rvsdg::ControlType>().getNumOptions() == " # N # "">],
     "RVSDG control type with " # N # " options"
 >,
-BuildableType<"::mlir::rvsdg::RVSDG_CTRLType::get($_builder.getContext(), " # N # ")"> 
+BuildableType<"::mlir::rvsdg::ControlType::get($_builder.getContext(), " # N # ")"> 
 ;
 
 #endif
