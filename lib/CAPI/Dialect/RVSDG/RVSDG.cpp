@@ -5,8 +5,8 @@
 
 #include "quantum-mlir-c/Dialect/RVSDG.h"
 
-#include "mlir-c/IR.h"
 #include "mlir/CAPI/Registration.h"
+#include "quantum-mlir/Dialect/RVSDG/IR/RVSDGAttributes.h"
 #include "quantum-mlir/Dialect/RVSDG/IR/RVSDGTypes.h"
 
 using namespace mlir;
@@ -26,4 +26,19 @@ bool mlirTypeIsAControlType(MlirType type)
 MlirType mlirControlTypeGet(MlirContext ctx, uint64_t numOptions)
 {
     return wrap(ControlType::get(unwrap(ctx), numOptions));
+}
+
+//===---------------------------------------------------------------------===//
+// MatchRuleAttr
+//===---------------------------------------------------------------------===//
+
+bool mlirAttrIsAMatchRuleAttr(MlirAttribute attr)
+{
+    return isa<MatchRuleAttr>(unwrap(attr));
+}
+
+MlirAttribute
+mlirMatchRuleAttrGet(MlirContext ctx, ArrayRef<int64_t> values, uint64_t index)
+{
+    return wrap(MatchRuleAttr::get(unwrap(ctx), values, index));
 }

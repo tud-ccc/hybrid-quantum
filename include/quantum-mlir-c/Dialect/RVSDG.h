@@ -10,6 +10,7 @@
 #include "mlir-c/Support.h"
 
 #include <cstdint>
+#include <mlir/CAPI/Support.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,6 +28,20 @@ MLIR_CAPI_EXPORTED bool mlirTypeIsAControlType(MlirType type);
 /// Creates an rvsdg::ControlType type.
 MLIR_CAPI_EXPORTED MlirType
 mlirControlTypeGet(MlirContext ctx, uint64_t numOptions);
+
+//===---------------------------------------------------------------------===//
+// MatchRuleAttr
+//===---------------------------------------------------------------------===//
+
+/// Returns `true` if the given attribute is a rvsdg::MatchRuleAttr dialect
+/// attribute.
+MLIR_CAPI_EXPORTED bool mlirAttrIsAMatchRuleAttr(MlirAttribute attr);
+
+/// Creates an rvsdg::MatchRule attribute.
+MLIR_CAPI_EXPORTED MlirAttribute mlirMatchRuleAttrGet(
+    MlirContext ctx,
+    llvm::ArrayRef<int64_t> values,
+    uint64_t index);
 
 #ifdef __cplusplus
 }

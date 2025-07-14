@@ -11,6 +11,7 @@
 #include "quantum-mlir-c/Dialect/RVSDG.h"
 
 #include <cstdint>
+#include <llvm/ADT/ArrayRef.h>
 #include <string>
 
 namespace nb = nanobind;
@@ -57,6 +58,35 @@ static void populateDialectRVSDGSubmodule(nb::module_ m)
         nb::arg("cls"),
         nb::arg("context").none() = nb::none(),
         nb::arg("numOptions"));
+
+    //===--------------------------------------------------------------------===//
+    // MatchRule
+    //===--------------------------------------------------------------------===//
+    auto matchRule =
+        mlir_attribute_subclass(m, "MatchRuleAttr", mlirAttrIsAMatchRuleAttr);
+
+    matchRule.def_classmethod(
+        "get",
+        [](nb::object cls,
+           MlirContext context,
+           nb::sequence values,
+           uint64_t index) {
+            CollectDiagnosticsToStringScope scope(context);
+            // Convert sequence to llvm::ArrayRef
+            std::vector<int64_t> valueVec;
+            valueVec.reserve(len(values));
+            for (nb::handle item : values)
+                valueVec.push_back(nb::cast<int64_t>(item));
+
+            MlirAttribute attr = mlirMatchRuleAttrGet(context, valueVec, index);
+            if (mlirAttributeIsNull(attr))
+                throw nb::value_error(scope.takeMessage().c_str());
+            return cls(attr);
+        },
+        nb::arg("cls"),
+        nb::arg("context").none() = nb::none(),
+        nb::arg("values"),
+        nb::arg("index"));
 }
 
 NB_MODULE(_mlirDialectsRVSDG, m)

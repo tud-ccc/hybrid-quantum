@@ -18,6 +18,7 @@ from functools import reduce
 
 from mlir._mlir_libs._mlirDialectsQILLR import QubitType
 from mlir._mlir_libs._mlirDialectsQILLR import qillr as qillrdialect
+from mlir._mlir_libs._mlirDialectsRVSDG import rvsdg as rvsdgdialect
 from mlir.dialects import arith, func, qillr, scf
 from mlir.dialects.builtin import Block, IntegerType
 from mlir.ir import Context, F64Type, InsertionPoint, Location, Module, StringAttr, TypeAttr, Value
@@ -337,7 +338,6 @@ class QASMToMLIRVisitor:
             hasElse: bool = false_body is not None
 
             ifOp: scf.IfOp = scf.IfOp(condition, hasElse=hasElse, ip=InsertionPoint(self.block))
-
             thenVisitor = QASMToMLIRVisitor.fromParent(self, block=ifOp.then_block)
             thenVisitor.visitCircuit(true_body)
             scf.YieldOp(results_=[], ip=InsertionPoint(ifOp.then_block))
@@ -422,6 +422,7 @@ def QASMToMLIR(code: str) -> Module:
     context: Context = Context()
     context.allow_unregistered_dialects = True
     qillrdialect.register_dialect(context)
+    rvsdgdialect.register_dialect(context)
 
     with context:
         location: Location = Location.unknown()
