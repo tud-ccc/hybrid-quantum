@@ -18,6 +18,7 @@
 #include "quantum-mlir/Dialect/RVSDG/IR/RVSDGTypes.h"
 
 #include <cstddef>
+#include <iterator>
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/ADT/SetVector.h>
@@ -73,6 +74,7 @@ void copyIfRegion(
     llvm::SetVector<Value> &capturedValues,
     RewriterBase &rewriter)
 {
+    // Map captured values to their block argument value
     IRMapping mapping;
     for (auto [in, use] :
          llvm::zip_equal(capturedValues, target.getArguments())) {
@@ -80,11 +82,33 @@ void copyIfRegion(
     }
     rewriter.setInsertionPointToStart(&target.front());
     region.front().walk([&](Operation* op) {
+        // Rewrite the YieldOp:
         if (llvm::isa<scf::YieldOp>(op)) {
             llvm::SetVector<Value> newYields;
-            for (auto yieldedValue : op->getOperands())
-                newYields.insert(mapping.lookup(yieldedValue));
-            for (auto arg : target.getArguments()) newYields.insert(arg);
+            for (auto yieldedValue : op->getOperands()) {
+                // If value is yielded from outside the IfOp then rewrite it
+                // to yield the value from the block argument
+                if (llvm::is_contained(capturedValues, yieldedValue)) {
+                    newYields.insert(mapping.lookup(yieldedValue));
+                } else {
+                    // The Value was created inside the region. Yield it from
+                    // the cloned op.
+                    newYields.insert(mapping.lookup(yieldedValue));
+                }
+            }
+
+            // Add the following block arguments to the yield
+            for (auto arg : target.getArguments())
+                // If it was not already yielded
+                if (!llvm::is_contained(newYields, arg)
+                    // and is not a qubit type
+                    && (!llvm::isa<quantum::QubitType>(arg.getType())
+                        // or it is a qubit type but not used within the block
+                        || std::distance(
+                               arg.getUses().begin(),
+                               arg.getUses().end())
+                               == 0))
+                    newYields.insert(arg);
             rewriter.create<rvsdg::YieldOp>(
                 op->getLoc(),
                 newYields.takeVector());
@@ -137,7 +161,7 @@ struct TransformScfIfOp : public OpConversionPattern<scf::IfOp> {
             // We only have to add results when they are not a
             // quantum::QuantumType or already returned
             if (!llvm::isa<quantum::QubitType>(captured.getType())
-                || !llvm::is_contained(op.getResults(), captured)) {
+                && !llvm::is_contained(op.getResults(), captured)) {
                 additionalValues.emplace_back(captured);
                 outputTypes.emplace_back(captured.getType());
             }
