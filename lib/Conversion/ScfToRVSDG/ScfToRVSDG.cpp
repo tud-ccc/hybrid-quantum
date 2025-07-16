@@ -32,6 +32,7 @@
 #include <mlir/IR/Attributes.h>
 #include <mlir/IR/BuiltinAttributes.h>
 #include <mlir/IR/BuiltinTypes.h>
+#include <mlir/IR/Dominance.h>
 #include <mlir/IR/IRMapping.h>
 #include <mlir/IR/PatternMatch.h>
 #include <mlir/IR/Value.h>
@@ -131,11 +132,13 @@ struct TransformScfIfOp : public OpConversionPattern<scf::IfOp> {
 
         // outputTypes = original outputs + captured values that are changed
         llvm::SmallVector<Type> outputTypes(op.getResultTypes());
+        llvm::SmallVector<Value> additionalValues;
         for (auto captured : capturedValues) {
             // We only have to add results when they are not a
             // quantum::QuantumType or already returned
             if (!llvm::isa<quantum::QubitType>(captured.getType())
                 || !llvm::is_contained(op.getResults(), captured)) {
+                additionalValues.emplace_back(captured);
                 outputTypes.emplace_back(captured.getType());
             }
         }
@@ -178,13 +181,25 @@ struct TransformScfIfOp : public OpConversionPattern<scf::IfOp> {
                 rewriter);
         }
 
+        size_t numResults = op->getNumResults();
         // Replace all original op result uses with the new results
-        for (size_t i = 0; i < op->getNumResults(); ++i) {
+        for (size_t i = 0; i < numResults; ++i) {
             rewriter.replaceAllUsesWith(
                 op->getResult(i),
                 gammaOp->getResult(i));
         }
-
+        DominanceInfo dom;
+        // Replace all new op results with the captured values
+        for (size_t i = 0; i < additionalValues.size(); ++i) {
+            rewriter.replaceUsesWithIf(
+                additionalValues[i],
+                gammaOp->getResult(i + numResults),
+                [&](OpOperand &operand) {
+                    return operand.getOwner() != op
+                           && operand.getOwner()->getParentOp() != op
+                           && dom.dominates(op, operand.getOwner());
+                });
+        }
         rewriter.eraseOp(op);
         return success();
     }
@@ -215,7 +230,7 @@ void ConvertScfToRVSDGPass::runOnOperation()
     converter.addConversion([](Type type) { return type; });
 
     target.addLegalDialect<rvsdg::RVSDGDialect>();
-    target.markUnknownOpDynamicallyLegal([](Operation* op) { return true; });
+    target.markUnknownOpDynamicallyLegal([](Operation*) { return true; });
     // TODO: In general we could set scf::IfOp illegal and transform *every*
     // scf.if to rvsdg.gamma. For now just do it to those that use QubitType
     target.addDynamicallyLegalOp<scf::IfOp>([](scf::IfOp op) {
@@ -229,6 +244,7 @@ void ConvertScfToRVSDGPass::runOnOperation()
             usedValues);
         return usedValues.empty();
     });
+
     populateConvertScfToRVSDGPatterns(converter, patterns);
 
     if (failed(applyPartialConversion(

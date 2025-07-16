@@ -16,7 +16,7 @@ func.func @if_to_rvsdg_gamma_qillr(%b : i1, %q : !qillr.qubit) -> (!qillr.qubit)
   // CHECK-NEXT:     rvsdg.yield (%[[Q2]]: !qillr.qubit)
   // CHECK-NEXT:   }
   // CHECK-NEXT: ] -> !qillr.qubit
-  // CHECK: return %[[Q]]
+  // CHECK: return %[[QR]]
   return %q : !qillr.qubit
 }
 
