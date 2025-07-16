@@ -1,3 +1,4 @@
 add_subdirectory(QuantumToQILLR)
 add_subdirectory(QILLRToQuantum)
 add_subdirectory(QILLRToLLVM)
+add_subdirectory(ScfToRVSDG)

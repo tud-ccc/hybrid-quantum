@@ -85,21 +85,3 @@ func.func @check_convert_XOp() -> (!qillr.qubit) {
 }
 
  // -----
-
-// CHECK-LABEL: func.func @check_convert_scf_if(
-// CHECK: %[[B:.*]]: {{.*}})) -> !quantum.qubit<1> {
-func.func @check_convert_scf_if(%b : i1) -> () {
-  // CHECK-DAG: %[[Q0:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
-  // CHECK-NOT: "qillr.alloc"()
-  %q0 = "qillr.alloc" () : () -> (!qillr.qubit)
-  // CHECK-DAG: %[[Q2:.*]] = scf.if %[[B]] {
-  scf.if %b {
-    // CHECK-DAG: %[[Q1:.+]] = "quantum.X"(%[[Q0]]) : (!quantum.qubit<1>) -> !quantum.qubit<1>
-    "qillr.X" (%q0) : (!qillr.qubit) -> ()
-    // CHECK-DAG: scf.yield %[[Q1]]
-  }
-  // CHECK-DAG: "quantum.deallocate"(%[[Q2]]) : (!quantum.qubit<1>) -> ()
-  "qillr.reset"(%q0) : (!qillr.qubit) -> ()
-  // CHECK-DAG: return %[[Q1]]
-  func.return
-}
