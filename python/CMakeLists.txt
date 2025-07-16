@@ -108,6 +108,8 @@ add_mlir_python_modules(QILLRPythonModules
   INSTALL_PREFIX "python_packages/quantum-mlir/mlir"
   DECLARED_SOURCES
     QILLRPythonSources
+    MLIRPythonExtension.RegisterEverything
+    MLIRPythonSources
   COMMON_CAPI_LINK_LIBS
     QILLRPythonCAPI
 )
