@@ -14,6 +14,7 @@
 #include "quantum-mlir/Dialect/QILLR/IR/QILLR.h"
 #include "quantum-mlir/Dialect/QPU/IR/QPU.h"
 #include "quantum-mlir/Dialect/Quantum/IR/Quantum.h"
+#include "quantum-mlir/Dialect/RVSDG/IR/RVSDGBase.h"
 
 using namespace mlir;
 
@@ -22,11 +23,13 @@ int main(int argc, char* argv[])
     DialectRegistry registry;
     registerAllDialects(registry);
 
+    registry.insert<rvsdg::RVSDGDialect>();
     registry.insert<quantum::QuantumDialect>();
     registry.insert<qpu::QPUDialect>();
     registry.insert<qillr::QILLRDialect>();
 
     registerAllPasses();
+    // rvsdg::registerAllPasses();
     qpu::registerQPUPasses();
     quantum::registerQuantumPasses();
     quantum::registerConversionPasses();

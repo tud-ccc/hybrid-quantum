@@ -28,6 +28,7 @@ set(TEST_DEPENDS
     quantum-opt
     quantum-translate
     MLIRCAPIQILLR
+    MLIRCAPIRVSDG
 )
 
 # Create the test suite.

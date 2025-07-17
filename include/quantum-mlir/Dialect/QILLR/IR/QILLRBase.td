@@ -25,11 +25,17 @@ def QILLR_Dialect : Dialect {
     let useDefaultTypePrinterParser = 1;
     //let useFoldAPI = kEmitFoldAdaptorFolder;
 
+    let dependentDialects = [
+        "mlir::quantum::QuantumDialect",
+        "mlir::tensor::TensorDialect",
+        "mlir::scf::SCFDialect"
+    ];
 
     code extraClassDeclaration = [{
     private:
         void registerOps();
         void registerTypes();
+        void registerAttributes();
     }];
 }
 

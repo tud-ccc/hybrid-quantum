@@ -41,8 +41,25 @@ def ConvertQILLRToQuantum : Pass<"lift-qillr-to-quantum"> {
     let dependentDialects = [
         "quantum::QuantumDialect",
         "qillr::QILLRDialect",
-        "tensor::TensorDialect"
+        "mlir::tensor::TensorDialect",
+        "mlir::scf::SCFDialect"
     ];
+}
+
+def ConvertScfToRVSDG : Pass<"convert-scf-to-rvsdg"> {
+  let summary = "Transform `scf.if` and `scf.for` to RVSDG variants of the rvsdg dialect.";
+
+  let description = [{
+    This pass transforms structured control flow to the regionalized value state dependence
+    graph (RVSDG) dialect.
+  }];
+
+  let constructor = "mlir::createConvertScfToRVSDGPass()";
+
+  let dependentDialects = [
+    "scf::SCFDialect",
+    "rvsdg::RVSDGDialect"
+  ];
 }
 
 #endif // QUANTUM_MLIR_CONVERSION_PASSES

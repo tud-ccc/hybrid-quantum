@@ -5,6 +5,7 @@
 
 #include "quantum-mlir/Conversion/QILLRToQuantum/QILLRToQuantum.h"
 
+#include "mlir/Dialect/SCF/IR/SCFOpsDialect.h.inc"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"

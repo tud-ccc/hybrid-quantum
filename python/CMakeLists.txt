@@ -24,6 +24,17 @@ declare_mlir_dialect_python_bindings(
   DIALECT_NAME qillr
 )
 
+declare_mlir_python_sources(RVSDGPythonSources)
+
+declare_mlir_dialect_python_bindings(
+  ADD_TO_PARENT RVSDGPythonSources
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
+  TD_FILE dialects/RVSDGOps.td
+  SOURCES
+    dialects/rvsdg.py
+  DIALECT_NAME rvsdg
+)
+
 ################################################################################
 # Python extensions.
 # The sources for these are all in lib/Bindings/Python, but since they have to
@@ -46,6 +57,20 @@ declare_mlir_python_extension(QILLRPythonSources.NanobindExtension
   EMBED_CAPI_LINK_LIBS
     MLIRCAPIIR
     MLIRCAPIQILLR
+)
+
+declare_mlir_python_extension(RVSDGPythonSources.NanobindExtension
+  MODULE_NAME _mlirDialectsRVSDG
+  ADD_TO_PARENT RVSDGPythonSources
+  ROOT_DIR "${PYTHON_SOURCE_DIR}"
+  PYTHON_BINDINGS_LIBRARY nanobind
+  SOURCES
+    DialectRVSDG.cpp
+  PRIVATE_LINK_LIBS
+    LLVMSupport
+  EMBED_CAPI_LINK_LIBS
+    MLIRCAPIIR
+    MLIRCAPIRVSDG
 )   
 
 ################################################################################
@@ -63,6 +88,17 @@ add_mlir_python_common_capi_library(QILLRPythonCAPI
     MLIRPythonSources.Core
 )
 
+add_mlir_python_common_capi_library(RVSDGPythonCAPI
+  INSTALL_COMPONENT RVSDGPythonModules
+  INSTALL_DESTINATION python_packages/quantum-mlir/mlir/_mlir_libs
+  OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python_packages/quantum-mlir/mlir/_mlir_libs"
+  RELATIVE_INSTALL_ROOT "../../../.."
+  DECLARED_SOURCES
+    RVSDGPythonSources
+    MLIRPythonExtension.RegisterEverything
+    MLIRPythonSources.Core
+)
+
 ################################################################################
 # Instantiation of all Python modules
 ################################################################################
@@ -76,4 +112,13 @@ add_mlir_python_modules(QILLRPythonModules
     MLIRPythonSources
   COMMON_CAPI_LINK_LIBS
     QILLRPythonCAPI
+)
+
+add_mlir_python_modules(RVSDGPythonModules
+  ROOT_PREFIX "${CMAKE_BINARY_DIR}/python_packages/quantum-mlir/mlir"
+  INSTALL_PREFIX "python_packages/quantum-mlir/mlir"
+  DECLARED_SOURCES
+    RVSDGPythonSources
+  COMMON_CAPI_LINK_LIBS
+    RVSDGPythonCAPI
 )

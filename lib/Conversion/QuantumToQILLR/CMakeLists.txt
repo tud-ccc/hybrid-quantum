@@ -12,4 +12,5 @@ add_mlir_conversion_library(QuantumToQILLR
         MLIRTransformUtils
         QuantumIR
         QILLRIR
+        MLIRIR
 )

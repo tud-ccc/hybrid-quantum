@@ -12,6 +12,7 @@ add_mlir_dialect_library(QILLRIR
         MLIRFunctionInterfaces
         MLIRInferTypeOpInterface
         MLIRIR
+        QuantumIR
         MLIRParser
         MLIRSideEffectInterfaces
         MLIRControlFlowInterfaces
