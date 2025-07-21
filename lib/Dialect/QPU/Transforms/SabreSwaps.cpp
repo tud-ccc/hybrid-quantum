@@ -9,10 +9,12 @@
 #include "quantum-mlir/Dialect/QPU/IR/QPUOps.h"
 #include "quantum-mlir/Dialect/QPU/IR/QPUTypes.h"
 #include "quantum-mlir/Dialect/QPU/Transforms/Passes.h"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h"
 
 using namespace mlir;
 using namespace mlir::qpu;
-// using namespace mlir::quantum;
+using namespace mlir::quantum;
 
 //===- Generated includes -------------------------------------------------===//
 
@@ -37,9 +39,17 @@ struct SabreSwapPass : mlir::qpu::impl::SabreSwapBase<SabreSwapPass> {
 
 void SabreSwapPass::runOnOperation()
 {
-    Operation* module = getOperation();
+    QPUModuleOp module = getOperation();
+
+    if (!module->getAttr("targets")) {
+        module.emitWarning("No QPU target specified; skipping pass");
+        return;
+    }
+
+    mlir::OpBuilder builder(&getContext());
+    // Run analysis
     SabreSwapAnalysis analysis(module);
-    OpBuilder builder(&getContext());
+    if (failed(analysis.apply(builder))) signalPassFailure();
 }
 
 std::unique_ptr<Pass> mlir::qpu::createSabreSwapPass()
