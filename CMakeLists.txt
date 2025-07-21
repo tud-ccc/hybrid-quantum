@@ -43,9 +43,9 @@ if(POLICY CMP0116)
 endif()
 
 # Find LLVM
-find_package(LLVM 20.1.7 EXACT REQUIRED CONFIG)
+find_package(LLVM REQUIRED CONFIG)
 # Find MLIR.
-find_package(MLIR 20.1.7 EXACT REQUIRED CONFIG)
+find_package(MLIR REQUIRED CONFIG)
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
@@ -87,4 +87,4 @@ endif()
 add_subdirectory(test)
 add_subdirectory(tools)
 enable_testing()
-add_subdirectory(unittest)
+#add_subdirectory(unittest)

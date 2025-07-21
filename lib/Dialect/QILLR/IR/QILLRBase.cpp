@@ -6,7 +6,7 @@
 #include "quantum-mlir/Dialect/QILLR/IR/QILLRBase.h"
 
 #include "mlir/Dialect/SCF/IR/SCF.h"
-#include "mlir/Dialect/tensor/IR/Tensor.h"
+#include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "quantum-mlir/Dialect/QILLR/IR/QILLRBase.h"
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumBase.h"
 

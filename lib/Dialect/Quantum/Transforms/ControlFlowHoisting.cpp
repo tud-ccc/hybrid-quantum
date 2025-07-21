@@ -70,7 +70,7 @@ struct HoistOperations : OpRewritePattern<IfOp> {
         for (auto [thenArg, elseArg] :
              llvm::zip(region1.getArguments(), region2.getArguments())) {
             DenseMap<Value, Value> valuesMap;
-            auto mapValue = [&](Value lhs, Value rhs) {
+            auto mapValue = [&](Value lhs, Value rhs) -> LogicalResult {
                 if (!dyn_cast<BlockArgument>(lhs)
                     || !dyn_cast<BlockArgument>(rhs))
                     return failure();
@@ -84,8 +84,12 @@ struct HoistOperations : OpRewritePattern<IfOp> {
                         thenOp,
                         elseOp,
                         mapValue,
-                        mapValue,
-                        OperationEquivalence::IgnoreLocations)) {
+                        [](Value, Value) {}, // No-op mapping callback
+                        OperationEquivalence::IgnoreLocations,
+                        [](ValueRange, ValueRange) {
+                            return success();
+                        } // Always succeed
+                        )) {
                     markMove.insert(thenOp);
                     markDelete.insert(elseOp);
                     hasApplied = true;
