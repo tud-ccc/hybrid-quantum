@@ -90,54 +90,6 @@ struct QILLRToQuantumOpConversionPattern : OpConversionPattern<Op> {
     {}
 };
 
-struct ConvertFuncFunc
-        : public QILLRToQuantumOpConversionPattern<func::FuncOp> {
-    using QILLRToQuantumOpConversionPattern::QILLRToQuantumOpConversionPattern;
-
-    LogicalResult matchAndRewrite(
-        func::FuncOp op,
-        func::FuncOpAdaptor adaptor,
-        ConversionPatternRewriter &rewriter) const override
-    {
-        auto ftype = op.getFunctionType();
-
-        auto genFuncTy = typeConverter->convertType(ftype);
-        auto genFunc = rewriter.create<func::FuncOp>(
-            op->getLoc(),
-            op.getSymName(),
-            llvm::dyn_cast<FunctionType>(genFuncTy));
-
-        if (!op.isExternal()) {
-            rewriter.inlineRegionBefore(
-                adaptor.getBody(),
-                genFunc.getBody(),
-                genFunc.end());
-        }
-        rewriter.replaceOp(op, genFunc);
-
-        return success();
-    }
-}; // struct ConvertFunc
-
-struct ConvertFuncReturn
-        : public QILLRToQuantumOpConversionPattern<func::ReturnOp> {
-    using QILLRToQuantumOpConversionPattern::QILLRToQuantumOpConversionPattern;
-
-    LogicalResult matchAndRewrite(
-        func::ReturnOp op,
-        func::ReturnOpAdaptor adaptor,
-        ConversionPatternRewriter &rewriter) const override
-    {
-        SmallVector<Value> inputs;
-        for (auto operand : adaptor.getOperands())
-            inputs.emplace_back(mapping->lookup(operand));
-
-        rewriter.create<func::ReturnOp>(op->getLoc(), inputs);
-        rewriter.eraseOp(op);
-        return success();
-    }
-}; // struct ConvertReturn
-
 struct ConvertAlloc : public QILLRToQuantumOpConversionPattern<qillr::AllocOp> {
     using QILLRToQuantumOpConversionPattern::QILLRToQuantumOpConversionPattern;
 
@@ -661,17 +613,6 @@ void ConvertQILLRToQuantumPass::runOnOperation()
     typeConverter.addConversion([](qillr::QubitType ty) {
         return quantum::QubitType::get(ty.getContext(), 1);
     });
-    typeConverter.addConversion([&](FunctionType fty) {
-        llvm::SmallVector<Type> argTypes, resTypes;
-
-        for (auto ins : fty.getInputs())
-            argTypes.push_back(typeConverter.convertType(ins));
-
-        for (auto res : fty.getResults())
-            resTypes.push_back(typeConverter.convertType(res));
-
-        return FunctionType::get(fty.getContext(), argTypes, resTypes);
-    });
 
     qillr::populateConvertQILLRToQuantumPatterns(
         typeConverter,
@@ -680,17 +621,7 @@ void ConvertQILLRToQuantumPass::runOnOperation()
 
     target.addIllegalDialect<qillr::QILLRDialect>();
     target.addLegalDialect<quantum::QuantumDialect>();
-    target.addDynamicallyLegalOp<func::FuncOp>([&](func::FuncOp op) {
-        return typeConverter.isLegal(op.getFunctionType());
-    });
-    target.addDynamicallyLegalOp<func::ReturnOp>([&](func::ReturnOp op) {
-        auto types = op.getOperandTypes();
-        bool legal = true;
-        std::for_each(types.begin(), types.end(), [&](auto ty) {
-            legal &= typeConverter.isLegal(ty);
-        });
-        return legal;
-    });
+    target.markUnknownOpDynamicallyLegal([](Operation*) { return true; });
 
     if (failed(applyPartialConversion(
             getOperation(),
@@ -705,8 +636,6 @@ void mlir::qillr::populateConvertQILLRToQuantumPatterns(
     IRMapping &mapping)
 {
     patterns.add<
-        ConvertFuncFunc,
-        ConvertFuncReturn,
         ConvertAlloc,
         ConvertSwap,
         ConvertResultAlloc,

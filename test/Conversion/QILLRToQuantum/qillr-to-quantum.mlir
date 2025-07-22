@@ -72,16 +72,14 @@ func.func @complete_example() -> (tensor<1xi1>) {
 
  // -----
 
-// CHECK-LABEL: func.func @check_convert_XOp(
-// CHECK: ) -> !quantum.qubit<1> {
-func.func @check_convert_XOp() -> (!qillr.qubit) {
-  // CHECK-DAG: %[[Q0:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
-  // CHECK-NOT: "qillr.alloc"()
-  %q0 = "qillr.alloc" () : () -> (!qillr.qubit)
-  // CHECK-DAG: %[[Q1:.+]] = "quantum.X"(%[[Q0]]) : (!quantum.qubit<1>) -> !quantum.qubit<1>
-  "qillr.X" (%q0) : (!qillr.qubit) -> ()
-  // CHECK-DAG: return %[[Q1]]
-  func.return %q0 : !qillr.qubit
-}
+// CHECK: "quantum.gate"() <{function_type = (!quantum.qubit<1>) -> !quantum.qubit<1>, sym_name = "check_convert_XOp"}> ({
+"qillr.gate"() <{function_type = (!qillr.qubit) -> (), sym_name = "check_convert_XOp"}> ({
+  // CHECK-NEXT: ^bb0(%[[Q0:.+]]: !quantum.qubit<1>):
+  ^bb0(%q0: !qillr.qubit):
+    // CHECK-DAG: %[[Q1:.+]] = "quantum.X"(%[[Q0]]) : (!quantum.qubit<1>) -> !quantum.qubit<1>
+    "qillr.X" (%q0) : (!qillr.qubit) -> ()
+    // CHECK-DAG: "quantum.return"(%[[Q1]]) : (!quantum.qubit<1>) -> ()
+    "qillr.return"() : () -> ()
+}) : () -> ()
 
  // -----
