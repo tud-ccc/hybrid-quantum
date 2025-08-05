@@ -12,6 +12,7 @@
 #include "quantum-mlir/Dialect/QILLR/IR/QILLRBase.h"
 #include "quantum-mlir/Dialect/QILLR/IR/QILLROps.h"
 #include "quantum-mlir/Dialect/QILLR/IR/QILLRTypes.h"
+#include "quantum-mlir/Dialect/QQT/IR/QQT.h"
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumBase.h"
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h"
@@ -39,7 +40,7 @@
 #include <optional>
 
 using namespace mlir;
-using namespace mlir::qillr;
+using namespace mlir::qqt;
 
 //===- Generated includes -------------------------------------------------===//
 
@@ -94,8 +95,8 @@ struct ConvertAlloc : public QILLRToQuantumOpConversionPattern<qillr::AllocOp> {
     using QILLRToQuantumOpConversionPattern::QILLRToQuantumOpConversionPattern;
 
     LogicalResult matchAndRewrite(
-        AllocOp op,
-        AllocOpAdaptor adaptor,
+        qillr::AllocOp op,
+        qillr::AllocOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
         auto allocOp = rewriter.replaceOpWithNewOp<quantum::AllocOp>(
@@ -111,8 +112,8 @@ struct ConvertResultAlloc
     using QILLRToQuantumOpConversionPattern::QILLRToQuantumOpConversionPattern;
 
     LogicalResult matchAndRewrite(
-        AllocResultOp op,
-        AllocResultOpAdaptor adaptor,
+        qillr::AllocResultOp op,
+        qillr::AllocResultOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
         // We do not have a representation for result registers in Quantum
@@ -439,8 +440,8 @@ struct ConvertReset : public QILLRToQuantumOpConversionPattern<qillr::ResetOp> {
     using QILLRToQuantumOpConversionPattern::QILLRToQuantumOpConversionPattern;
 
     LogicalResult matchAndRewrite(
-        ResetOp op,
-        ResetOpAdaptor adaptor,
+        qillr::ResetOp op,
+        qillr::ResetOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
         auto in = mapping->lookup(adaptor.getInput());
@@ -454,8 +455,8 @@ struct ConvertMeasure
     using QILLRToQuantumOpConversionPattern::QILLRToQuantumOpConversionPattern;
 
     LogicalResult matchAndRewrite(
-        MeasureOp op,
-        MeasureOpAdaptor adaptor,
+        qillr::MeasureOp op,
+        qillr::MeasureOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
         auto input = mapping->lookup(adaptor.getInput());
@@ -491,8 +492,8 @@ struct ConvertReadMeasurement
     using QILLRToQuantumOpConversionPattern::QILLRToQuantumOpConversionPattern;
 
     LogicalResult matchAndRewrite(
-        ReadMeasurementOp op,
-        ReadMeasurementOpAdaptor adaptor,
+        qillr::ReadMeasurementOp op,
+        qillr::ReadMeasurementOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
         return op->emitOpError(
@@ -504,8 +505,8 @@ struct ConvertGateOp : public QILLRToQuantumOpConversionPattern<qillr::GateOp> {
     using QILLRToQuantumOpConversionPattern::QILLRToQuantumOpConversionPattern;
 
     LogicalResult matchAndRewrite(
-        GateOp op,
-        GateOpAdaptor adaptor,
+        qillr::GateOp op,
+        qillr::GateOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
         SmallVector<Type> types;
@@ -547,8 +548,8 @@ struct ConvertGateReturnOp
     using QILLRToQuantumOpConversionPattern::QILLRToQuantumOpConversionPattern;
 
     LogicalResult matchAndRewrite(
-        ReturnOp op,
-        ReturnOpAdaptor adaptor,
+        qillr::ReturnOp op,
+        qillr::ReturnOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
         auto gate = op->getParentOfType<quantum::GateOp>();
@@ -569,8 +570,8 @@ struct ConvertGateCallOp
     using QILLRToQuantumOpConversionPattern::QILLRToQuantumOpConversionPattern;
 
     LogicalResult matchAndRewrite(
-        GateCallOp op,
-        GateCallOpAdaptor adaptor,
+        qillr::GateCallOp op,
+        qillr::GateCallOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
         SmallVector<Value> args;
@@ -614,7 +615,7 @@ void ConvertQILLRToQuantumPass::runOnOperation()
         return quantum::QubitType::get(ty.getContext(), 1);
     });
 
-    qillr::populateConvertQILLRToQuantumPatterns(
+    qqt::populateConvertQILLRToQuantumPatterns(
         typeConverter,
         patterns,
         mapping);
@@ -630,7 +631,7 @@ void ConvertQILLRToQuantumPass::runOnOperation()
         return signalPassFailure();
 }
 
-void mlir::qillr::populateConvertQILLRToQuantumPatterns(
+void mlir::qqt::populateConvertQILLRToQuantumPatterns(
     TypeConverter &typeConverter,
     RewritePatternSet &patterns,
     IRMapping &mapping)

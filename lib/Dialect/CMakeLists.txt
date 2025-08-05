@@ -1,4 +1,5 @@
 add_subdirectory(Quantum)
 add_subdirectory(QILLR)
 add_subdirectory(QPU)
+add_subdirectory(QQT)
 add_subdirectory(RVSDG)

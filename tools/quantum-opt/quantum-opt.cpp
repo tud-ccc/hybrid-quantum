@@ -1,8 +1,6 @@
 /// Main entry point for the quantum-mlir optimizer driver.
 ///
 /// @file
-/// @author      Karl F. A. Friebel (karl.friebel@tu-dresden.de)
-/// @author      Clément Fournier (clement.fournier@tu-dresden.de)
 /// @author      Lars Schütze (lars.schuetze@tu-dresden.de)
 
 #include "mlir/IR/Dialect.h"
@@ -13,8 +11,9 @@
 #include "quantum-mlir/Conversion/Passes.h"
 #include "quantum-mlir/Dialect/QILLR/IR/QILLR.h"
 #include "quantum-mlir/Dialect/QPU/IR/QPU.h"
+#include "quantum-mlir/Dialect/QQT/IR/QQT.h"
 #include "quantum-mlir/Dialect/Quantum/IR/Quantum.h"
-#include "quantum-mlir/Dialect/RVSDG/IR/RVSDGBase.h"
+#include "quantum-mlir/Dialect/RVSDG/IR/RVSDG.h"
 
 using namespace mlir;
 
@@ -27,6 +26,7 @@ int main(int argc, char* argv[])
     registry.insert<quantum::QuantumDialect>();
     registry.insert<qpu::QPUDialect>();
     registry.insert<qillr::QILLRDialect>();
+    registry.insert<qqt::QQTDialect>();
 
     registerAllPasses();
     // rvsdg::registerAllPasses();

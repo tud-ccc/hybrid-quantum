@@ -14,14 +14,14 @@ namespace mlir {
 
 //===----------------------------------------------------------------------===//
 
-namespace qillr {
+namespace qqt {
 
 void populateConvertQILLRToQuantumPatterns(
     TypeConverter &typeConverter,
     RewritePatternSet &patterns,
     IRMapping &mapping);
 
-} // namespace qillr
+} // namespace qqt
 
 std::unique_ptr<Pass> createConvertQILLRToQuantumPass();
 
