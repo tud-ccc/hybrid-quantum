@@ -12,7 +12,6 @@
 #include "quantum-mlir/Dialect/QILLR/IR/QILLRBase.h"
 #include "quantum-mlir/Dialect/QILLR/IR/QILLROps.h"
 #include "quantum-mlir/Dialect/QILLR/IR/QILLRTypes.h"
-#include "quantum-mlir/Dialect/QQT/IR/QQT.h"
 #include "quantum-mlir/Dialect/QQT/IR/QQTBase.h"
 #include "quantum-mlir/Dialect/QQT/IR/QQTOps.h"
 #include "quantum-mlir/Dialect/QQT/IR/QQTTypes.h"
@@ -20,7 +19,6 @@
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h"
 
-#include <algorithm>
 #include <cstddef>
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/ADT/DenseMap.h>
@@ -40,7 +38,6 @@
 #include <mlir/IR/Value.h>
 #include <mlir/IR/ValueRange.h>
 #include <mlir/Support/LogicalResult.h>
-#include <optional>
 
 using namespace mlir;
 using namespace mlir::qqt;
@@ -57,22 +54,6 @@ namespace mlir {
 //===----------------------------------------------------------------------===//
 
 namespace {
-
-Value getLastUsage(Value value)
-{
-    mlir::Value current = value;
-
-    while (true) {
-        auto uses = current.getUses();
-        auto it = uses.begin();
-        if (it == uses.end()) return current;
-
-        auto &operand = *it;
-        auto user = operand.getOwner();
-        unsigned operandIndex = operand.getOperandNumber();
-        current = user->getResult(operandIndex);
-    }
-}
 
 struct ConvertQILLRToQuantumPass
         : mlir::impl::ConvertQILLRToQuantumBase<ConvertQILLRToQuantumPass> {
@@ -146,8 +127,8 @@ struct ConvertSwap : public QILLRToQuantumOpConversionPattern<qillr::SwapOp> {
         qillr::SwapOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        Value lhsRef = mapping->lookup(adaptor.getLhs());
-        Value rhsRef = mapping->lookup(adaptor.getRhs());
+        Value lhsRef = mapping->lookup(op.getLhs());
+        Value rhsRef = mapping->lookup(op.getRhs());
         auto loadLhsOp = rewriter.create<qqt::LoadOp>(
             op->getLoc(),
             quantum::QubitType::get(getContext(), 1),
@@ -186,10 +167,22 @@ struct ConvertRotation : public QILLRToQuantumOpConversionPattern<SourceOp> {
         OpConversionPattern<SourceOp>::OpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        auto input = this->mapping->lookup(adaptor.getInput());
-        auto genOp =
-            rewriter.create<TargetOp>(op.getLoc(), input, adaptor.getAngle());
-        this->mapping->map(adaptor.getInput(), genOp.getResult());
+        auto qubitRef = this->mapping->lookup(op.getInput());
+        auto loadOp = rewriter.create<qqt::LoadOp>(
+            op->getLoc(),
+            quantum::QubitType::get(this->getContext(), 1),
+            qubitRef);
+
+        auto genOp = rewriter.create<TargetOp>(
+            op.getLoc(),
+            loadOp.getResult(),
+            adaptor.getAngle());
+
+        rewriter.create<qqt::StoreOp>(
+            op->getLoc(),
+            genOp.getResult(),
+            qubitRef);
+
         rewriter.eraseOp(op);
         return success();
     }
@@ -205,56 +198,62 @@ struct ConvertUnaryOp : public QILLRToQuantumOpConversionPattern<SourceOp> {
         OpConversionPattern<SourceOp>::OpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        auto input = this->mapping->lookup(adaptor.getInput());
+        auto qubitRef = this->mapping->lookup(op.getInput());
         auto loadOp = rewriter.create<qqt::LoadOp>(
             op.getLoc(),
             quantum::QubitType::get(this->getContext(), 1),
-            input);
+            qubitRef);
 
         auto genOp = rewriter.create<TargetOp>(op.getLoc(), loadOp.getResult());
 
-        rewriter.create<qqt::StoreOp>(op.getLoc(), genOp.getResult(), input);
+        rewriter.create<qqt::StoreOp>(op.getLoc(), genOp.getResult(), qubitRef);
 
         rewriter.eraseOp(op);
         return success();
     }
 }; // struct ConvertUnaryOp
 
-struct ConvertCNOT : public QILLRToQuantumOpConversionPattern<qillr::CNOTOp> {
-    using QILLRToQuantumOpConversionPattern::QILLRToQuantumOpConversionPattern;
+template<typename ControledSourceOp, typename ControledTargetOp>
+struct ConvertControledOp
+        : public QILLRToQuantumOpConversionPattern<ControledSourceOp> {
+    using QILLRToQuantumOpConversionPattern<
+        ControledSourceOp>::QILLRToQuantumOpConversionPattern;
 
     LogicalResult matchAndRewrite(
-        qillr::CNOTOp op,
-        qillr::CNOTOpAdaptor adaptor,
+        ControledSourceOp op,
+        OpConversionPattern<ControledSourceOp>::OpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        auto ctrl = mapping->lookup(adaptor.getControl());
-        auto tgt = mapping->lookup(adaptor.getTarget());
-        auto cxOp = rewriter.create<quantum::CNOTOp>(op.getLoc(), ctrl, tgt);
-        mapping->map(adaptor.getControl(), cxOp.getControlOut());
-        mapping->map(adaptor.getTarget(), cxOp.getTargetOut());
+        auto controlRef = this->mapping->lookup(op.getControl());
+        auto targetRef = this->mapping->lookup(op.getTarget());
+
+        auto loadControlOp = rewriter.create<qqt::LoadOp>(
+            op->getLoc(),
+            quantum::QubitType::get(this->getContext(), 1),
+            controlRef);
+        auto loadTargetOp = rewriter.create<qqt::LoadOp>(
+            op->getLoc(),
+            quantum::QubitType::get(this->getContext(), 1),
+            targetRef);
+
+        auto cxOp = rewriter.create<ControledTargetOp>(
+            op.getLoc(),
+            loadControlOp.getResult(),
+            loadTargetOp.getResult());
+
+        rewriter.create<qqt::StoreOp>(
+            op->getLoc(),
+            cxOp.getControlOut(),
+            controlRef);
+        rewriter.create<qqt::StoreOp>(
+            op->getLoc(),
+            cxOp.getTargetOut(),
+            targetRef);
 
         rewriter.eraseOp(op);
         return success();
     }
 };
-
-struct ConvertCZ : public QILLRToQuantumOpConversionPattern<qillr::CZOp> {
-    using QILLRToQuantumOpConversionPattern::QILLRToQuantumOpConversionPattern;
-    LogicalResult matchAndRewrite(
-        qillr::CZOp op,
-        qillr::CZOpAdaptor adaptor,
-        ConversionPatternRewriter &rewriter) const override
-    {
-        auto ctrl = mapping->lookup(adaptor.getControl());
-        auto tgt = mapping->lookup(adaptor.getTarget());
-        auto czOp = rewriter.create<quantum::CZOp>(op.getLoc(), ctrl, tgt);
-        mapping->map(adaptor.getControl(), czOp.getControlOut());
-        mapping->map(adaptor.getTarget(), czOp.getTargetOut());
-        rewriter.eraseOp(op);
-        return success();
-    }
-}; // struct ConvertCZOp
 
 struct ConvertCCX : public QILLRToQuantumOpConversionPattern<qillr::CCXOp> {
     using QILLRToQuantumOpConversionPattern::QILLRToQuantumOpConversionPattern;
@@ -263,14 +262,42 @@ struct ConvertCCX : public QILLRToQuantumOpConversionPattern<qillr::CCXOp> {
         qillr::CCXOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        auto ctrl1 = mapping->lookup(adaptor.getControl1());
-        auto ctrl2 = mapping->lookup(adaptor.getControl2());
-        auto tgt = mapping->lookup(adaptor.getTarget());
-        auto ccxOp =
-            rewriter.create<quantum::CCXOp>(op.getLoc(), ctrl1, ctrl2, tgt);
-        mapping->map(adaptor.getControl1(), ccxOp.getControl1Out());
-        mapping->map(adaptor.getControl2(), ccxOp.getControl2Out());
-        mapping->map(adaptor.getTarget(), ccxOp.getTargetOut());
+        auto ctrl1Ref = mapping->lookup(op.getControl1());
+        auto ctrl2Ref = mapping->lookup(op.getControl2());
+        auto targetRef = mapping->lookup(op.getTarget());
+
+        auto loadControl1Op = rewriter.create<qqt::LoadOp>(
+            op->getLoc(),
+            quantum::QubitType::get(this->getContext(), 1),
+            ctrl1Ref);
+        auto loadControl2Op = rewriter.create<qqt::LoadOp>(
+            op->getLoc(),
+            quantum::QubitType::get(this->getContext(), 1),
+            ctrl2Ref);
+        auto loadTargetOp = rewriter.create<qqt::LoadOp>(
+            op->getLoc(),
+            quantum::QubitType::get(this->getContext(), 1),
+            targetRef);
+
+        auto ccxOp = rewriter.create<quantum::CCXOp>(
+            op.getLoc(),
+            loadControl1Op.getResult(),
+            loadControl2Op.getResult(),
+            loadTargetOp.getResult());
+
+        rewriter.create<qqt::StoreOp>(
+            op->getLoc(),
+            ccxOp.getControl1Out(),
+            ctrl1Ref);
+        rewriter.create<qqt::StoreOp>(
+            op->getLoc(),
+            ccxOp.getControl2Out(),
+            ctrl2Ref);
+        rewriter.create<qqt::StoreOp>(
+            op->getLoc(),
+            ccxOp.getTargetOut(),
+            targetRef);
+
         rewriter.eraseOp(op);
         return success();
     }
@@ -285,9 +312,16 @@ struct ConvertBarrierOp
         qillr::BarrierOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
+        SmallVector<Value> refs;
         SmallVector<Value> inputs;
-        for (auto operand : adaptor.getInput())
-            inputs.emplace_back(mapping->lookup(operand));
+        for (auto in : op.getInput()) {
+            auto qubitRef = refs.emplace_back(mapping->lookup(in));
+            auto loadInputOp = rewriter.create<qqt::LoadOp>(
+                op->getLoc(),
+                quantum::QubitType::get(this->getContext(), 1),
+                qubitRef);
+            inputs.emplace_back(loadInputOp.getResult());
+        }
 
         SmallVector<Type> resultTypes(
             inputs.size(),
@@ -298,9 +332,11 @@ struct ConvertBarrierOp
             resultTypes,
             inputs);
 
-        for (auto [input, result] :
-             llvm::zip_equal(adaptor.getInput(), barrierOp.getResult()))
-            mapping->map(input, result);
+        for (auto it : llvm::enumerate(barrierOp.getResult()))
+            rewriter.create<qqt::StoreOp>(
+                op->getLoc(),
+                it.value(),
+                refs[it.index()]);
 
         rewriter.eraseOp(op);
         return success();
@@ -315,14 +351,24 @@ struct ConvertU3 : public QILLRToQuantumOpConversionPattern<qillr::U3Op> {
         qillr::U3OpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        auto input = mapping->lookup(adaptor.getInput());
+        auto qubitRef = mapping->lookup(op.getInput());
+        auto loadOp = rewriter.create<qqt::LoadOp>(
+            op->getLoc(),
+            quantum::QubitType::get(getContext(), 1),
+            qubitRef);
+
         auto newOp = rewriter.create<quantum::U3Op>(
             op.getLoc(),
-            input,
+            loadOp.getResult(),
             adaptor.getTheta(),
             adaptor.getPhi(),
             adaptor.getLambda());
-        mapping->map(adaptor.getInput(), newOp.getResult());
+
+        rewriter.create<qqt::StoreOp>(
+            op->getLoc(),
+            newOp.getResult(),
+            qubitRef);
+
         rewriter.eraseOp(op);
         return success();
     }
@@ -336,12 +382,19 @@ struct ConvertU1 : public QILLRToQuantumOpConversionPattern<qillr::U1Op> {
         qillr::U1OpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        auto input = mapping->lookup(adaptor.getInput());
+        auto qubitRef = mapping->lookup(op.getInput());
+        auto loadOp = rewriter.create<qqt::LoadOp>(
+            op->getLoc(),
+            quantum::QubitType::get(getContext(), 1),
+            qubitRef);
+
         auto u1Op = rewriter.create<quantum::U1Op>(
             op.getLoc(),
-            input,
+            loadOp.getResult(),
             adaptor.getLambda());
-        mapping->map(adaptor.getInput(), u1Op.getResult());
+
+        rewriter.create<qqt::StoreOp>(op->getLoc(), u1Op.getResult(), qubitRef);
+
         rewriter.eraseOp(op);
         return success();
     }
@@ -355,93 +408,62 @@ struct ConvertU2 : public QILLRToQuantumOpConversionPattern<qillr::U2Op> {
         qillr::U2OpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        auto input = mapping->lookup(adaptor.getInput());
+        auto qubitRef = mapping->lookup(op.getInput());
+        auto loadOp = rewriter.create<qqt::LoadOp>(
+            op->getLoc(),
+            quantum::QubitType::get(getContext(), 1),
+            qubitRef);
+
         auto u2Op = rewriter.create<quantum::U2Op>(
             op.getLoc(),
-            input,
+            loadOp.getResult(),
             adaptor.getPhi(),
             adaptor.getLambda());
-        mapping->map(adaptor.getInput(), u2Op.getResult());
+
+        rewriter.create<qqt::StoreOp>(op->getLoc(), u2Op.getResult(), qubitRef);
+
         rewriter.eraseOp(op);
         return success();
     }
 }; // struct ConvertU2Op
 
-struct ConvertCRy : public QILLRToQuantumOpConversionPattern<qillr::CRyOp> {
-    using QILLRToQuantumOpConversionPattern::QILLRToQuantumOpConversionPattern;
+template<typename SourceOp, typename TargetOp>
+struct ConvertControledRotation
+        : public QILLRToQuantumOpConversionPattern<SourceOp> {
+    using QILLRToQuantumOpConversionPattern<
+        SourceOp>::QILLRToQuantumOpConversionPattern;
 
     LogicalResult matchAndRewrite(
-        qillr::CRyOp op,
-        qillr::CRyOpAdaptor adaptor,
+        SourceOp op,
+        OpConversionPattern<SourceOp>::OpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        auto controlQubit = mapping->lookup(adaptor.getControl());
-        auto targetQubit = mapping->lookup(adaptor.getTarget());
-        auto angle = adaptor.getAngle();
+        auto controlRef = this->mapping->lookup(op.getControl());
+        auto targetRef = this->mapping->lookup(op.getTarget());
 
-        auto cryOp = rewriter.create<quantum::CRyOp>(
+        auto loadControlOp = rewriter.create<qqt::LoadOp>(
+            op->getLoc(),
+            quantum::QubitType::get(this->getContext(), 1),
+            controlRef);
+        auto loadTargetOp = rewriter.create<qqt::LoadOp>(
+            op->getLoc(),
+            quantum::QubitType::get(this->getContext(), 1),
+            targetRef);
+
+        auto cryOp = rewriter.create<TargetOp>(
             op.getLoc(),
-            controlQubit,
-            targetQubit,
-            angle);
+            loadControlOp.getResult(),
+            loadTargetOp.getResult(),
+            adaptor.getAngle());
 
-        // Update the qubit map with outputs
-        mapping->map(adaptor.getControl(), cryOp.getControlOut());
-        mapping->map(adaptor.getTarget(), cryOp.getTargetOut());
-
-        rewriter.eraseOp(op);
-        return success();
-    }
-};
-
-struct ConvertCRz : public QILLRToQuantumOpConversionPattern<qillr::CRzOp> {
-    using QILLRToQuantumOpConversionPattern::QILLRToQuantumOpConversionPattern;
-
-    LogicalResult matchAndRewrite(
-        qillr::CRzOp op,
-        qillr::CRzOpAdaptor adaptor,
-        ConversionPatternRewriter &rewriter) const override
-    {
-        auto controlQubit = mapping->lookup(adaptor.getControl());
-        auto targetQubit = mapping->lookup(adaptor.getTarget());
-        auto angle = adaptor.getAngle();
-
-        auto crzOp = rewriter.create<quantum::CRzOp>(
-            op.getLoc(),
-            controlQubit,
-            targetQubit,
-            angle);
-
-        // Update the qubit map with outputs
-        mapping->map(adaptor.getControl(), crzOp.getControlOut());
-        mapping->map(adaptor.getTarget(), crzOp.getTargetOut());
-
-        rewriter.eraseOp(op);
-        return success();
-    }
-};
-
-struct ConvertCU1 : public QILLRToQuantumOpConversionPattern<qillr::CU1Op> {
-    using QILLRToQuantumOpConversionPattern::QILLRToQuantumOpConversionPattern;
-
-    LogicalResult matchAndRewrite(
-        qillr::CU1Op op,
-        qillr::CU1OpAdaptor adaptor,
-        ConversionPatternRewriter &rewriter) const override
-    {
-        auto controlQubit = mapping->lookup(adaptor.getControl());
-        auto targetQubit = mapping->lookup(adaptor.getTarget());
-        auto angle = adaptor.getAngle();
-
-        auto cu1op = rewriter.create<quantum::CU1Op>(
-            op.getLoc(),
-            controlQubit,
-            targetQubit,
-            angle);
-
-        // Update the qubit map with outputs
-        mapping->map(adaptor.getControl(), cu1op.getControlOut());
-        mapping->map(adaptor.getTarget(), cu1op.getTargetOut());
+        rewriter.create<qqt::StoreOp>(
+            op->getLoc(),
+            cryOp.getControlOut(),
+            controlRef);
+        rewriter.create<qqt::StoreOp>(
+            op->getLoc(),
+            cryOp.getTargetOut(),
+            targetRef);
 
         rewriter.eraseOp(op);
         return success();
@@ -456,20 +478,35 @@ struct ConvertCSwap : public QILLRToQuantumOpConversionPattern<qillr::CSwapOp> {
         qillr::CSwapOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        auto controlQubit = mapping->lookup(adaptor.getControl());
-        auto lhs = mapping->lookup(adaptor.getLhs());
-        auto rhs = mapping->lookup(adaptor.getRhs());
+        auto controlRef = mapping->lookup(op.getControl());
+        auto lhsRef = mapping->lookup(op.getLhs());
+        auto rhsRef = mapping->lookup(op.getRhs());
+
+        auto loadControlOp = rewriter.create<qqt::LoadOp>(
+            op->getLoc(),
+            quantum::QubitType::get(this->getContext(), 1),
+            controlRef);
+        auto loadLhsOp = rewriter.create<qqt::LoadOp>(
+            op->getLoc(),
+            quantum::QubitType::get(this->getContext(), 1),
+            lhsRef);
+        auto loadRhsOp = rewriter.create<qqt::LoadOp>(
+            op->getLoc(),
+            quantum::QubitType::get(this->getContext(), 1),
+            rhsRef);
 
         auto cswap = rewriter.create<quantum::CSWAPOp>(
             op.getLoc(),
-            controlQubit,
-            lhs,
-            rhs);
+            loadControlOp.getResult(),
+            loadLhsOp.getResult(),
+            loadRhsOp.getResult());
 
-        // Update the qubit map with outputs
-        mapping->map(adaptor.getControl(), cswap.getControlOut());
-        mapping->map(adaptor.getLhs(), cswap.getLhsOut());
-        mapping->map(adaptor.getRhs(), cswap.getRhsOut());
+        rewriter.create<qqt::StoreOp>(
+            op->getLoc(),
+            cswap.getControlOut(),
+            controlRef);
+        rewriter.create<qqt::StoreOp>(op->getLoc(), cswap.getLhsOut(), lhsRef);
+        rewriter.create<qqt::StoreOp>(op->getLoc(), cswap.getRhsOut(), rhsRef);
 
         rewriter.eraseOp(op);
         return success();
@@ -484,8 +521,18 @@ struct ConvertReset : public QILLRToQuantumOpConversionPattern<qillr::ResetOp> {
         qillr::ResetOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        auto in = mapping->lookup(adaptor.getInput());
-        rewriter.replaceOpWithNewOp<quantum::DeallocateOp>(op, in);
+        auto inRef = mapping->lookup(op.getInput());
+        auto loadOp = rewriter.create<qqt::LoadOp>(
+            op->getLoc(),
+            quantum::QubitType::get(this->getContext(), 1),
+            inRef);
+
+        rewriter.create<quantum::DeallocateOp>(
+            op->getLoc(),
+            loadOp.getResult());
+        rewriter.create<qqt::DestructOp>(op->getLoc(), inRef);
+
+        rewriter.eraseOp(op);
         return success();
     }
 }; // struct ConvertResetOp
@@ -499,19 +546,27 @@ struct ConvertMeasure
         qillr::MeasureOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        auto input = mapping->lookup(adaptor.getInput());
-        auto loc = op.getLoc();
+        auto inRef = mapping->lookup(op.getInput());
+        auto loadOp = rewriter.create<qqt::LoadOp>(
+            op->getLoc(),
+            quantum::QubitType::get(this->getContext(), 1),
+            inRef);
 
-        auto genMeasureOp =
-            rewriter.create<quantum::MeasureSingleOp>(loc, input);
+        auto genMeasureOp = rewriter.create<quantum::MeasureSingleOp>(
+            op->getLoc(),
+            loadOp.getResult());
 
-        mapping->map(adaptor.getInput(), genMeasureOp.getResult());
+        rewriter.create<qqt::StoreOp>(
+            op->getLoc(),
+            genMeasureOp.getResult(),
+            inRef);
 
         // qillr.measure (%q, %r)
         // Find uses of %r and get %m of
         // %m = qillr.read_measurement (%r)
         auto measuredRegister = op.getResult();
         auto uses = measuredRegister.getUses();
+
         for (auto it = uses.begin(); it != uses.end(); ++it) {
             auto otherOp = it.getOperand()->getOwner();
             if (auto readOp =
@@ -522,6 +577,7 @@ struct ConvertMeasure
                 rewriter.eraseOp(readOp);
             }
         }
+
         rewriter.eraseOp(op);
         return success();
     }
@@ -565,7 +621,6 @@ void ConvertQILLRToQuantumPass::runOnOperation()
     target.addIllegalDialect<qillr::QILLRDialect>();
     target.addLegalDialect<quantum::QuantumDialect>();
     target.addLegalDialect<qqt::QQTDialect>();
-    target.markUnknownOpDynamicallyLegal([](Operation*) { return true; });
 
     if (failed(applyPartialConversion(
             getOperation(),
@@ -597,15 +652,15 @@ void mlir::qqt::populateConvertQILLRToQuantumPatterns(
         ConvertUnaryOp<qillr::TOp, quantum::TOp>,
         ConvertUnaryOp<qillr::SdgOp, quantum::SdgOp>,
         ConvertUnaryOp<qillr::TdgOp, quantum::TdgOp>,
-        ConvertCNOT,
-        ConvertCZ,
+        ConvertControledOp<qillr::CNOTOp, quantum::CNOTOp>,
+        ConvertControledOp<qillr::CZOp, quantum::CZOp>,
         ConvertCCX,
         ConvertU3,
         ConvertU2,
         ConvertU1,
-        ConvertCRy,
-        ConvertCRz,
-        ConvertCU1,
+        ConvertControledRotation<qillr::CRyOp, quantum::CRyOp>,
+        ConvertControledRotation<qillr::CRzOp, quantum::CRzOp>,
+        ConvertControledRotation<qillr::CU1Op, quantum::CU1Op>,
         ConvertBarrierOp,
         ConvertMeasure,
         ConvertReset>(typeConverter, patterns.getContext(), &mapping);

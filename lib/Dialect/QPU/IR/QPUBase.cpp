@@ -14,8 +14,6 @@ using namespace mlir::qpu;
 
 //===- Generated implementation -------------------------------------------===//
 
-#define GET_DEFAULT_TYPE_PRINTER_PARSER
-#define GET_DEFAULT_ATTR_PRINTER_PARSER
 #include "quantum-mlir/Dialect/QPU/IR/QPUBase.cpp.inc"
 
 //===----------------------------------------------------------------------===//

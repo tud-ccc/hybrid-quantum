@@ -51,6 +51,26 @@ def QQT_PromoteOp : QQT_Op<
   let results = (outs QQT_RefType:$result);
 }
 
+def QQT_DestructOp : QQT_Op<
+        "destruct",
+        [
+          MemoryEffects<[
+            MemRead,
+            MemWrite
+          ]>
+        ]> {
+  let summary = "Destruct a qubit reference into a quantum register.";
+  let description = [{
+    Example:
+
+    ```mlir
+    qqt.destruct(%ref) : (!qqt.ref) -> ()
+    ```
+  }];
+
+  let arguments = (ins QQT_RefType:$input);
+}
+
 def QQT_LoadOp : QQT_Op<
         "load",
         [

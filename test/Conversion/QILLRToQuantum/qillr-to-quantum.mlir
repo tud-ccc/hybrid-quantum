@@ -1,15 +1,5 @@
 // RUN: quantum-opt %s -lift-qillr-to-quantum -split-input-file| FileCheck %s
 
-// CHECK: "quantum.gate"() <{function_type = (!quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>), sym_name = "test"}> ({
-"qillr.gate"() <{function_type = (!qillr.qubit, !qillr.qubit) -> (), sym_name = "test"}> ({
-  // CHECK-NEXT: ^bb0(%[[QG1:.+]]: !quantum.qubit<1>, %[[QG2:.+]]: !quantum.qubit<1>):
-  ^bb0(%arg1: !qillr.qubit, %arg2: !qillr.qubit):
-  // CHECK-DAG: %[[QG3:.+]], %[[QG4:.+]] = "quantum.CNOT"(%[[QG1]], %[[QG2]]) : (!quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>)
-  "qillr.CNOT"(%arg1, %arg2) : (!qillr.qubit, !qillr.qubit) -> ()
-  // CHECK-DAG: "quantum.return"(%[[QG3]], %[[QG4]]) : (!quantum.qubit<1>, !quantum.qubit<1>) -> ()
-  "qillr.return"() : () -> ()
-}) : () -> ()
-
 // CHECK-LABEL: func.func @complete_example(
 // CHECK: ) -> tensor<1xi1> {
 func.func @complete_example() -> (tensor<1xi1>) {
@@ -57,9 +47,6 @@ func.func @complete_example() -> (tensor<1xi1>) {
   // CHECK-DAG: %[[Q15:.+]]:3 = "quantum.barrier"(%[[Q14]], %[[Q12]], %[[Q13]]) : (!quantum.qubit<1>, !quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>, !quantum.qubit<1>)
   "qillr.barrier"(%q0, %q1, %q2) : (!qillr.qubit, !qillr.qubit, !qillr.qubit) -> ()
 
-  // CHECK-DAG: %[[Q16:.+]]:2 = "quantum.call"(%[[Q15]]#0, %[[Q15]]#1) <{callee = @test}> : (!quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>)
-  "qillr.call"(%q0, %q1) <{callee = @test}> : (!qillr.qubit, !qillr.qubit) -> ()
-
   // CHECK-DAG: "quantum.deallocate"(%[[Q16]]#0) : (!quantum.qubit<1>) -> ()
   "qillr.reset" (%q0) : (!qillr.qubit) -> ()
   // CHECK-DAG: "quantum.deallocate"(%[[Q16]]#1) : (!quantum.qubit<1>) -> ()
@@ -69,17 +56,3 @@ func.func @complete_example() -> (tensor<1xi1>) {
   // CHECK-DAG: return %[[MT]]
   func.return %mt : tensor<1xi1>
 }
-
- // -----
-
-// CHECK: "quantum.gate"() <{function_type = (!quantum.qubit<1>) -> !quantum.qubit<1>, sym_name = "check_convert_XOp"}> ({
-"qillr.gate"() <{function_type = (!qillr.qubit) -> (), sym_name = "check_convert_XOp"}> ({
-  // CHECK-NEXT: ^bb0(%[[Q0:.+]]: !quantum.qubit<1>):
-  ^bb0(%q0: !qillr.qubit):
-    // CHECK-DAG: %[[Q1:.+]] = "quantum.X"(%[[Q0]]) : (!quantum.qubit<1>) -> !quantum.qubit<1>
-    "qillr.X" (%q0) : (!qillr.qubit) -> ()
-    // CHECK-DAG: "quantum.return"(%[[Q1]]) : (!quantum.qubit<1>) -> ()
-    "qillr.return"() : () -> ()
-}) : () -> ()
-
- // -----

@@ -26,6 +26,7 @@ def QPU_Dialect : Dialect {
 
     let hasOperationAttrVerify = 1;    
     let useDefaultAttributePrinterParser = 1;
+    //let useDefaultTypePrinterParser = 1;
 
     let dependentDialects = [
         "::mlir::quantum::QuantumDialect"

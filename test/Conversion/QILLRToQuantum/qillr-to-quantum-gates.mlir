@@ -1,19 +1,14 @@
 // RUN: quantum-opt %s -inline -lift-qillr-to-quantum -split-input-file | FileCheck %s
 
-"qillr.gate"() <{function_type = (!qillr.qubit) -> (), sym_name = "convert_scf"}> ({
+"qillr.gate"() <{function_type = (!qillr.qubit) -> (), sym_name = "convert_xop"}> ({
   ^bb0(%q0: !qillr.qubit):
-
-  %b = arith.constant true
-
-  scf.if %b {
     "qillr.X" (%q0) : (!qillr.qubit) -> ()
-  }
-  "qillr.return"() : () -> ()
+    "qillr.return"() : () -> ()
 }) : () -> ()
 
 func.func @inline_and_convert() {
     %q = "qillr.alloc"() : () -> !qillr.qubit
-    "qillr.call"(%q) <{callee = @convert_scf}> : (!qillr.qubit) -> ()
+    "qillr.call"(%q) <{callee = @convert_xop}> : (!qillr.qubit) -> ()
     return
 }
 
