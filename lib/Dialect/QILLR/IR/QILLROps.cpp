@@ -11,6 +11,8 @@
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/Interfaces/FunctionImplementation.h"
+#include "mlir/Transforms/InliningUtils.h"
+#include "quantum-mlir/Dialect/QILLR/IR/QILLRBase.h"
 
 #define DEBUG_TYPE "qillr-ops"
 
@@ -105,4 +107,5 @@ void QILLRDialect::registerOps()
 #define GET_OP_LIST
 #include "quantum-mlir/Dialect/QILLR/IR/QILLROps.cpp.inc"
         >();
+    declarePromisedInterface<DialectInlinerInterface, QILLRDialect>();
 }

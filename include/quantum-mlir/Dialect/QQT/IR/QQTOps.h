@@ -22,6 +22,7 @@
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "quantum-mlir/Dialect/QQT/IR/QQTBase.h"
 #include "quantum-mlir/Dialect/QQT/IR/QQTTypes.h"
+#include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h"
 
 #include "llvm/ADT/STLExtras.h"
 

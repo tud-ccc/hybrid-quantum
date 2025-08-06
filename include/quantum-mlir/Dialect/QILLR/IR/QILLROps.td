@@ -417,6 +417,8 @@ def QILLR_GateOp : Gate_Op<"gate", [
     //===------------------------------------------------------------------===//
 
     bool isDeclaration() { return false; }
+
+    bool canDiscardOnUseEmpty() { return true; }
   }];
 }
 

@@ -580,7 +580,7 @@ def Quantum_CZOp : PrimitiveGate_Op< "CZ", [NoMemoryEffect, AllTypesMatch<["cont
   let results = (outs Quantum_QubitType:$control_out, Quantum_QubitType:$target_out);
 }
 
-def Quantum_SWAPOp : PrimitiveGate_Op<"SWAP",[Hermitian, AllTypesMatch<[ "lhs", "rhs","result1", "result2"]>]> {
+def Quantum_SWAPOp : PrimitiveGate_Op<"SWAP",[Hermitian, AllTypesMatch<[ "lhs", "rhs","result_lhs", "result_rhs"]>]> {
   let summary = "SWAP gate";
   let description = [{
     Swaps the states of two qubits.
@@ -590,8 +590,8 @@ def Quantum_SWAPOp : PrimitiveGate_Op<"SWAP",[Hermitian, AllTypesMatch<[ "lhs", 
     Quantum_QubitType:$rhs
   );
   let results = (outs
-    Quantum_QubitType:$result1,
-    Quantum_QubitType:$result2
+    Quantum_QubitType:$result_lhs,
+    Quantum_QubitType:$result_rhs
   );
 }
 

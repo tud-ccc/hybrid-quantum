@@ -10,4 +10,9 @@
 include "quantum-mlir/Dialect/QQT/IR/QQTAttributes.td"
 include "mlir/IR/BuiltinTypeInterfaces.td"
 
+def QQT_RefType : QQT_Type<"QubitRef"> {
+  let mnemonic = "ref";
+  let summary = "Qubit register reference type";
+}
+
 #endif // QQT_TYPES
