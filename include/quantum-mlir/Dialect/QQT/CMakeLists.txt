@@ -9,4 +9,4 @@ add_custom_target(QQTIncGen)
 # Attributes, Dialect, Operations and Types.
 add_subdirectory(IR)
 # Passes
-#add_subdirectory(Transforms)
+add_subdirectory(Transforms)
