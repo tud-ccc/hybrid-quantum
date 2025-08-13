@@ -103,11 +103,11 @@ Operation* findImmediatelyPostDominatingLoad(
 
     llvm::SmallVector<Operation*> candidates(postDominatingRefLoads);
     while (candidates.size() > 1) {
-        llvm::SmallVector<Operation*> toRemove;
+        llvm::SetVector<Operation*> toRemove;
         for (auto loadOp : candidates) {
             for (auto otherLoadOp : postDominatingRefLoads)
                 if (postDomInfo.properlyPostDominates(loadOp, otherLoadOp)) {
-                    toRemove.emplace_back(loadOp);
+                    toRemove.insert(loadOp);
                     continue;
                 }
         }
@@ -129,11 +129,11 @@ Operation* findImmediateDominatingStore(LoadOp loadOp, DominanceInfo &domInfo)
 
     llvm::SmallVector<Operation*> candidates(dominatingRefStores);
     while (candidates.size() > 1) {
-        llvm::SmallVector<Operation*> toRemove;
+        llvm::SetVector<Operation*> toRemove;
         for (auto storeOp : candidates) {
             for (auto otherStoreOp : dominatingRefStores)
                 if (domInfo.properlyDominates(storeOp, otherStoreOp)) {
-                    toRemove.emplace_back(storeOp);
+                    toRemove.insert(storeOp);
                     continue;
                 }
         }

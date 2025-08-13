@@ -1,4 +1,4 @@
-// RUN: quantum-opt %s -lift-qillr-to-quantum -hoist-load-store -split-input-file | FileCheck %s --check-prefixes=CHECK
+// RUN: quantum-opt %s -lift-qillr-to-quantum -hoist-load-store -split-input-file | FileCheck %s
 
 // CHECK-LABEL: if_local(
 // CHECK-SAME: %[[B:.+]]: {{.*}})

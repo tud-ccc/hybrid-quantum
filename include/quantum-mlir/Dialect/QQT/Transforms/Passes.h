@@ -26,6 +26,8 @@ namespace qqt {
 /// and post-dominating successor.
 std::unique_ptr<Pass> createLoadStoreMovePass();
 
+std::unique_ptr<Pass> createLoadStoreEliminationPass();
+
 //===----------------------------------------------------------------------===//
 // Registration
 //===----------------------------------------------------------------------===//

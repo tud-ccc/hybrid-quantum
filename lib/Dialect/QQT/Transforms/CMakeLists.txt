@@ -1,5 +1,6 @@
 add_mlir_dialect_library(QQTTransforms
         MoveLoadStore.cpp
+        LoadStoreElimination.cpp
 
     ENABLE_AGGREGATION
 
