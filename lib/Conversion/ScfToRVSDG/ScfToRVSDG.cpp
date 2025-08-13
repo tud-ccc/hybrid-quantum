@@ -5,6 +5,7 @@
 
 #include "quantum-mlir/Conversion/SCFToRVSDG/ScfToRVSDG.h"
 
+#include "mlir/Pass/Pass.h"
 #include "quantum-mlir/Dialect/QILLR/IR/QILLR.h"
 #include "quantum-mlir/Dialect/QILLR/IR/QILLRBase.h"
 #include "quantum-mlir/Dialect/QILLR/IR/QILLRTypes.h"
@@ -122,7 +123,17 @@ void copyIfRegion(
 }
 
 struct TransformScfIfOp : public OpConversionPattern<scf::IfOp> {
-    using OpConversionPattern<scf::IfOp>::OpConversionPattern;
+
+    DominanceInfo &domInfo;
+
+    TransformScfIfOp(
+        const TypeConverter &typeConverter,
+        MLIRContext* context,
+        DominanceInfo &domInfo,
+        PatternBenefit benefit = 1)
+            : OpConversionPattern<scf::IfOp>(typeConverter, context, benefit),
+              domInfo(domInfo)
+    {}
 
     LogicalResult matchAndRewrite(
         scf::IfOp op,
@@ -212,7 +223,7 @@ struct TransformScfIfOp : public OpConversionPattern<scf::IfOp> {
                 op->getResult(i),
                 gammaOp->getResult(i));
         }
-        DominanceInfo dom;
+
         // Replace all new op results with the captured values
         for (size_t i = 0; i < additionalValues.size(); ++i) {
             rewriter.replaceUsesWithIf(
@@ -221,7 +232,7 @@ struct TransformScfIfOp : public OpConversionPattern<scf::IfOp> {
                 [&](OpOperand &operand) {
                     return operand.getOwner() != op
                            && operand.getOwner()->getParentOp() != op
-                           && dom.dominates(op, operand.getOwner());
+                           && domInfo.dominates(op, operand.getOwner());
                 });
         }
         rewriter.eraseOp(op);
@@ -269,7 +280,9 @@ void ConvertScfToRVSDGPass::runOnOperation()
         return usedValues.empty();
     });
 
-    populateConvertScfToRVSDGPatterns(converter, patterns);
+    auto &domInfo = getAnalysis<DominanceInfo>();
+
+    populateConvertScfToRVSDGPatterns(converter, patterns, domInfo);
 
     if (failed(applyPartialConversion(
             getOperation(),
@@ -280,9 +293,13 @@ void ConvertScfToRVSDGPass::runOnOperation()
 
 void mlir::rvsdg::populateConvertScfToRVSDGPatterns(
     TypeConverter &typeConverter,
-    RewritePatternSet &patterns)
+    RewritePatternSet &patterns,
+    DominanceInfo &domInfo)
 {
-    patterns.add<TransformScfIfOp>(typeConverter, patterns.getContext());
+    patterns.add<TransformScfIfOp>(
+        typeConverter,
+        patterns.getContext(),
+        domInfo);
 }
 
 std::unique_ptr<Pass> mlir::createConvertScfToRVSDGPass()

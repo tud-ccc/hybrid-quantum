@@ -9,6 +9,7 @@
 #include "mlir/IR/Dialect.h"
 #include "quantum-mlir/Dialect/QILLR/IR/QILLRBase.h"
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumBase.h"
+#include "quantum-mlir/Dialect/RVSDG/IR/RVSDGBase.h"
 
 //===- Generated includes -------------------------------------------------===//
 

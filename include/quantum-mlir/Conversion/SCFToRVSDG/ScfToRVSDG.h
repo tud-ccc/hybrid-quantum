@@ -3,6 +3,8 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
+#include <mlir/IR/Dominance.h>
+
 namespace mlir {
 
 //===- Generated includes -------------------------------------------------===//
@@ -16,7 +18,8 @@ namespace rvsdg {
 
 void populateConvertScfToRVSDGPatterns(
     TypeConverter &typeConverter,
-    RewritePatternSet &patterns);
+    RewritePatternSet &patterns,
+    DominanceInfo &domInfo);
 
 } // namespace rvsdg
 

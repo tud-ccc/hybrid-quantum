@@ -30,7 +30,8 @@ def QQT_Dialect : Dialect {
 
     let dependentDialects = [
         "::mlir::quantum::QuantumDialect",
-        "::mlir::qillr::QILLRDialect"
+        "::mlir::qillr::QILLRDialect",
+        "::mlir::rvsdg::RVSDGDialect"
     ];
 
     code extraClassDeclaration = [{
