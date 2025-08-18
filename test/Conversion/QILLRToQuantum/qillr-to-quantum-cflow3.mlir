@@ -1,4 +1,5 @@
-// RUN: quantum-opt %s --debug --mlir-print-ir-after-all -lift-qillr-to-quantum -hoist-load-store -eliminate-load-store -split-input-file | FileCheck %s
+// RUN: quantum-opt %s -lift-qillr-to-quantum -hoist-load-store -eliminate-load-store -split-input-file | FileCheck %s
+// --debug --mlir-print-ir-after-all
 
 // CHECK-LABEL: if_local(
 // CHECK-SAME: %[[B:.+]]: {{.*}})
@@ -163,38 +164,38 @@ func.func @multiple_if(%b1 : i1, %b2 : i1) {
   %1 = "qillr.alloc"() : () -> !qillr.qubit
   // CHECK-DAG: %[[Q2:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
   %2 = "qillr.alloc"() : () -> !qillr.qubit
-  // CHECK-DAG: %[[Q3:.+]]:2 = "quantum.CNOT"(%[[Q1]], %[[Q2]]) : (!quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>)
+  // CHECK-DAG: %[[C1:.+]], %[[T1:.+]] = "quantum.CNOT"(%[[Q1]], %[[Q2]]) : (!quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>)
   "qillr.CNOT"(%1, %2) : (!qillr.qubit, !qillr.qubit) -> ()
-  // CHECK-DAG: %[[CST1:.+]] = arith.constant 2.3561944901923448 : f64
   // CHECK: %[[COND1:.+]] = rvsdg.match(%[[B1]] : i1) [#rvsdg.matchRule<1 -> 0>, #rvsdg.matchRule<0 -> 1>] -> <2>
-  // CHECK: %[[QOUT:.+]]  = rvsdg.gammaNode(%[[COND1]] : <2>) (%[[Q3]]#0: !quantum.qubit<1>, %[[CST1: f64]]) : [
+  // CHECK: %[[QOUT:.+]]  = rvsdg.gammaNode(%[[COND1]] : <2>) (%[[C1]]: !quantum.qubit<1>) : [
   scf.if %b1 {
-    // CHECK-NEXT: (%[[QIN1:.+]]: !quantum.qubit<1>, %[[CSTIN1]]: f64): { 
+    // CHECK-NEXT: (%[[QIN1:.+]]: !quantum.qubit<1>): { 
+    // CHECK-DAG: %[[cst1:.+]] = arith.constant 2.3561944901923448 : f64
     %cst1 = arith.constant 2.3561944901923448 : f64
-    // CHECK: %[[QU1:.+]] = "quantum.U1"(%[[QIN1]], %[[CSTIN1]]) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
+    // CHECK: %[[QU1:.+]] = "quantum.U1"(%[[QIN1]], %[[cst1]]) : (!quantum.qubit<1>, f64) -> !quantum.qubit<1>
     "qillr.U1"(%1, %cst1) : (!qillr.qubit, f64) -> ()
     // CHECK: rvsdg.yield (%[[QU1]]: !quantum.qubit<1>)
     // CHECK: },
   }
-    // CHECK-NEXT: (%[[QIN1:.+]]: !quantum.qubit<1>, %[[CSTIN1]]: f64): { 
+    // CHECK-NEXT: (%[[QIN1:.+]]: !quantum.qubit<1>): { 
     // CHECK-NEXT: rvsdg.yield (%[[QIN1]]: !quantum.qubit<1>)
   // CHECK: }
-  // CHECK-DAG: %[[CST2]] = arith.constant 3.3561944901923448 : f64
   // CHECK: %[[COND2:.+]] = rvsdg.match(%[[B2]] : i1) [#rvsdg.matchRule<1 -> 0>, #rvsdg.matchRule<0 -> 1>] -> <2>
-  // CHECK: %[[QOUT2:.+]]  = rvsdg.gammaNode(%[[COND2]] : <2>) (%[[QOUT]]: !quantum.qubit<1>, %[[CST2: f64]]) : [
+  // CHECK: %[[QOUT2:.+]]  = rvsdg.gammaNode(%[[COND2]] : <2>) (%[[QOUT]]: !quantum.qubit<1>) : [
   scf.if %b2 {
-    // CHECK-NEXT: (%[[QIN2:.+]]: !quantum.qubit<1>, %[[CSTIN2]]: f64): { 
+    // CHECK-NEXT: (%[[QIN2:.+]]: !quantum.qubit<1>): { 
+    // CHECK: %[[cst2:.+]] = arith.constant 3.3561944901923448 : f64
     %cst2 = arith.constant 3.3561944901923448 : f64
-    // CHECK: %[[QU2:.+]] = "quantum.U1"(%[[QIN2]], %[[CSTIN2]]) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
+    // CHECK: %[[QU2:.+]] = "quantum.U1"(%[[QIN2]], %[[cst2]]) : (!quantum.qubit<1>, f64) -> !quantum.qubit<1>
     "qillr.U1"(%1, %cst2) : (!qillr.qubit, f64) -> ()
     // CHECK: rvsdg.yield (%[[QU2]]: !quantum.qubit<1>)
     // CHECK: },
   }
-    // CHECK-NEXT: (%[[QIN2:.+]]: !quantum.qubit<1>, %[[CSTIN2]]: f64): { 
+    // CHECK-NEXT: (%[[QIN2:.+]]: !quantum.qubit<1>): { 
     // CHECK-NEXT: rvsdg.yield (%[[QIN2]]: !quantum.qubit<1>)
   // CHECK: "quantum.deallocate"(%[[QOUT2]])
   "qillr.reset" (%1) : (!qillr.qubit) -> ()
-  // CHECK: "quantum.deallocate"(%[[Q3]]#1)
+  // CHECK: "quantum.deallocate"(%[[T1]])
   "qillr.reset" (%2) : (!qillr.qubit) -> ()
   return
 }

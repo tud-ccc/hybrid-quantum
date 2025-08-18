@@ -206,7 +206,10 @@ void LoadStoreMovePass::runOnOperation()
         for (const auto &x : moveLoadsThenRegion) {
             auto load = x.first;
             auto store = x.second;
-            load->moveAfter(store);
+            if (load->getParentRegion() != store->getParentRegion())
+                load->moveBefore(load->getParentOp());
+            else
+                load->moveAfter(store);
         }
 
         llvm::SmallVector<Type> resultTypes(branch->getResultTypes());
@@ -218,8 +221,10 @@ void LoadStoreMovePass::runOnOperation()
                 // Store moved out of the branch; update the yield op
                 moveOutStores.emplace_back(store);
                 resultTypes.emplace_back(store.getQubit().getType());
+                store->moveAfter(store->getParentOp());
+            } else {
+                store->moveBefore(load);
             }
-            store->moveBefore(load);
         }
 
         llvm::SetVector<Value> usedAbove;

@@ -112,12 +112,12 @@ func.func @if_local_multiple_refs_exchanged(%b : i1) {
 // CHECK-DAG: %[[Q11:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
 // CHECK: "qqt.store"(%[[Q11]], %[[Ref1]]) : (!quantum.qubit<1>, !qqt.ref) -> ()
 %q1 = "qillr.alloc" () : () -> (!qillr.qubit)
-// CHECK-NEXT: %[[Q2:.+]] = "qqt.load"(%[[Ref1]]) : (!qqt.ref) -> !quantum.qubit<1>
 // CHECK-DAG: %[[Ref2:.+]] = "qqt.promote"() : () -> !qqt.ref
 // CHECK-DAG: %[[Q21:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
 // CHECK: "qqt.store"(%[[Q21]], %[[Ref2]]) : (!quantum.qubit<1>, !qqt.ref) -> ()
 %q2 = "qillr.alloc" () : () -> (!qillr.qubit)
-// CHECK-NEXT: %[[Q8:.+]] = "qqt.load"(%[[Ref2]]) : (!qqt.ref) -> !quantum.qubit<1>
+// CHECK-DAG: %[[Q2:.+]] = "qqt.load"(%[[Ref1]]) : (!qqt.ref) -> !quantum.qubit<1>
+// CHECK-DAG: %[[Q8:.+]] = "qqt.load"(%[[Ref2]]) : (!qqt.ref) -> !quantum.qubit<1>
 // CHECK: %[[COND:.+]] = rvsdg.match(%[[B]] : i1) [#rvsdg.matchRule<1 -> 0>, #rvsdg.matchRule<0 -> 1>] -> <2> 
 // CHECK: %[[QOUT:.+]]:2  = rvsdg.gammaNode(%[[COND]] : <2>) (%[[Q8]]: !quantum.qubit<1>, %[[Q2]]: !quantum.qubit<1>) : [
 scf.if %b {
@@ -133,12 +133,12 @@ scf.if %b {
   // CHECK-NEXT: rvsdg.yield (%[[QIN2]]: !quantum.qubit<1>, %[[QIN1]]: !quantum.qubit<1>)
 // CHECK: }
 // CHECK: ] -> !quantum.qubit<1>, !quantum.qubit<1>
-// CHECK: "qqt.store"(%[[QOUT]]#1, %[[Ref1]]) : (!quantum.qubit<1>, !qqt.ref) -> ()
+// CHECK-DAG: "qqt.store"(%[[QOUT]]#1, %[[Ref1]]) : (!quantum.qubit<1>, !qqt.ref) -> ()
+// CHECK-DAG: "qqt.store"(%[[QOUT]]#0, %[[Ref2]]) : (!quantum.qubit<1>, !qqt.ref) -> ()
 // CHECK: %[[Q6:.+]] = "qqt.load"(%[[Ref1]]) : (!qqt.ref) -> !quantum.qubit<1>
 // CHECK-DAG: "quantum.deallocate"(%[[Q6]]) : (!quantum.qubit<1>) -> ()
 // CHECK-DAG: "qqt.destruct"(%[[Ref1]]) : (!qqt.ref) -> () 
 "qillr.reset" (%q1) : (!qillr.qubit) -> ()
-// CHECK: "qqt.store"(%[[QOUT]]#0, %[[Ref2]]) : (!quantum.qubit<1>, !qqt.ref) -> ()
 // CHECK: %[[Q7:.+]] = "qqt.load"(%[[Ref2]]) : (!qqt.ref) -> !quantum.qubit<1>
 // CHECK-DAG: "quantum.deallocate"(%[[Q7]]) : (!quantum.qubit<1>) -> ()
 // CHECK-DAG: "qqt.destruct"(%[[Ref2]]) : (!qqt.ref) -> () 
@@ -155,10 +155,10 @@ func.func @if_local_multiple_refs(%b : i1) {
 // CHECK-DAG: %[[Q11:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
 // CHECK: "qqt.store"(%[[Q11]], %[[Ref1]]) : (!quantum.qubit<1>, !qqt.ref) -> ()
 %q1 = "qillr.alloc" () : () -> (!qillr.qubit)
-// CHECK-NEXT: %[[Q2:.+]] = "qqt.load"(%[[Ref1]]) : (!qqt.ref) -> !quantum.qubit<1>
+// CHECK-DAG: %[[Q2:.+]] = "qqt.load"(%[[Ref1]]) : (!qqt.ref) -> !quantum.qubit<1>
 // CHECK-DAG: %[[Ref2:.+]] = "qqt.promote"() : () -> !qqt.ref
 // CHECK-DAG: %[[Q21:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
-// CHECK: "qqt.store"(%[[Q21]], %[[Ref2]]) : (!quantum.qubit<1>, !qqt.ref) -> ()
+// CHECK-DAG: "qqt.store"(%[[Q21]], %[[Ref2]]) : (!quantum.qubit<1>, !qqt.ref) -> ()
 %q2 = "qillr.alloc" () : () -> (!qillr.qubit)
 // CHECK-NEXT: %[[Q8:.+]] = "qqt.load"(%[[Ref2]]) : (!qqt.ref) -> !quantum.qubit<1>
 // CHECK: %[[COND:.+]] = rvsdg.match(%[[B]] : i1) [#rvsdg.matchRule<1 -> 0>, #rvsdg.matchRule<0 -> 1>] -> <2> 
@@ -176,12 +176,12 @@ scf.if %b {
   // CHECK-NEXT: rvsdg.yield (%[[QIN1]]: !quantum.qubit<1>, %[[QIN2]]: !quantum.qubit<1>)
 // CHECK: }
 // CHECK: ] -> !quantum.qubit<1>, !quantum.qubit<1>
-// CHECK: "qqt.store"(%[[QOUT]]#0, %[[Ref1]]) : (!quantum.qubit<1>, !qqt.ref) -> ()
+// CHECK-DAG: "qqt.store"(%[[QOUT]]#0, %[[Ref1]]) : (!quantum.qubit<1>, !qqt.ref) -> ()
+// CHECK-DAG: "qqt.store"(%[[QOUT]]#1, %[[Ref2]]) : (!quantum.qubit<1>, !qqt.ref) -> ()
 // CHECK: %[[Q6:.+]] = "qqt.load"(%[[Ref1]]) : (!qqt.ref) -> !quantum.qubit<1>
 // CHECK-DAG: "quantum.deallocate"(%[[Q6]]) : (!quantum.qubit<1>) -> ()
 // CHECK-DAG: "qqt.destruct"(%[[Ref1]]) : (!qqt.ref) -> () 
 "qillr.reset" (%q1) : (!qillr.qubit) -> ()
-// CHECK: "qqt.store"(%[[QOUT]]#1, %[[Ref2]]) : (!quantum.qubit<1>, !qqt.ref) -> ()
 // CHECK: %[[Q7:.+]] = "qqt.load"(%[[Ref2]]) : (!qqt.ref) -> !quantum.qubit<1>
 // CHECK-DAG: "quantum.deallocate"(%[[Q7]]) : (!quantum.qubit<1>) -> ()
 // CHECK-DAG: "qqt.destruct"(%[[Ref2]]) : (!qqt.ref) -> () 
