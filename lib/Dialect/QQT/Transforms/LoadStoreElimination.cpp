@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <iterator>
 #include <llvm/ADT/BitVector.h>
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/ADT/SetVector.h>
@@ -154,12 +155,8 @@ void LoadStoreEliminationPass::runOnOperation()
 
     // Remove the unused promote / destruct operations
     getOperation()->walk([](qqt::PromoteOp promote) {
-        if (promote->hasOneUse()) {
-            if (auto destruct = llvm::dyn_cast<qqt::DestructOp>(
-                    *promote->getUsers().begin()))
-                destruct.erase();
-            promote.erase();
-        }
+        for (auto use : promote.getResult().getUsers()) use->erase();
+        promote.erase();
     });
 }
 

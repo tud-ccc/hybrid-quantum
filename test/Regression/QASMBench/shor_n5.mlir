@@ -1,7 +1,7 @@
 // RUN: quantum-opt %s -replace-repeated-reads  | FileCheck %s
-// RUN: quantum-opt %s -replace-repeated-reads -lift-qillr-to-quantum -hoist-load-store -eliminate-load-store | FileCheck %s --check-prefix="CHECK2"
+// RUN: quantum-opt %s --debug --mlir-print-ir-after-all -replace-repeated-reads -lift-qillr-to-quantum -hoist-load-store -eliminate-load-store  | FileCheck %s --check-prefix="CHECK2"
 // 
-// --debug --mlir-print-ir-after-all
+// 
 
 module {
   // CHECK-LABEL: @qasm_main
