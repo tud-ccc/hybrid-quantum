@@ -22,15 +22,19 @@
 #include <cstddef>
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/ADT/DenseMap.h>
+#include <llvm/ADT/MapVector.h>
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/IR/ValueMap.h>
 #include <llvm/Support/Casting.h>
+#include <llvm/Support/LogicalResult.h>
+#include <mlir/Dialect/Arith/IR/Arith.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
 #include <mlir/Dialect/Tensor/IR/Tensor.h>
 #include <mlir/IR/BuiltinAttributes.h>
 #include <mlir/IR/BuiltinTypes.h>
 #include <mlir/IR/Diagnostics.h>
+#include <mlir/IR/Dominance.h>
 #include <mlir/IR/IRMapping.h>
 #include <mlir/IR/MLIRContext.h>
 #include <mlir/IR/TypeRange.h>
@@ -38,6 +42,7 @@
 #include <mlir/IR/Value.h>
 #include <mlir/IR/ValueRange.h>
 #include <mlir/Support/LogicalResult.h>
+#include <mlir/Transforms/GreedyPatternRewriteDriver.h>
 
 using namespace mlir;
 using namespace mlir::qqt;
@@ -55,6 +60,42 @@ namespace mlir {
 
 namespace {
 
+qillr::MeasureOp findImmediateDominatingMeasure(
+    qillr::ReadMeasurementOp readMeasurement,
+    DominanceInfo &domInfo)
+{
+    Operation* op = readMeasurement.getOperation();
+    Block* block = op->getBlock();
+    Region* region = block->getParent();
+
+    // Case 1: single-block region -> just scan backwards
+    if (region->hasOneBlock()) {
+        for (Operation* it = op->getPrevNode(); it; it = it->getPrevNode())
+            if (auto measure = llvm::dyn_cast<qillr::MeasureOp>(it))
+                if (measure.getResult() == readMeasurement.getInput())
+                    return measure;
+        return nullptr;
+    }
+
+    // Case 2: multiple blocks -> use dominator tree
+    for (Operation* it = op->getPrevNode(); it; it = it->getPrevNode())
+        if (auto measure = llvm::dyn_cast<qillr::MeasureOp>(it))
+            if (measure.getResult() == readMeasurement.getInput())
+                return measure;
+
+    auto* node = domInfo.getNode(block);
+    while (auto* idom = node->getIDom()) {
+        Block* idomBlock = idom->getBlock();
+        for (auto &blockOp : llvm::reverse(*idomBlock))
+            if (auto measure = llvm::dyn_cast<qillr::MeasureOp>(&blockOp))
+                if (measure.getResult() == readMeasurement.getInput())
+                    return measure;
+        node = idom;
+    }
+
+    return nullptr;
+}
+
 struct ConvertQILLRToQuantumPass
         : mlir::impl::ConvertQILLRToQuantumBase<ConvertQILLRToQuantumPass> {
     using ConvertQILLRToQuantumBase::ConvertQILLRToQuantumBase;
@@ -66,14 +107,19 @@ template<typename Op>
 struct QILLRToQuantumOpConversionPattern : OpConversionPattern<Op> {
     /// Maps the `qillr.Qubit` to the `qqt.QubitRef`
     IRMapping* mapping;
+    DominanceInfo &domInfo;
 
     QILLRToQuantumOpConversionPattern(
         TypeConverter &typeConverter,
         MLIRContext* ctx,
-        IRMapping* mapping)
+        IRMapping* mapping,
+        DominanceInfo &domInfo)
             : OpConversionPattern<Op>(typeConverter, ctx, 1),
-              mapping(mapping)
+              mapping(mapping),
+              domInfo(domInfo)
     {}
+
+    llvm::MapVector<Value, Value> rallocToRead;
 };
 
 struct ConvertAlloc : public QILLRToQuantumOpConversionPattern<qillr::AllocOp> {
@@ -112,7 +158,7 @@ struct ConvertResultAlloc
         qillr::AllocResultOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        // We do not have a representation for result registers in Quantum
+        // There is no representation for result registers in Quantum
         // dialect
         rewriter.eraseOp(op);
         return success();
@@ -527,10 +573,28 @@ struct ConvertReset : public QILLRToQuantumOpConversionPattern<qillr::ResetOp> {
             quantum::QubitType::get(this->getContext(), 1),
             inRef);
 
-        rewriter.create<quantum::DeallocateOp>(
-            op->getLoc(),
-            loadOp.getResult());
-        rewriter.create<qqt::DestructOp>(op->getLoc(), inRef);
+        bool hasFollowerOps = false;
+        for (auto otherOp : op.getInput().getUsers())
+            if (otherOp != op && domInfo.properlyDominates(op, otherOp)) {
+                hasFollowerOps = true;
+                break;
+            }
+
+        if (hasFollowerOps) {
+            auto resetOp = rewriter.create<quantum::ResetOp>(
+                op->getLoc(),
+                quantum::QubitType::get(this->getContext(), 1),
+                loadOp.getResult());
+            rewriter.create<qqt::StoreOp>(
+                op->getLoc(),
+                resetOp.getResult(),
+                inRef);
+        } else {
+            rewriter.create<quantum::DeallocateOp>(
+                op->getLoc(),
+                loadOp.getResult());
+            rewriter.create<qqt::DestructOp>(op->getLoc(), inRef);
+        }
 
         rewriter.eraseOp(op);
         return success();
@@ -546,6 +610,7 @@ struct ConvertMeasure
         qillr::MeasureOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
+        auto resultRegister = op.getResult();
         auto inRef = mapping->lookup(op.getInput());
         auto loadOp = rewriter.create<qqt::LoadOp>(
             op->getLoc(),
@@ -564,20 +629,16 @@ struct ConvertMeasure
         // qillr.measure (%q, %r)
         // Find uses of %r and get %m of
         // %m = qillr.read_measurement (%r)
-        auto measuredRegister = op.getResult();
-        auto uses = measuredRegister.getUses();
-
-        for (auto it = uses.begin(); it != uses.end(); ++it) {
-            auto otherOp = it.getOperand()->getOwner();
-            if (auto readOp =
-                    llvm::dyn_cast<qillr::ReadMeasurementOp>(otherOp)) {
-                // Replace usages of %m with new measurement result
-                readOp.getMeasurement().replaceAllUsesWith(
-                    genMeasureOp.getMeasurement());
-                rewriter.eraseOp(readOp);
+        for (auto rallocUser : resultRegister.getUsers()) {
+            if (auto read =
+                    llvm::dyn_cast<qillr::ReadMeasurementOp>(rallocUser)) {
+                if (op == findImmediateDominatingMeasure(read, domInfo)) {
+                    read.getMeasurement().replaceAllUsesWith(
+                        genMeasureOp.getMeasurement());
+                    rewriter.eraseOp(read);
+                }
             }
         }
-
         rewriter.eraseOp(op);
         return success();
     }
@@ -592,8 +653,7 @@ struct ConvertReadMeasurement
         qillr::ReadMeasurementOpAdaptor adaptor,
         ConversionPatternRewriter &rewriter) const override
     {
-        return op->emitOpError(
-            "ReadMeasurement should already have been removed");
+        return llvm::success();
     }
 }; // struct ConvertReadMeasurementOp
 
@@ -606,6 +666,7 @@ void ConvertQILLRToQuantumPass::runOnOperation()
     ConversionTarget target(*context);
     RewritePatternSet patterns(context);
     IRMapping mapping;
+    DominanceInfo &domInfo = getAnalysis<DominanceInfo>();
 
     typeConverter.addConversion([](Type ty) { return ty; });
     typeConverter.addConversion([](qillr::QubitType ty) {
@@ -616,11 +677,14 @@ void ConvertQILLRToQuantumPass::runOnOperation()
     qqt::populateConvertQILLRToQuantumPatterns(
         typeConverter,
         patterns,
-        mapping);
+        mapping,
+        domInfo);
 
     target.addIllegalDialect<qillr::QILLRDialect>();
     target.addLegalDialect<quantum::QuantumDialect>();
     target.addLegalDialect<qqt::QQTDialect>();
+    target.addLegalDialect<arith::ArithDialect>();
+    target.addLegalDialect<scf::SCFDialect>();
 
     if (failed(applyPartialConversion(
             getOperation(),
@@ -632,12 +696,16 @@ void ConvertQILLRToQuantumPass::runOnOperation()
 void mlir::qqt::populateConvertQILLRToQuantumPatterns(
     TypeConverter &typeConverter,
     RewritePatternSet &patterns,
-    IRMapping &mapping)
+    IRMapping &mapping,
+    DominanceInfo &domInfo)
 {
     patterns.add<
+        ConvertResultAlloc,
+        ConvertReadMeasurement,
         ConvertAlloc,
         ConvertSwap,
-        ConvertResultAlloc,
+        ConvertCSwap,
+        ConvertMeasure,
         ConvertUnaryOp<qillr::HOp, quantum::HOp>,
         ConvertUnaryOp<qillr::SXOp, quantum::SXOp>,
         ConvertUnaryOp<qillr::XOp, quantum::XOp>,
@@ -662,8 +730,7 @@ void mlir::qqt::populateConvertQILLRToQuantumPatterns(
         ConvertControledRotation<qillr::CRzOp, quantum::CRzOp>,
         ConvertControledRotation<qillr::CU1Op, quantum::CU1Op>,
         ConvertBarrierOp,
-        ConvertMeasure,
-        ConvertReset>(typeConverter, patterns.getContext(), &mapping);
+        ConvertReset>(typeConverter, patterns.getContext(), &mapping, domInfo);
 }
 
 std::unique_ptr<Pass> mlir::createConvertQILLRToQuantumPass()

@@ -14,6 +14,10 @@
 #include "mlir/Transforms/InliningUtils.h"
 #include "quantum-mlir/Dialect/QILLR/IR/QILLRBase.h"
 
+#include <llvm/IR/PassManager.h>
+#include <llvm/Support/LogicalResult.h>
+#include <mlir/Transforms/DialectConversion.h>
+
 #define DEBUG_TYPE "qillr-ops"
 
 using namespace mlir;

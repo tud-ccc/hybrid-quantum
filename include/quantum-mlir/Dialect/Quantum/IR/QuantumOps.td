@@ -237,7 +237,37 @@ def Quantum_DeallocateOp : Memory_Op<
     ```
     }];
 
-    let arguments = (ins Quantum_QubitType:$input);
+    let arguments = (ins
+      Quantum_QubitType:$input
+    );
+}
+
+def Quantum_ResetOp : Memory_Op<
+        "reset",
+        [
+          MemoryEffects<[
+            MemRead,
+            MemWrite
+          ]>]> {
+    let summary = "Reset a quantum register.";
+    let description = [{
+    Reset qubits.
+
+    Example:
+    
+    ```mlir
+    %q0 = quantum.alloc : !quantum.qubit<5> 
+    %quantum.reset (%q0) : !quantum.qubit<5> -> (!quantum.qubit<5>)
+    ```
+    }];
+
+    let arguments = (ins
+      Quantum_QubitType:$input
+    );
+    
+    let results = (outs
+      Quantum_QubitType:$result
+    );
 }
 
 def Quantum_SplitOp : Memory_Op<

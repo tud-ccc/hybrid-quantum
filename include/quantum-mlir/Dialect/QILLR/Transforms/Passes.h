@@ -9,6 +9,8 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
 
+#include <mlir/IR/Dominance.h>
+
 namespace mlir {
 
 //===- Generated includes -------------------------------------------------===//
@@ -25,6 +27,12 @@ void populateUGatesDecompositionPatterns(RewritePatternSet &patterns);
 
 /// Constructs the lower-funnel-shift pass.
 std::unique_ptr<Pass> createDecomposeUGatesPass();
+
+void populateReplaceRepeatedMeasurementReadsPatterns(
+    RewritePatternSet &patterns,
+    DominanceInfo &domInfo);
+
+std::unique_ptr<Pass> createReplaceRepeatedMeasurementReadsPass();
 
 //===----------------------------------------------------------------------===//
 // Registration

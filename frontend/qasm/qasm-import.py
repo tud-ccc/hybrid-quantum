@@ -18,7 +18,6 @@ from functools import reduce
 
 from mlir._mlir_libs._mlirDialectsQILLR import QubitType
 from mlir._mlir_libs._mlirDialectsQILLR import qillr as qillrdialect
-from mlir._mlir_libs._mlirDialectsRVSDG import rvsdg as rvsdgdialect
 from mlir.dialects import arith, func, qillr, scf
 from mlir.dialects.builtin import Block, IntegerType
 from mlir.ir import Context, F64Type, InsertionPoint, Location, Module, StringAttr, TypeAttr, Value
@@ -129,6 +128,7 @@ class QASMToMLIRVisitor:
         self.loc: Location = loc
         self.block: Block = block
         self.scope = scope
+        self.resetQubits: dict[Value, bool] = {}
 
     @classmethod
     def fromParent(cls, parent: QASMToMLIRVisitor, *, block: Block | None = None, scope: Scope | None = None):
@@ -152,13 +152,17 @@ class QASMToMLIRVisitor:
             else:
                 raise ParseError(f"Unknown instruction: {instr} of type {type(instr)}")
 
-    def visitQuantumBit(self, reg: Qubit) -> Value:
+    def visitQuantumBit(self, reg: Qubit, *, emitReset=False) -> Value:
         if self.scope.findAlloc(reg) is None:
             alloc: qillr.AllocOp = qillr.AllocOp(loc=self.loc, ip=InsertionPoint(self.block))
+            self.resetQubits[alloc.result] = True
             self.scope.setAlloc(reg, alloc.result)
-            return alloc.result
 
-        return self.scope.findAlloc(reg)
+        allocResult: qillr.AllocOp = self.scope.findAlloc(reg)
+        if emitReset and self.resetQubits[allocResult]:
+            self.resetQubits[allocResult] = False
+            qillr.ResetOp(allocResult, loc=self.loc, ip=InsertionPoint(self.block))
+        return allocResult
 
     def visitClassicalBit(self, reg: Clbit) -> Value:
         if self.scope.findResult(reg) is None:
@@ -261,7 +265,7 @@ class QASMToMLIRVisitor:
                             theta, phi, lam = [self.visitClassic(param) for param in instr.params]
                             qillr.U3Op(target, theta, phi, lam, ip=InsertionPoint(self.block))
                         case lib.Reset():
-                            qillr.ResetOp(target, ip=InsertionPoint(self.block))
+                            self._visitReset(target)
                         case lib.Measure():
                             bit: Value = self.visitClassicalBit(clbits[0])
                             measureOp: qillr.MeasureOp = qillr.MeasureOp(target, bit, ip=InsertionPoint(self.block))
@@ -330,6 +334,10 @@ class QASMToMLIRVisitor:
             qillr.GateCallOp(callee, operands, loc=self.loc, ip=InsertionPoint(self.block))
         else:
             ParseError(f"Expected gate with definition, got: {instr}")
+
+    def _visitReset(self, qubit: Value) -> None:
+        self.resetQubits[qubit] = False
+        qillr.ResetOp(qubit, ip=InsertionPoint(self.block))
 
     def _visitIfElse(self, instr: IfElseOp, qubits: list[QubitSpecifier], clbits: list[ClbitSpecifier]) -> None:
         with self.loc:
@@ -422,13 +430,12 @@ def QASMToMLIR(code: str) -> Module:
     context: Context = Context()
     context.allow_unregistered_dialects = True
     qillrdialect.register_dialect(context)
-    rvsdgdialect.register_dialect(context)
 
     with context:
         location: Location = Location.unknown()
         module: Module = Module.create(location)
 
-        qasm_main: func.FuncOp = func.FuncOp("qasm_main", ([], []), visibility="private", loc=location)
+        qasm_main: func.FuncOp = func.FuncOp("qasm_main", ([], []), visibility="public", loc=location)
         qasm_main.add_entry_block()
         module.body.append(qasm_main)
 
@@ -436,6 +443,8 @@ def QASMToMLIR(code: str) -> Module:
         visitor: QASMToMLIRVisitor = QASMToMLIRVisitor(compat, context, module, location, qasm_main.entry_block, scope)
         visitor.visitCircuit(circuit)
 
+        for qubit in circuit.qubits:
+            visitor.visitQuantumBit(qubit, emitReset=True)
         func.ReturnOp([], loc=location, ip=InsertionPoint(qasm_main.entry_block))
 
     return module

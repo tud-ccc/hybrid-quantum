@@ -1,7 +1,7 @@
 // RUN: %PYTHON qasm-import -i %s | FileCheck %s
 
 // CHECK: module {
-// CHECK-NEXT: func.func private @qasm_main() { 
+// CHECK-NEXT: func.func public @qasm_main() { 
 // CHECK-DAG: %[[q0:.+]] = "qillr.alloc"() : () -> !qillr.qubit
 // CHECK-DAG: %[[c0:.+]] = "qillr.ralloc"() : () -> !qillr.result
 // CHECK-DAG: "qillr.measure"(%[[q0]], %[[c0]]) : (!qillr.qubit, !qillr.result) -> ()

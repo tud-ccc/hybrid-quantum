@@ -17,7 +17,7 @@
 // CHECK-NEXT: "qillr.return"() : () -> ()
 // CHECK-NEXT: }) : () -> ()
 
-// CHECK: func.func private @qasm_main() { 
+// CHECK: func.func public @qasm_main() { 
 // CHECK-DAG: %[[a0:.+]] = "qillr.alloc"() : () -> !qillr.qubit
 // CHECK-DAG: "qillr.X"(%[[a0]]) : (!qillr.qubit) -> ()
 // CHECK-DAG: %[[b0:.+]] = "qillr.alloc"() : () -> !qillr.qubit

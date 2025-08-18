@@ -1,5 +1,6 @@
 add_mlir_dialect_library(QILLRTransforms
         DecomposeUGates.cpp
+        ReplaceRepeatedMeasurementReads.cpp
 
     ENABLE_AGGREGATION
 

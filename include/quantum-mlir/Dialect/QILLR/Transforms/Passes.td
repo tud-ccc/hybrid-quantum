@@ -18,4 +18,13 @@ def DecomposeUGates : Pass<"qillr-decompose-ugates", "ModuleOp"> {
   let constructor = "mlir::qillr::createDecomposeUGatesPass()";
 }
 
+def ReplaceRepeatedMeasurementReads : Pass<"replace-repeated-reads", "ModuleOp"> {
+  let summary = "Replace repeated measurement reads with a single one";
+
+  let description = [{
+  }];
+
+  let constructor = "mlir::qillr::createReplaceRepeatedMeasurementReadsPass()";
+}
+
 #endif // QILLR_PASSES
