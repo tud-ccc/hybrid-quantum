@@ -1,15 +1,15 @@
-/// Implements the gate optimization.
+/// Implements the control-flow optimization.
 ///
 /// @file
 /// @author     Lars Schütze (lars.schuetze@tu-dresden.de)
 
-#include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "quantum-mlir/Dialect/Quantum/IR/Quantum.h"
-#include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
-#include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h"
+#include "quantum-mlir/Dialect/RVSDG/IR/RVSDG.h"
+#include "quantum-mlir/Dialect/RVSDG/IR/RVSDGOps.h"
+#include "quantum-mlir/Dialect/RVSDG/IR/RVSDGTypes.h"
 
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/ADT/SmallPtrSet.h>
@@ -21,33 +21,34 @@
 #include <mlir/Support/LLVM.h>
 
 using namespace mlir;
+using namespace mlir::rvsdg;
 using namespace mlir::quantum;
 
 //===- Generated includes -------------------------------------------------===//
 
-namespace mlir::quantum {
+namespace mlir::rvsdg {
 
 #define GEN_PASS_DEF_CONTROLFLOWHOISTING
-#include "quantum-mlir/Dialect/Quantum/Transforms/Passes.h.inc"
+#include "quantum-mlir/Dialect/RVSDG/Transforms/Passes.h.inc"
 
-} // namespace mlir::quantum
+} // namespace mlir::rvsdg
 
 //===----------------------------------------------------------------------===//
 
 namespace {
 
-struct ControlFlowHoistingPass : mlir::quantum::impl::ControlFlowHoistingBase<
-                                     ControlFlowHoistingPass> {
+struct ControlFlowHoistingPass
+        : mlir::rvsdg::impl::ControlFlowHoistingBase<ControlFlowHoistingPass> {
     using ControlFlowHoistingBase::ControlFlowHoistingBase;
 
     void runOnOperation() override;
 };
 
-struct HoistOperations : OpRewritePattern<IfOp> {
-    using OpRewritePattern<IfOp>::OpRewritePattern;
+struct HoistOperations : OpRewritePattern<GammaNode> {
+    using OpRewritePattern<GammaNode>::OpRewritePattern;
 
     void findOperandsToIfArgs(
-        IfOp op,
+        GammaNode op,
         OperandRange operands,
         IRMapping &mapping) const
     {
@@ -96,7 +97,7 @@ struct HoistOperations : OpRewritePattern<IfOp> {
     }
 
     LogicalResult
-    matchAndRewrite(IfOp op, PatternRewriter &rewriter) const override
+    matchAndRewrite(GammaNode op, PatternRewriter &rewriter) const override
     {
         // Find equivalent operations in both branches whose operands
         // depend on the branch's block arguments
@@ -105,8 +106,8 @@ struct HoistOperations : OpRewritePattern<IfOp> {
         if (failed(findEquivalentOperations(
                 markMove,
                 markDelete,
-                op.getThenRegion(),
-                op.getElseRegion())))
+                op->getRegion(0),
+                op->getRegion(1))))
             return failure();
 
         for (auto moveOp : markMove) {
@@ -153,13 +154,13 @@ void ControlFlowHoistingPass::runOnOperation()
         signalPassFailure();
 }
 
-void mlir::quantum::populateControlFlowHoistingPatterns(
+void mlir::rvsdg::populateControlFlowHoistingPatterns(
     RewritePatternSet &patterns)
 {
     patterns.add<HoistOperations>(patterns.getContext());
 }
 
-std::unique_ptr<Pass> mlir::quantum::createControlFlowHoistingPass()
+std::unique_ptr<Pass> mlir::rvsdg::createControlFlowHoistingPass()
 {
     return std::make_unique<ControlFlowHoistingPass>();
 }

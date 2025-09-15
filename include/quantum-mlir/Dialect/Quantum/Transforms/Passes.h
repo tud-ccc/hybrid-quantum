@@ -34,8 +34,6 @@ void populateScfToRVSDGPatterns(
     TypeConverter converter,
     RewritePatternSet &patterns);
 
-void populateControlFlowHoistingPatterns(RewritePatternSet &patterns);
-
 /// Constructs the lower-funnel-shift pass.
 std::unique_ptr<Pass> createQuantumOptimisePass();
 
@@ -47,8 +45,6 @@ std::unique_ptr<Pass> createHermitianCancelPass();
 std::unique_ptr<Pass> createMultiQubitLegalizationPass();
 
 std::unique_ptr<Pass> createScfToRVSDGPass();
-
-std::unique_ptr<Pass> createControlFlowHoistingPass();
 
 //===----------------------------------------------------------------------===//
 // Registration

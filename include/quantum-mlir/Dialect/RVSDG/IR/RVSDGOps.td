@@ -79,7 +79,7 @@ def RVSDG_MatchOp: RVSDG_Op<"match", [Pure]> {
 //===----------------------------------------------------------------------===//
 // Gamma Node (if, switch)
 //===----------------------------------------------------------------------===//
-def RVSDG_GammaNode: RVSDG_StructuralNode<"gammaNode"> {
+def RVSDG_GammaNode: RVSDG_StructuralNode<"gamma"> {
     let summary = "RVSDG gamma node which models conditional execution";
     let description = [{
         RVSDG gamma node. Models conditional execution such as if and switch statements.

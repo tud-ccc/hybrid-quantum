@@ -9,7 +9,7 @@
 %test = rvsdg.constantCtrl 10 : !rvsdg.ctrl<2>
 
 %some_variable = arith.constant 14.0: f32
-%gammaResult0, %gammaResult1 = rvsdg.gammaNode (%predicate : !rvsdg.ctrl<2>) (%some_variable:f32):[
+%gammaResult0, %gammaResult1 = rvsdg.gamma (%predicate : !rvsdg.ctrl<2>) (%some_variable:f32):[
     (%some_variable: f32):{
         %c = arith.constant 1.0: f32
         %d = arith.constant 20: i32
@@ -34,7 +34,7 @@
 %test = rvsdg.constantCtrl 10 : !rvsdg.ctrl<2>
 
 %some_variable = arith.constant 14.0: f32
-%gammaResult0, %gammaResult1 = rvsdg.gammaNode (%predicate : !rvsdg.ctrl<2>) (%some_variable:f32):[
+%gammaResult0, %gammaResult1 = rvsdg.gamma (%predicate : !rvsdg.ctrl<2>) (%some_variable:f32):[
     (%some_variable: f32):{
         %c = arith.constant 1.0: f32
         %d = arith.constant 20: i32

@@ -9,7 +9,7 @@ func.func @if_local(%b : i1) {
 %q1 = "qillr.alloc" () : () -> (!qillr.qubit)
 // CHECK-NEXT: %[[Q2:.+]] = "qqt.load"(%[[Ref1]]) : (!qqt.ref) -> !quantum.qubit<1>
 // CHECK: %[[COND:.+]] = rvsdg.match(%[[B]] : i1) [#rvsdg.matchRule<1 -> 0>, #rvsdg.matchRule<0 -> 1>] -> <2> 
-// CHECK: %[[QOUT:.+]] = rvsdg.gammaNode(%[[COND]] : <2>) (%[[Q2]]: !quantum.qubit<1>) : [
+// CHECK: %[[QOUT:.+]] = rvsdg.gamma(%[[COND]] : <2>) (%[[Q2]]: !quantum.qubit<1>) : [
 scf.if %b {
   // CHECK-NEXT: (%[[QIN:.+]]: !quantum.qubit<1>): { 
   // CHECK-NOT: "qqt.load"(%[[Ref1]]) : (!qqt.ref) -> !quantum.qubit<1>
@@ -42,7 +42,7 @@ func.func @if_value_used(%b : i1) {
 %q1 = "qillr.alloc" () : () -> (!qillr.qubit)
 // CHECK-NEXT: %[[Q2:.+]] = "qqt.load"(%[[Ref1]]) : (!qqt.ref) -> !quantum.qubit<1>
 // CHECK: %[[COND:.+]] = rvsdg.match(%[[B]] : i1) [#rvsdg.matchRule<1 -> 0>, #rvsdg.matchRule<0 -> 1>] -> <2> 
-// CHECK: %[[QOUT:.+]] = rvsdg.gammaNode(%[[COND]] : <2>) (%[[Q2]]: !quantum.qubit<1>) : [
+// CHECK: %[[QOUT:.+]] = rvsdg.gamma(%[[COND]] : <2>) (%[[Q2]]: !quantum.qubit<1>) : [
 scf.if %b {
   // CHECK-NEXT: (%[[QIN:.+]]: !quantum.qubit<1>): { 
   // CHECK-NOT: %[[Q2:.+]] = "qqt.load"(%[[Ref1]]) : (!qqt.ref) -> !quantum.qubit<1>
@@ -78,7 +78,7 @@ func.func @if_local_chained(%b : i1) {
 %q1 = "qillr.alloc" () : () -> (!qillr.qubit)
 // CHECK-NEXT: %[[Q2:.+]] = "qqt.load"(%[[Ref1]]) : (!qqt.ref) -> !quantum.qubit<1>
 // CHECK: %[[COND:.+]] = rvsdg.match(%[[B]] : i1) [#rvsdg.matchRule<1 -> 0>, #rvsdg.matchRule<0 -> 1>] -> <2> 
-// CHECK: %[[QOUT:.+]] = rvsdg.gammaNode(%[[COND]] : <2>) (%[[Q2]]: !quantum.qubit<1>, %[[Ref1]]: !qqt.ref) : [
+// CHECK: %[[QOUT:.+]] = rvsdg.gamma(%[[COND]] : <2>) (%[[Q2]]: !quantum.qubit<1>, %[[Ref1]]: !qqt.ref) : [
 scf.if %b {
   // CHECK-NEXT: (%[[QIN:.+]]: !quantum.qubit<1>, %[[RefIN:.+]]: !qqt.ref): { 
   // CHECK-NOT: %[[Q2:.+]] = "qqt.load"(%[[Ref1]]) : (!qqt.ref) -> !quantum.qubit<1>
@@ -119,7 +119,7 @@ func.func @if_local_multiple_refs_exchanged(%b : i1) {
 // CHECK-DAG: %[[Q2:.+]] = "qqt.load"(%[[Ref1]]) : (!qqt.ref) -> !quantum.qubit<1>
 // CHECK-DAG: %[[Q8:.+]] = "qqt.load"(%[[Ref2]]) : (!qqt.ref) -> !quantum.qubit<1>
 // CHECK: %[[COND:.+]] = rvsdg.match(%[[B]] : i1) [#rvsdg.matchRule<1 -> 0>, #rvsdg.matchRule<0 -> 1>] -> <2> 
-// CHECK: %[[QOUT:.+]]:2  = rvsdg.gammaNode(%[[COND]] : <2>) (%[[Q8]]: !quantum.qubit<1>, %[[Q2]]: !quantum.qubit<1>) : [
+// CHECK: %[[QOUT:.+]]:2  = rvsdg.gamma(%[[COND]] : <2>) (%[[Q8]]: !quantum.qubit<1>, %[[Q2]]: !quantum.qubit<1>) : [
 scf.if %b {
   // CHECK-NEXT: (%[[QIN2:.+]]: !quantum.qubit<1>, %[[QIN1:.+]]: !quantum.qubit<1>): { 
   // CHECK: %[[Q3:.+]] = "quantum.X"(%[[QIN2]]) : (!quantum.qubit<1>) -> !quantum.qubit<1>
@@ -162,7 +162,7 @@ func.func @if_local_multiple_refs(%b : i1) {
 %q2 = "qillr.alloc" () : () -> (!qillr.qubit)
 // CHECK-NEXT: %[[Q8:.+]] = "qqt.load"(%[[Ref2]]) : (!qqt.ref) -> !quantum.qubit<1>
 // CHECK: %[[COND:.+]] = rvsdg.match(%[[B]] : i1) [#rvsdg.matchRule<1 -> 0>, #rvsdg.matchRule<0 -> 1>] -> <2> 
-// CHECK: %[[QOUT:.+]]:2  = rvsdg.gammaNode(%[[COND]] : <2>) (%[[Q2]]: !quantum.qubit<1>, %[[Q8]]: !quantum.qubit<1>) : [
+// CHECK: %[[QOUT:.+]]:2  = rvsdg.gamma(%[[COND]] : <2>) (%[[Q2]]: !quantum.qubit<1>, %[[Q8]]: !quantum.qubit<1>) : [
 scf.if %b {
   // CHECK-NEXT: (%[[QIN1:.+]]: !quantum.qubit<1>, %[[QIN2:.+]]: !quantum.qubit<1>): { 
   // CHECK: %[[Q3:.+]] = "quantum.X"(%[[QIN1]]) : (!quantum.qubit<1>) -> !quantum.qubit<1>

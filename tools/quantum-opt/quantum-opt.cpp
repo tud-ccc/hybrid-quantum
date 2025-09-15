@@ -39,6 +39,7 @@ int main(int argc, char* argv[])
     quantum::registerConversionPasses();
     qillr::registerQILLRPasses();
     qqt::registerQQTPasses();
+    rvsdg::registerRVSDGPasses();
 
     registerAllExtensions(registry);
     qillr::registerInlinerExtension(registry);

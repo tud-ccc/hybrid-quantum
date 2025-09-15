@@ -11,4 +11,4 @@ add_custom_target(RVSDGIncGen)
 # Attributes, Dialect, Operations and Types.
 add_subdirectory(IR)
 # Passes
-#add_subdirectory(Transforms)
+add_subdirectory(Transforms)

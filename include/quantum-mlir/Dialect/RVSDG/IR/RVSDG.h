@@ -6,3 +6,4 @@
 #pragma once
 
 #include "quantum-mlir/Dialect/RVSDG/IR/RVSDGOps.h"
+#include "quantum-mlir/Dialect/RVSDG/Transforms/Passes.h"

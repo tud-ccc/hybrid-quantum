@@ -42,15 +42,4 @@ def MultiQubitLegalization : Pass<"quantum-multi-qubit-legalize", "ModuleOp"> {
   ];
 }
 
-def ControlFlowHoisting : Pass<"control-flow-hoisting", "ModuleOp"> {
-  let summary = "If an operation exists on regions of a `quantum.if` it is hoisted in front of the conditional.";
-
-  let description = [{
-  This pass hoists operations that are idendical and in both regions of a `quantum.if` out of the conditional.
-  The capturing arguments will be rewritten.
-  }];
-
-  let constructor = "mlir::quantum::createControlFlowHoistingPass()";
-}
-
 #endif // QUANTUM_PASSES

@@ -2,7 +2,6 @@ add_mlir_dialect_library(QuantumTransforms
         Hermitian.cpp
         GateOptimization.cpp
         MultiQubitLegalization.cpp
-        ControlFlowHoisting.cpp
 
     ENABLE_AGGREGATION
 

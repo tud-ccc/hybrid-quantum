@@ -4,7 +4,7 @@
 // CHECK-SAME: %[[B:.*]]: i1, %[[Q:.*]]: !qillr.qubit) -> !qillr.qubit
 func.func @if_to_rvsdg_gamma_qillr(%b : i1, %q : !qillr.qubit) -> (!qillr.qubit) {
   // CHECK-DAG: %[[PRED:.*]] = rvsdg.match(%[[B]] : i1) [#rvsdg.matchRule<1 -> 0>, #rvsdg.matchRule<0 -> 1>] -> <2>
-  // CHECK-DAG: %[[QR:.*]] = rvsdg.gammaNode(%[[PRED]] : <2>) (%[[Q]]: !qillr.qubit) : [
+  // CHECK-DAG: %[[QR:.*]] = rvsdg.gamma(%[[PRED]] : <2>) (%[[Q]]: !qillr.qubit) : [
   // CHECK-NEXT:   (%[[Q1:.*]]: !qillr.qubit): {
   scf.if %b {
     // CHECK:         "qillr.H"(%[[Q1]]) : (!qillr.qubit) -> ()

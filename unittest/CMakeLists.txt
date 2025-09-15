@@ -13,7 +13,6 @@ include(CTest)
 
 add_executable(${PROJECT_NAME}
     main.cpp
-    QuantumIf.cpp
 )
 if(APPLE)
     target_include_directories(${PROJECT_NAME}

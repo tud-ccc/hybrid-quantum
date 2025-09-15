@@ -4,7 +4,7 @@
 // CHECK-SAME: (%[[B:.*]]: i1, %[[Q:.*]]: !quantum.qubit<1>)
 func.func @if_to_rvsdg_gamma_quantum(%b : i1, %q : !quantum.qubit<1>) -> (!quantum.qubit<1>) {
   // CHECK-DAG: %[[PRED:.*]] = rvsdg.match(%[[B]] : i1) [#rvsdg.matchRule<1 -> 0>, #rvsdg.matchRule<0 -> 1>] -> <2>
-  // CHECK-DAG: %[[RES:.*]] = rvsdg.gammaNode(%[[PRED]] : <2>) (%[[Q]]: !quantum.qubit<1>) : [
+  // CHECK-DAG: %[[RES:.*]] = rvsdg.gamma(%[[PRED]] : <2>) (%[[Q]]: !quantum.qubit<1>) : [
   // CHECK-NEXT:   (%[[QA:.*]]: !quantum.qubit<1>): {
   %q1 = scf.if %b -> !quantum.qubit<1> {
     // CHECK-DAG:     %[[QH:.*]] = "quantum.H"(%[[QA]]) : (!quantum.qubit<1>) -> !quantum.qubit<1>
@@ -31,7 +31,7 @@ func.func @if_to_rvsdg_gamma_quantum(%b : i1, %q : !quantum.qubit<1>) -> (!quant
 // CHECK-SAME: (%[[B:.*]]: i1, %[[Q:.*]]: !quantum.qubit<1>)
 func.func @multiple_quantum_ops(%b : i1, %q : !quantum.qubit<1>) -> (!quantum.qubit<1>) {
   // CHECK-DAG: %[[PRED:.*]] = rvsdg.match(%[[B]] : i1) [#rvsdg.matchRule<1 -> 0>, #rvsdg.matchRule<0 -> 1>] -> <2>
-  // CHECK-DAG: %[[RES:.*]] = rvsdg.gammaNode(%[[PRED]] : <2>) (%[[Q]]: !quantum.qubit<1>) : [
+  // CHECK-DAG: %[[RES:.*]] = rvsdg.gamma(%[[PRED]] : <2>) (%[[Q]]: !quantum.qubit<1>) : [
   // CHECK-NEXT:   (%[[QA:.*]]: !quantum.qubit<1>): {
   %q1 = scf.if %b -> !quantum.qubit<1> {
     // CHECK-DAG:     %[[QH:.*]] = "quantum.H"(%[[QA]]) : (!quantum.qubit<1>) -> !quantum.qubit<1>
