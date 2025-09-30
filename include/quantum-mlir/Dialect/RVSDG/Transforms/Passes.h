@@ -19,8 +19,6 @@ namespace mlir {
 
 namespace rvsdg {
 
-void populateControlFlowHoistingPatterns(RewritePatternSet &patterns);
-
 std::unique_ptr<Pass> createControlFlowHoistingPass();
 
 //===----------------------------------------------------------------------===//

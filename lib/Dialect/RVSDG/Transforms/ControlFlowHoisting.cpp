@@ -5,20 +5,26 @@
 
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
-#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "quantum-mlir/Dialect/Quantum/IR/Quantum.h"
 #include "quantum-mlir/Dialect/RVSDG/IR/RVSDG.h"
 #include "quantum-mlir/Dialect/RVSDG/IR/RVSDGOps.h"
 #include "quantum-mlir/Dialect/RVSDG/IR/RVSDGTypes.h"
 
+#include <llvm/ADT/MapVector.h>
 #include <llvm/ADT/STLExtras.h>
+#include <llvm/ADT/SetVector.h>
 #include <llvm/ADT/SmallPtrSet.h>
+#include <llvm/ADT/SmallVector.h>
 #include <llvm/Support/Casting.h>
+#include <llvm/Support/LogicalResult.h>
+#include <mlir/IR/Block.h>
 #include <mlir/IR/IRMapping.h>
 #include <mlir/IR/OperationSupport.h>
+#include <mlir/IR/Region.h>
 #include <mlir/IR/Value.h>
 #include <mlir/IR/ValueRange.h>
 #include <mlir/Support/LLVM.h>
+#include <utility>
 
 using namespace mlir;
 using namespace mlir::rvsdg;
@@ -42,122 +48,117 @@ struct ControlFlowHoistingPass
     using ControlFlowHoistingBase::ControlFlowHoistingBase;
 
     void runOnOperation() override;
-};
 
-struct HoistOperations : OpRewritePattern<GammaNode> {
-    using OpRewritePattern<GammaNode>::OpRewritePattern;
+    void
+    checkAndMarkEquivalentOperations(Operation* op, Region &lhs, Region &rhs);
 
-    void findOperandsToIfArgs(
-        GammaNode op,
-        OperandRange operands,
-        IRMapping &mapping) const
-    {
-        for (auto operand : operands)
-            if (auto blockArg = dyn_cast<BlockArgument>(operand)) {
-                unsigned index = blockArg.getArgNumber();
-                // IfOp has condition + block args
-                mapping.map(operand, op->getOperand(index + 1));
-            } else
-                assert(false && "Not a block argument");
-    }
-
-    LogicalResult findEquivalentOperations(
-        SmallPtrSetImpl<Operation*> &markMove,
-        SmallPtrSetImpl<Operation*> &markDelete,
-        Region &region1,
-        Region &region2) const
-    {
-        bool hasApplied = false;
-        for (auto [thenArg, elseArg] :
-             llvm::zip(region1.getArguments(), region2.getArguments())) {
-            DenseMap<Value, Value> valuesMap;
-            auto mapValue = [&](Value lhs, Value rhs) {
-                if (!dyn_cast<BlockArgument>(lhs)
-                    || !dyn_cast<BlockArgument>(rhs))
-                    return failure();
-                auto insertion = valuesMap.insert({lhs, rhs});
-                return success(insertion.first->second == rhs);
-            };
-            for (auto [thenOp, elseOp] :
-                 llvm::zip(thenArg.getUsers(), elseArg.getUsers())) {
-                if (!llvm::isa<YieldOp>(thenOp) && !llvm::isa<YieldOp>(elseOp)
-                    && OperationEquivalence::isEquivalentTo(
-                        thenOp,
-                        elseOp,
-                        mapValue,
-                        mapValue,
-                        OperationEquivalence::IgnoreLocations)) {
-                    markMove.insert(thenOp);
-                    markDelete.insert(elseOp);
-                    hasApplied = true;
-                }
-            }
-        }
-        return success(hasApplied);
-    }
-
-    LogicalResult
-    matchAndRewrite(GammaNode op, PatternRewriter &rewriter) const override
-    {
-        // Find equivalent operations in both branches whose operands
-        // depend on the branch's block arguments
-        SmallPtrSet<Operation*, 4> markDelete;
-        SmallPtrSet<Operation*, 4> markMove;
-        if (failed(findEquivalentOperations(
-                markMove,
-                markDelete,
-                op->getRegion(0),
-                op->getRegion(1))))
-            return failure();
-
-        for (auto moveOp : markMove) {
-            // Remap cloned operation operands to if operands
-            IRMapping mapping;
-            findOperandsToIfArgs(op, moveOp->getOperands(), mapping);
-
-            // Clone the operation in front of if
-            rewriter.setInsertionPoint(op);
-            auto clonedOp = rewriter.clone(*moveOp, mapping);
-
-            // Replace the operation from each branch by replacing its uses
-            SmallVector<Value, 4> replacements;
-            for (auto operand : moveOp->getOperands())
-                if (llvm::isa<QubitType>(operand.getType()))
-                    replacements.push_back(operand);
-            rewriter.replaceOp(moveOp, replacements);
-
-            // Remap if operands to cloned operation results
-            for (auto [arg, res] :
-                 llvm::zip(clonedOp->getOperands(), clonedOp->getResults()))
-                op->replaceUsesOfWith(arg, res);
-        }
-        // Replace the operation from each branch by replacing its uses
-        for (auto delOp : markDelete) {
-            SmallVector<Value, 4> replacements;
-            for (auto operand : delOp->getOperands())
-                if (llvm::isa<QubitType>(operand.getType()))
-                    replacements.push_back(operand);
-            rewriter.replaceOp(delOp, replacements);
-        }
-
-        return success();
-    }
+private:
+    /// markedEquivs maps GammaOp -> (Move, Delete)
+    llvm::DenseMap<
+        Operation*,
+        llvm::SmallSetVector<std::pair<Operation*, Operation*>, 8>>
+        markedEquivs;
 };
 
 } // namespace
 
-void ControlFlowHoistingPass::runOnOperation()
+void ControlFlowHoistingPass::checkAndMarkEquivalentOperations(
+    Operation* op,
+    Region &lhs,
+    Region &rhs)
 {
-    RewritePatternSet patterns(&getContext());
-    populateControlFlowHoistingPatterns(patterns);
-    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
-        signalPassFailure();
+    DenseMap<Value, Value> equivalentValues;
+    for (auto [lArg, rArg] :
+         llvm::zip(lhs.getArguments(), rhs.getArguments())) {
+        for (auto [lOp, rOp] : llvm::zip(lArg.getUsers(), rArg.getUsers())) {
+            // Potentially this will leave a gamma node that directly yields all
+            // incoming values. Such a GammaNode should be removed by
+            // canonicalization
+            if (llvm::isa<YieldOp>(lOp) || llvm::isa<YieldOp>(rOp)) continue;
+
+            if (OperationEquivalence::isEquivalentTo(
+                    lOp,
+                    rOp,
+                    [&](Value lhsValue, Value rhsValue) -> LogicalResult {
+                        if (llvm::isa<BlockArgument>(lhsValue)
+                            && llvm::isa<BlockArgument>(rhsValue)) {
+                            auto lhsArg =
+                                llvm::dyn_cast<BlockArgument>(lhsValue);
+                            auto rhsArg =
+                                llvm::dyn_cast<BlockArgument>(rhsValue);
+
+                            if (lhsArg.getArgNumber() == rhsArg.getArgNumber())
+                                return success();
+                        }
+                        return success(
+                            lhsValue == rhsValue
+                            || equivalentValues.lookup(lhsValue) == rhsValue);
+                        // The arguments either are region args or the
+                        // operands are known to be equivalent
+                    },
+                    [&](Value lhsResult, Value rhsResult) {
+                        auto insertion =
+                            equivalentValues.insert({lhsResult, rhsResult});
+                        // Make sure that the value was not already marked
+                        // equivalent to some other value.
+                        (void)insertion;
+                        assert(
+                            insertion.first->second == rhsResult
+                            && "inconsistent state");
+                    },
+                    OperationEquivalence::Flags::IgnoreLocations)) {
+                // TODO: Operands must be BlockArguments OR the result of an
+                // operation that is already marked equivalent
+                markedEquivs[op].insert(std::make_pair(lOp, rOp));
+            }
+        }
+    }
 }
 
-void mlir::rvsdg::populateControlFlowHoistingPatterns(
-    RewritePatternSet &patterns)
+void ControlFlowHoistingPass::runOnOperation()
 {
-    patterns.add<HoistOperations>(patterns.getContext());
+    mlir::OpBuilder builder(&getContext());
+
+    auto module = getOperation();
+    module->walk([&](rvsdg::GammaNode op) {
+        checkAndMarkEquivalentOperations(op, op->getRegion(0), op.getRegion(1));
+    });
+
+    module->walk([&](rvsdg::GammaNode op) {
+        IRMapping mapping;
+        // GammaNode has Conditional + Arguments
+        for (auto operand : llvm::zip(
+                 op->getOperands().drop_front(),
+                 op->getRegion(0).getArguments())) {
+            auto from = std::get<0>(operand);
+            auto to = std::get<1>(operand);
+            mapping.map(to, from);
+        }
+
+        builder.setInsertionPoint(op);
+        for (auto [moveOp, delOp] : markedEquivs.lookup(op)) {
+            // Outline operation in front of Gamma op
+            auto outlinedOp = builder.clone(*moveOp, mapping);
+
+            // Remap Gamma operands to results of outlined operation
+            moveOp->replaceAllUsesWith(moveOp->getOperands());
+            delOp->replaceAllUsesWith(delOp->getOperands());
+            for (auto [operand, result] : llvm::zip(
+                     outlinedOp->getOperands(),
+                     outlinedOp->getResults())) {
+                op->replaceUsesOfWith(operand, result);
+            }
+        }
+    });
+
+    for (const auto &entry : markedEquivs) {
+        const auto &pairs = entry.second;
+        for (const auto [moveOp, delOp] : pairs) {
+            moveOp->erase();
+            delOp->erase();
+        }
+    }
+    // markedEquivs.clear();
 }
 
 std::unique_ptr<Pass> mlir::rvsdg::createControlFlowHoistingPass()

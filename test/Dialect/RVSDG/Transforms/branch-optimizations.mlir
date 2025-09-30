@@ -1,4 +1,4 @@
-// RUN: quantum-opt %s -control-flow-hoisting -split-input-file | FileCheck %s
+// RUN: quantum-opt %s --debug --mlir-print-ir-after-all -control-flow-hoisting -split-input-file | FileCheck %s
 
 // CHECK-LABEL: func.func @hoist_binary_op(
 // CHECK-SAME: %[[Q1:.+]]: {{.*}}, %[[Q2:.+]]: {{.*}}, %[[B:.+]]: {{.*}})
@@ -31,3 +31,5 @@ func.func @hoist_binary_op(%q1 : !quantum.qubit<1>, %q2 : !quantum.qubit<1>, %b 
     // CHECK-DAG: return %[[OUT2]]#0, %[[OUT2]]#1
     return %aout, %bout : !quantum.qubit<1>, !quantum.qubit<1>
 }
+
+// -----
