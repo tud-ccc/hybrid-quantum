@@ -78,11 +78,16 @@ class Scope:
     def __init__(self, visited: dict[str, qillr.GateOp] | None = None) -> None:
         self.qregs: dict[str, qillr.AllocOp] = {}
         self.cregs: dict[str, qillr.AllocResultOp] = {}
+        self.reads: dict[str, qillr.ReadMeasurementOp] = {}
         self.visitedGates: dict[str, qillr.GateOp] = visited if visited is not None else {}
 
     @classmethod
     def fromList(
-        cls, qregs: list[QubitSpecifier], cregs: list[ClbitSpecifier], visited: dict[str, qillr.GateOp] | None = None
+        cls,
+        qregs: list[QubitSpecifier],
+        cregs: list[ClbitSpecifier],
+        visited: dict[str, qillr.GateOp] | None = None,
+        reads: dict[str, qillr.ReadMeasurementOp] | None = None,
     ) -> Scope:
         s = cls(visited)
         s.qregs = {str(q): None for qreg in qregs for q in qreg}
@@ -118,6 +123,12 @@ class Scope:
 
     def setGate(self, gate: QASM2_Gate, newGate: qillr.GateOp) -> None:
         self.visitedGates[str(gate.name)] = newGate
+
+    def findRead(self, reg: ClbitSpecifier) -> qillr.AllocResultOp:
+        return self.reads.get(str(reg))
+
+    def setRead(self, reg: ClbitSpecifier, ralloc: qillr.AllocResultOp) -> None:
+        self.reads[str(reg)] = ralloc
 
 
 class QASMToMLIRVisitor:
@@ -268,8 +279,8 @@ class QASMToMLIRVisitor:
                             self._visitReset(target)
                         case lib.Measure():
                             bit: Value = self.visitClassicalBit(clbits[0])
-                            measureOp: qillr.MeasureOp = qillr.MeasureOp(target, bit, ip=InsertionPoint(self.block))
-                            qillr.ReadMeasurementOp(measureOp.result, ip=InsertionPoint(self.block))
+                            qillr.MeasureOp = qillr.MeasureOp(target, bit, ip=InsertionPoint(self.block))
+                            self._emitReadOrVal(clbits[0], override=True)
                         case lib.IGate():
                             qillr.IdOp(target, ip=InsertionPoint(self.block))
                         case lib.PhaseGate():
@@ -354,6 +365,15 @@ class QASMToMLIRVisitor:
                 elseVisitor.visitCircuit(false_body)
                 scf.YieldOp(results_=[], ip=InsertionPoint(ifOp.else_block))
 
+    def _emitReadOrVal(self, reg: Clbit, *, override: bool = False) -> Value:
+        if self.scope.findRead(reg) is None or override:
+            clval: Value = self.visitClassicalBit(reg)
+            read: qillr.ReadMeasurementOp = qillr.ReadMeasurementOp(clval, loc=self.loc, ip=InsertionPoint(self.block))
+            self.scope.setRead(reg, read.result)
+            return read.result
+
+        return self.scope.findRead(reg)
+
     def _visitIfElseCondition(
         self,
         condition: Expr | tuple[ClassicalRegister, int] | tuple[Clbit, int],
@@ -368,19 +388,22 @@ class QASMToMLIRVisitor:
                     i1Type = IntegerType.get_signless(1)
                     match bitOrRegister:
                         case Clbit():
-                            clval: Value = self.visitClassicalBit(bitOrRegister)
-                            measurement: Value = qillr.ReadMeasurementOp(clval, ip=InsertionPoint(self.block)).result
+                            measurement: Value = self._emitReadOrVal(bitOrRegister)
                             axiomval: Value = arith.ConstantOp(i1Type, axiom, ip=InsertionPoint(self.block)).result
                             return arith.CmpIOp(
                                 arith.CmpIPredicate.eq, measurement, axiomval, ip=InsertionPoint(self.block)
                             ).result
                         case ClassicalRegister():
                             clvals: list[tuple[int, Value]] = [
-                                (bit_at(axiom, i), self.visitClassicalBit(clbit)) for i, clbit in enumerate(clbits[0]._register)
+                                (bit_at(axiom, i), clbit) for i, clbit in enumerate(clbits[0]._register)
                             ]
                             cmpis: list[Value] = []
-                            for b, clval in clvals:
-                                measurement: Value = qillr.ReadMeasurementOp(clval, ip=InsertionPoint(self.block)).result
+                            for b, clbit in clvals:
+                                measurement: Value = (
+                                    self._emitReadOrVal(clbit)
+                                    if self.scope.findRead(clbit) is not None
+                                    else arith.ConstantOp(i1Type, 0, ip=InsertionPoint(self.block)).result
+                                )
                                 axiomval: Value = arith.ConstantOp(i1Type, b, ip=InsertionPoint(self.block)).result
                                 cmpis.append(
                                     arith.CmpIOp(
