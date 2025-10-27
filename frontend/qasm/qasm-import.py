@@ -18,8 +18,8 @@ from functools import reduce
 
 from mlir._mlir_libs._mlirDialectsQILLR import QubitType
 from mlir._mlir_libs._mlirDialectsQILLR import qillr as qillrdialect
-from mlir.dialects import arith, func, qillr, scf
-from mlir.dialects.builtin import Block, IntegerType
+from mlir.dialects import arith, func, qillr, scf, tensor
+from mlir.dialects.builtin import Block, IntegerType, RankedTensorType
 from mlir.ir import Context, F64Type, InsertionPoint, Location, Module, StringAttr, TypeAttr, Value
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Clbit, Instruction, Operation, ParameterExpression, Qubit
@@ -279,7 +279,7 @@ class QASMToMLIRVisitor:
                             self._visitReset(target)
                         case lib.Measure():
                             bit: Value = self.visitClassicalBit(clbits[0])
-                            qillr.MeasureOp = qillr.MeasureOp(target, bit, ip=InsertionPoint(self.block))
+                            qillr.MeasureOp(target, bit, ip=InsertionPoint(self.block))
                             self._emitReadOrVal(clbits[0], override=True)
                         case lib.IGate():
                             qillr.IdOp(target, ip=InsertionPoint(self.block))
@@ -434,7 +434,7 @@ def qasm_version(code: str) -> QASMVersion:
     return QASMVersion.Unspecified
 
 
-def QASMToMLIR(code: str) -> Module:
+def QASMToMLIR(code: str, emitResults: bool) -> Module:
     compat: QASMVersion = qasm_version(code)
     circuit: QuantumCircuit
 
@@ -458,17 +458,33 @@ def QASMToMLIR(code: str) -> Module:
         location: Location = Location.unknown()
         module: Module = Module.create(location)
 
-        qasm_main: func.FuncOp = func.FuncOp("qasm_main", ([], []), visibility="public", loc=location)
+        scope: Scope = Scope.fromList(circuit.qregs, circuit.cregs)
+
+        if not emitResults:
+            qasm_main: func.FuncOp = func.FuncOp("qasm_main", ([], []), visibility="public", loc=location)
+        else:
+            # Tensor circuit.cregs times i1
+
+            resType: RankedTensorType = RankedTensorType.get([len(scope.cregs)], IntegerType.get_signless(1), loc=location)
+            qasm_main: func.FuncOp = func.FuncOp("qasm_main", ([], [resType]), visibility="public", loc=location)
+
         qasm_main.add_entry_block()
         module.body.append(qasm_main)
 
-        scope: Scope = Scope.fromList(circuit.qregs, circuit.cregs)
         visitor: QASMToMLIRVisitor = QASMToMLIRVisitor(compat, context, module, location, qasm_main.entry_block, scope)
         visitor.visitCircuit(circuit)
 
         for qubit in circuit.qubits:
             visitor.visitQuantumBit(qubit, emitReset=True)
-        func.ReturnOp([], loc=location, ip=InsertionPoint(qasm_main.entry_block))
+
+        if not emitResults:
+            func.ReturnOp([], loc=location, ip=InsertionPoint(qasm_main.entry_block))
+        else:
+            # Merge all measurements into a tensor and return it
+            m: list[Value] = [visitor._emitReadOrVal(creg) for creg in scope.cregs]
+            resType: RankedTensorType = RankedTensorType.get([len(scope.cregs)], IntegerType.get_signless(1), loc=location)
+            res: Value = tensor.FromElementsOp(resType, m, loc=location, ip=InsertionPoint(qasm_main.entry_block)).result
+            func.ReturnOp([res], loc=location, ip=InsertionPoint(qasm_main.entry_block))
 
     return module
 
@@ -477,11 +493,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", help="Input QASM file")
     parser.add_argument("-o", "--output", help="Output MLIR file")
+    parser.add_argument("-r", "--results", action="store_true", help="Emit IR to return the measurement values")
     args = parser.parse_args()
 
     code: str = open(args.input).read() if args.input else sys.stdin.read()
 
-    module: Module = QASMToMLIR(code)
+    module: Module = QASMToMLIR(code, args.results)
     mlir: str = str(module)
 
     if args.output:
