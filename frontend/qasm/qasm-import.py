@@ -92,6 +92,7 @@ class Scope:
         s = cls(visited)
         s.qregs = {str(q): None for qreg in qregs for q in qreg}
         s.cregs = {str(c): None for creg in cregs for c in creg}
+        s.reads = {str(r): None for read in reads for r in read} if reads is not None else {}
         return s
 
     @classmethod
@@ -100,10 +101,12 @@ class Scope:
         qregs: dict[str, qillr.AllocOp],
         cregs: dict[str, qillr.AllocResultOp],
         visited: dict[str, qillr.GateOp] | None = None,
+        reads: dict[str, qillr.ReadMeasurementOp] | None = None,
     ) -> Scope:
         s = cls(visited)
         s.qregs = qregs
         s.cregs = cregs
+        s.reads = reads if reads is not None else {}
         return s
 
     def findAlloc(self, reg: QubitSpecifier) -> qillr.AllocOp:
@@ -124,11 +127,11 @@ class Scope:
     def setGate(self, gate: QASM2_Gate, newGate: qillr.GateOp) -> None:
         self.visitedGates[str(gate.name)] = newGate
 
-    def findRead(self, reg: ClbitSpecifier) -> qillr.AllocResultOp:
+    def findRead(self, reg: ClbitSpecifier) -> qillr.ReadMeasurementOp:
         return self.reads.get(str(reg))
 
-    def setRead(self, reg: ClbitSpecifier, ralloc: qillr.AllocResultOp) -> None:
-        self.reads[str(reg)] = ralloc
+    def setRead(self, reg: ClbitSpecifier, read: qillr.ReadMeasurementOp) -> None:
+        self.reads[str(reg)] = read
 
 
 class QASMToMLIRVisitor:
@@ -460,16 +463,8 @@ def QASMToMLIR(code: str, emitResults: bool) -> Module:
 
         scope: Scope = Scope.fromList(circuit.qregs, circuit.cregs)
 
-        if not emitResults:
-            qasm_main: func.FuncOp = func.FuncOp("qasm_main", ([], []), visibility="public", loc=location)
-        else:
-            # Tensor circuit.cregs times i1
-
-            resType: RankedTensorType = RankedTensorType.get([len(scope.cregs)], IntegerType.get_signless(1), loc=location)
-            qasm_main: func.FuncOp = func.FuncOp("qasm_main", ([], [resType]), visibility="public", loc=location)
-
+        qasm_main: func.FuncOp = func.FuncOp("qasm_main", ([], []), visibility="public", loc=location)
         qasm_main.add_entry_block()
-        module.body.append(qasm_main)
 
         visitor: QASMToMLIRVisitor = QASMToMLIRVisitor(compat, context, module, location, qasm_main.entry_block, scope)
         visitor.visitCircuit(circuit)
@@ -480,12 +475,15 @@ def QASMToMLIR(code: str, emitResults: bool) -> Module:
         if not emitResults:
             func.ReturnOp([], loc=location, ip=InsertionPoint(qasm_main.entry_block))
         else:
+            # Create a new main function with the correct type and move the body to it
+            m: list[Value] = [r for _, r in scope.reads.items() if r is not None]
+            resType: RankedTensorType = RankedTensorType.get([len(m)], IntegerType.get_signless(1), loc=location)
+            qasm_main.attributes["function_type"] = TypeAttr.get(func.FunctionType.get([], [resType]))
             # Merge all measurements into a tensor and return it
-            m: list[Value] = [visitor._emitReadOrVal(creg) for creg in scope.cregs]
-            resType: RankedTensorType = RankedTensorType.get([len(scope.cregs)], IntegerType.get_signless(1), loc=location)
             res: Value = tensor.FromElementsOp(resType, m, loc=location, ip=InsertionPoint(qasm_main.entry_block)).result
             func.ReturnOp([res], loc=location, ip=InsertionPoint(qasm_main.entry_block))
 
+    module.body.append(qasm_main)
     return module
 
 
