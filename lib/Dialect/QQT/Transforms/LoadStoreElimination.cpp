@@ -158,6 +158,8 @@ void LoadStoreEliminationPass::runOnOperation()
         for (auto use : promote.getResult().getUsers()) use->erase();
         promote.erase();
     });
+
+    return markAnalysesPreserved<DominanceInfo, PostDominanceInfo>();
 }
 
 std::unique_ptr<Pass> mlir::qqt::createLoadStoreEliminationPass()

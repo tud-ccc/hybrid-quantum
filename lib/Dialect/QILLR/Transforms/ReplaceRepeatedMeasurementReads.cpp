@@ -149,6 +149,8 @@ void ReplaceRepeatedMeasurementReadsPass::runOnOperation()
 
     if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
         signalPassFailure();
+
+    return markAnalysesPreserved<DominanceInfo>();
 }
 
 void mlir::qillr::populateReplaceRepeatedMeasurementReadsPatterns(

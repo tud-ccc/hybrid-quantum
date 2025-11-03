@@ -177,13 +177,13 @@ struct LoadStoreMovePass
 // the qpu.circuit as all quantum code will be contained in circuits
 void LoadStoreMovePass::runOnOperation()
 {
+    auto &domInfo = getAnalysis<DominanceInfo>();
+    auto &postDomInfo = getAnalysis<PostDominanceInfo>();
     getOperation().walk([&](scf::IfOp branch) {
         std::vector<std::pair<qqt::LoadOp, Operation*>> moveLoadsThenRegion;
         std::vector<std::pair<qqt::StoreOp, Operation*>> moveStoresThenRegion;
         std::vector<std::pair<qqt::LoadOp, Operation*>> moveLoadsElseRegion;
         std::vector<std::pair<qqt::StoreOp, Operation*>> moveStoresElseRegion;
-        auto &domInfo = getAnalysis<DominanceInfo>();
-        auto &postDomInfo = getAnalysis<PostDominanceInfo>();
 
         collectMovableOperations(
             branch.getThenRegion(),
@@ -306,6 +306,8 @@ void LoadStoreMovePass::runOnOperation()
 
         branch->erase();
     });
+    domInfo.invalidate();
+    postDomInfo.invalidate();
 }
 
 std::unique_ptr<Pass> mlir::qqt::createLoadStoreMovePass()

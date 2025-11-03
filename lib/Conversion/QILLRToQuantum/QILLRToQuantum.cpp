@@ -644,18 +644,20 @@ struct ConvertMeasure
     }
 }; // struct ConvertMeasureOp
 
-struct ConvertReadMeasurement
-        : public QILLRToQuantumOpConversionPattern<qillr::ReadMeasurementOp> {
-    using QILLRToQuantumOpConversionPattern::QILLRToQuantumOpConversionPattern;
+// struct ConvertReadMeasurement
+//         : public QILLRToQuantumOpConversionPattern<qillr::ReadMeasurementOp>
+//         {
+//     using
+//     QILLRToQuantumOpConversionPattern::QILLRToQuantumOpConversionPattern;
 
-    LogicalResult matchAndRewrite(
-        qillr::ReadMeasurementOp op,
-        qillr::ReadMeasurementOpAdaptor adaptor,
-        ConversionPatternRewriter &rewriter) const override
-    {
-        return llvm::success();
-    }
-}; // struct ConvertReadMeasurementOp
+//     LogicalResult matchAndRewrite(
+//         qillr::ReadMeasurementOp op,
+//         qillr::ReadMeasurementOpAdaptor adaptor,
+//         ConversionPatternRewriter &rewriter) const override
+//     {
+//         return llvm::success();
+//     }
+// }; // struct ConvertReadMeasurementOp
 
 } // namespace
 
@@ -691,6 +693,8 @@ void ConvertQILLRToQuantumPass::runOnOperation()
             target,
             std::move(patterns))))
         return signalPassFailure();
+
+    return markAnalysesPreserved<DominanceInfo, PostDominanceInfo>();
 }
 
 void mlir::qqt::populateConvertQILLRToQuantumPatterns(
@@ -701,7 +705,7 @@ void mlir::qqt::populateConvertQILLRToQuantumPatterns(
 {
     patterns.add<
         ConvertResultAlloc,
-        ConvertReadMeasurement,
+        // ConvertReadMeasurement,
         ConvertAlloc,
         ConvertSwap,
         ConvertCSwap,
