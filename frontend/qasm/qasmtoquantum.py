@@ -270,7 +270,8 @@ class QASMToMLIRVisitor:
                             op: quantum.U3Op = quantum.U3Op(target, theta, phi, lam, ip=InsertionPoint(self.block))
                             self.scope.setAlloc(qubits[0], op.result)
                         case lib.Reset():
-                            op: quantum.ResetOp = quantum.ResetOp(target, ip=InsertionPoint(self.block))
+                            outTy = QuantumQubitType.get(self.context, 1)
+                            op: quantum.ResetOp = quantum.ResetOp(outTy, target, ip=InsertionPoint(self.block))
                             self.scope.setAlloc(qubits[0], op.result)
                         case lib.Measure():
                             op: quantum.MeasureSingleOp = quantum.MeasureSingleOp(target, ip=InsertionPoint(self.block))
