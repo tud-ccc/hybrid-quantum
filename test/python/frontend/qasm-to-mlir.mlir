@@ -1,4 +1,4 @@
-// RUN: %PYTHON qasm-import -i %s | FileCheck %s
+// RUN: %PYTHON qasm-import -t QILLR -i %s | FileCheck %s
 
 // CHECK: module {
 // CHECK: "qillr.gate"() <{function_type = (!qillr.qubit, !qillr.qubit, !qillr.qubit) -> (), sym_name = "unmaj"}> ({

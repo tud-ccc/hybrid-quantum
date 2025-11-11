@@ -35,6 +35,17 @@ declare_mlir_dialect_python_bindings(
   DIALECT_NAME rvsdg
 )
 
+declare_mlir_python_sources(QuantumPythonSources)
+
+declare_mlir_dialect_python_bindings(
+  ADD_TO_PARENT QuantumPythonSources
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
+  TD_FILE dialects/QuantumOps.td
+  SOURCES
+    dialects/quantum.py
+  DIALECT_NAME quantum
+)
+
 ################################################################################
 # Python extensions.
 # The sources for these are all in lib/Bindings/Python, but since they have to
@@ -71,6 +82,20 @@ declare_mlir_python_extension(RVSDGPythonSources.NanobindExtension
   EMBED_CAPI_LINK_LIBS
     MLIRCAPIIR
     MLIRCAPIRVSDG
+)
+
+declare_mlir_python_extension(QuantumPythonSources.NanobindExtension
+  MODULE_NAME _mlirDialectsQuantum
+  ADD_TO_PARENT QuantumPythonSources
+  ROOT_DIR "${PYTHON_SOURCE_DIR}"
+  PYTHON_BINDINGS_LIBRARY nanobind
+  SOURCES
+    DialectQuantum.cpp
+  PRIVATE_LINK_LIBS
+    LLVMSupport
+  EMBED_CAPI_LINK_LIBS
+    MLIRCAPIIR
+    MLIRCAPIQUANTUM
 )   
 
 ################################################################################
@@ -99,6 +124,17 @@ add_mlir_python_common_capi_library(RVSDGPythonCAPI
     MLIRPythonSources.Core
 )
 
+add_mlir_python_common_capi_library(QuantumPythonCAPI
+  INSTALL_COMPONENT QuantumPythonModules
+  INSTALL_DESTINATION python_packages/quantum-mlir/mlir/_mlir_libs
+  OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python_packages/quantum-mlir/mlir/_mlir_libs"
+  RELATIVE_INSTALL_ROOT "../../../.."
+  DECLARED_SOURCES
+    QuantumPythonSources
+    MLIRPythonExtension.RegisterEverything
+    MLIRPythonSources.Core
+)
+
 ################################################################################
 # Instantiation of all Python modules
 ################################################################################
@@ -121,4 +157,13 @@ add_mlir_python_modules(RVSDGPythonModules
     RVSDGPythonSources
   COMMON_CAPI_LINK_LIBS
     RVSDGPythonCAPI
+)
+
+add_mlir_python_modules(QuantumPythonModules
+  ROOT_PREFIX "${CMAKE_BINARY_DIR}/python_packages/quantum-mlir/mlir"
+  INSTALL_PREFIX "python_packages/quantum-mlir/mlir"
+  DECLARED_SOURCES
+    QuantumPythonSources
+  COMMON_CAPI_LINK_LIBS
+    QuantumPythonCAPI
 )

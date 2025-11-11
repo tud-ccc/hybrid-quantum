@@ -29,6 +29,7 @@ set(TEST_DEPENDS
     quantum-translate
     MLIRCAPIQILLR
     MLIRCAPIRVSDG
+    MLIRCAPIQUANTUM
 )
 
 # Create the test suite.
