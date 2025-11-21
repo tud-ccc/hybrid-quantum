@@ -24,8 +24,10 @@ MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(QPU, qpu);
 MLIR_CAPI_EXPORTED bool mlirAttrIsATargetAttr(MlirAttribute attr);
 
 /// Creates an qpu::TargetAttr attribute.
-MLIR_CAPI_EXPORTED MlirAttribute
-mlirTargetAttrGet(MlirContext ctx, int64_t qubits, uint64_t index);
+MLIR_CAPI_EXPORTED MlirAttribute mlirTargetAttrGet(
+    MlirContext ctx,
+    MlirAttribute qubits,
+    MlirAttribute coupling);
 
 #ifdef __cplusplus
 }

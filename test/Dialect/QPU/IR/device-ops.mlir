@@ -3,7 +3,7 @@
 qpu.module @test
     [#qpu.target<
         qubits = 3,
-        coupling_graph = [[0, 1], [1, 2]]
+        coupling = [[0, 1], [1, 2]]
     >] {
 
     "qpu.circuit"() <{function_type = (f64) -> (i1), sym_name = "test_circuit"}>({

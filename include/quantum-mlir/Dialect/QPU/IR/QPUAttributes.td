@@ -27,7 +27,7 @@ def QPU_TargetAttr : QPU_Attr<"Target", "target"> {
   let assemblyFormat = [{
     `<`
     `qubits` `=` $qubits `,`
-    `coupling_graph` `=` $coupling
+    `coupling` `=` $coupling
     `>`
   }];
   let builders = [

@@ -10,6 +10,9 @@
 #include "quantum-mlir/Dialect/QPU/IR/QPUAttributes.h"
 #include "quantum-mlir/Dialect/QPU/IR/QPUBase.h"
 
+#include <mlir-c/BuiltinAttributes.h>
+#include <mlir/IR/BuiltinAttributes.h>
+
 using namespace mlir;
 using namespace mlir::qpu;
 
@@ -27,7 +30,10 @@ bool mlirAttrIsATargetAttr(MlirAttribute attr)
 }
 
 /// Creates an qpu::TargetAttr attribute.
-MlirAttribute mlirTargetAttrGet(MlirContext ctx, int64_t qubits, uint64_t index)
+MlirAttribute
+mlirTargetAttrGet(MlirContext ctx, MlirAttribute qubits, MlirAttribute coupling)
 {
-    return wrap(TargetAttr::get(unwrap(ctx), qubits));
+    ArrayAttr arrAttr = cast<ArrayAttr>(unwrap(coupling));
+    IntegerAttr intAttr = cast<IntegerAttr>(unwrap(qubits));
+    return wrap(TargetAttr::get(unwrap(ctx), intAttr, arrAttr));
 }
