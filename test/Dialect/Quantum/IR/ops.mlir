@@ -44,17 +44,6 @@ func.func @qubit_pauli(%reg : !quantum.qubit<1>) -> (!quantum.qubit<1>) {
 
 // -----
 
-func.func @quantum_if(%b : i1, %reg : !quantum.qubit<1>) -> (!quantum.qubit<1>) {
-    %q = quantum.if %b ins(%qin = %reg) -> (!quantum.qubit<1>) {
-        "quantum.yield" (%qin) : (!quantum.qubit<1>) -> ()
-    } else {
-        "quantum.yield" (%qin) : (!quantum.qubit<1>) -> ()
-    }
-    return %q : !quantum.qubit<1>
-}
-
-// -----
-
 "quantum.gate"() <{function_type = (!quantum.qubit<1>) -> (!quantum.qubit<1>), sym_name = "test"}>({
     ^bb0(%arg0 : !quantum.qubit<1>):
     "quantum.return"(%arg0) : (!quantum.qubit<1>) -> ()

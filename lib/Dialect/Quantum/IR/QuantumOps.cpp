@@ -160,29 +160,25 @@ LogicalResult RyOp::canonicalize(RyOp op, PatternRewriter &rewriter)
 template<typename ConcreteType>
 LogicalResult NoClone<ConcreteType>::verifyTrait(Operation* op)
 {
-    // For a region check if the region args are used more than once
-    for (auto &region : op->getRegions()) {
-        Block &block = region.getBlocks().front();
-        for (auto value : block.getArguments()) {
-            // Ignore captured non-qubit types
-            if (!llvm::dyn_cast<quantum::QubitType>(value.getType())) continue;
-            auto uses = value.getUses();
-            int numUses = std::distance(uses.begin(), uses.end());
-            if (numUses > 1) {
-                return op->emitOpError()
-                       << "captured qubit #" << value.getArgNumber()
-                       << " used more than once within the same block";
-            }
-        }
+    static auto sumUses = [](auto uses) {
+        return std::distance(uses.begin(), uses.end());
+    };
+
+    for (auto &value : op->getOpOperands()) {
+        // Ignore captured non-qubit types
+        if (!llvm::dyn_cast<quantum::QubitType>(value.get().getType()))
+            continue;
+        auto numUses = sumUses(value.get().getUses());
+        if (numUses > 1)
+            return op->emitOpError() << "qubit #" << value.getOperandNumber()
+                                     << " is used " << numUses << " times.";
     }
 
     // Check whether the qubit values returned from an operation
     // are uses more than a single time.
     for (auto value : op->getOpResults()) {
         if (!llvm::isa<quantum::QubitType>(value.getType())) continue;
-        auto uses = value.getUses();
-        int numUses = std::distance(uses.begin(), uses.end());
-        if (numUses > 1) {
+        if (sumUses(value.getUses()) > 1) {
             return op->emitOpError()
                    << "result qubit #" << value.getResultNumber()
                    << " used more than once within the same block";

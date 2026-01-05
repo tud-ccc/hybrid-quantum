@@ -11,6 +11,9 @@ qpu.module @test {
     }) : () -> ()
 }
 
-%res = arith.constant false
-// CHECK-SAME
-qpu.execute @test::@test_circuit args() outs(%res : i1)
+func.func @main() -> i1 {
+    %res = arith.constant false
+    // CHECK-SAME
+    qpu.execute @test::@test_circuit args() outs(%res : i1)
+    func.return %res : i1
+}
