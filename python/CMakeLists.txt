@@ -46,6 +46,17 @@ declare_mlir_dialect_python_bindings(
   DIALECT_NAME quantum
 )
 
+declare_mlir_python_sources(QPUPythonSources)
+
+declare_mlir_dialect_python_bindings(
+  ADD_TO_PARENT QPUPythonSources
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir"
+  TD_FILE dialects/QPUOps.td
+  SOURCES
+    dialects/qpu.py
+  DIALECT_NAME qpu
+)
+
 ################################################################################
 # Python extensions.
 # The sources for these are all in lib/Bindings/Python, but since they have to
@@ -96,7 +107,21 @@ declare_mlir_python_extension(QuantumPythonSources.NanobindExtension
   EMBED_CAPI_LINK_LIBS
     MLIRCAPIIR
     MLIRCAPIQUANTUM
-)   
+)
+
+declare_mlir_python_extension(QPUPythonSources.NanobindExtension
+  MODULE_NAME _mlirDialectsQPU
+  ADD_TO_PARENT QPUPythonSources
+  ROOT_DIR "${PYTHON_SOURCE_DIR}"
+  PYTHON_BINDINGS_LIBRARY nanobind
+  SOURCES
+    DialectQPU.cpp
+  PRIVATE_LINK_LIBS
+    LLVMSupport
+  EMBED_CAPI_LINK_LIBS
+    MLIRCAPIIR
+    MLIRCAPIQPU
+)
 
 ################################################################################
 # Common CAPI
@@ -135,6 +160,17 @@ add_mlir_python_common_capi_library(QuantumPythonCAPI
     MLIRPythonSources.Core
 )
 
+add_mlir_python_common_capi_library(QPUPythonCAPI
+  INSTALL_COMPONENT QPUPythonModules
+  INSTALL_DESTINATION python_packages/quantum-mlir/mlir/_mlir_libs
+  OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python_packages/quantum-mlir/mlir/_mlir_libs"
+  RELATIVE_INSTALL_ROOT "../../../.."
+  DECLARED_SOURCES
+    QPUPythonSources
+    MLIRPythonExtension.RegisterEverything
+    MLIRPythonSources.Core
+)
+
 ################################################################################
 # Instantiation of all Python modules
 ################################################################################
@@ -166,4 +202,13 @@ add_mlir_python_modules(QuantumPythonModules
     QuantumPythonSources
   COMMON_CAPI_LINK_LIBS
     QuantumPythonCAPI
+)
+
+add_mlir_python_modules(QPUPythonModules
+  ROOT_PREFIX "${CMAKE_BINARY_DIR}/python_packages/quantum-mlir/mlir"
+  INSTALL_PREFIX "python_packages/quantum-mlir/mlir"
+  DECLARED_SOURCES
+    QPUPythonSources
+  COMMON_CAPI_LINK_LIBS
+    QPUPythonCAPI
 )

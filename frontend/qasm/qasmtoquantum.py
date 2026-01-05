@@ -10,13 +10,26 @@ import re
 from enum import Enum
 from functools import reduce
 
+from mlir._mlir_libs._mlirDialectsQPU import qpu as qpu_dialect
 from mlir._mlir_libs._mlirDialectsQuantum import QuantumQubitType
 from mlir._mlir_libs._mlirDialectsQuantum import quantum as quantum_dialect
 from mlir._mlir_libs._mlirDialectsRVSDG import ControlType, MatchRuleAttr
 from mlir._mlir_libs._mlirDialectsRVSDG import rvsdg as rvsdg_dialect
-from mlir.dialects import arith, func, quantum, rvsdg, tensor
-from mlir.dialects.builtin import Block, BlockArgumentList, IntegerType, RankedTensorType
-from mlir.ir import ArrayAttr, Context, F64Type, InsertionPoint, Location, Module, StringAttr, Type, TypeAttr, Value
+from mlir.dialects import arith, func, qpu, quantum, rvsdg, tensor
+from mlir.dialects.builtin import Block, BlockArgumentList, FunctionType, IntegerType, RankedTensorType
+from mlir.ir import (
+    ArrayAttr,
+    Context,
+    F64Type,
+    InsertionPoint,
+    Location,
+    Module,
+    StringAttr,
+    SymbolRefAttr,
+    Type,
+    TypeAttr,
+    Value,
+)
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Clbit, Instruction, Operation, ParameterExpression, Qubit
 from qiskit.circuit import library as lib
@@ -100,10 +113,12 @@ class Scope:
 
 
 class QASMToMLIRVisitor:
-    def __init__(self, compat: QASMVersion, context: Context, module: Module, loc: Location, block: Block, scope: Scope) -> None:
+    def __init__(
+        self, compat: QASMVersion, context: Context, module: qpu.QPUModuleOp, loc: Location, block: Block, scope: Scope
+    ) -> None:
         self.compat: QASMVersion = compat
         self.context: Context = context
-        self.module: Module = module
+        self.module: qpu.QPUModuleOp = module
         self.loc: Location = loc
         self.block: Block = block
         self.scope = scope
@@ -478,17 +493,24 @@ def QASMToMLIR(code: str, emitResults: bool) -> Module:
     context.allow_unregistered_dialects = True
     quantum_dialect.register_dialect(context)
     rvsdg_dialect.register_dialect(context)
+    qpu_dialect.register_dialect(context)
 
-    with context:
-        location: Location = Location.unknown()
-        module: Module = Module.create(location)
+    with context, Location.unknown() as location:
+        # Module representing the compilation unit
+        module: Module = Module.create()
+        # Create wrapping qpu.module op
+        device_name = StringAttr.get("qpu")
+        device: qpu.QPUModuleOp = qpu.QPUModuleOp(device_name)
+        device.bodyRegion.blocks.append()
+        module.body.append(device)
+
+        circuit_name = StringAttr.get("main")
+        empty_functy = FunctionType.get([], [])
+        qpu_main: qpu.CircuitOp = qpu.CircuitOp(circuit_name, TypeAttr.get(empty_functy))
+        qpu_main.body.blocks.append()
 
         scope: Scope = Scope.fromList(circuit.qregs, circuit.cregs)
-
-        qasm_main: func.FuncOp = func.FuncOp("qasm_main", ([], []), visibility="public", loc=location)
-        qasm_main.add_entry_block()
-
-        visitor: QASMToMLIRVisitor = QASMToMLIRVisitor(compat, context, module, location, qasm_main.entry_block, scope)
+        visitor: QASMToMLIRVisitor = QASMToMLIRVisitor(compat, context, device, location, qpu_main.body.blocks[0], scope)
         visitor.visitCircuit(circuit)
 
         for qubit in circuit.qubits:
@@ -496,18 +518,38 @@ def QASMToMLIR(code: str, emitResults: bool) -> Module:
             quantum.DeallocateOp(qubitValue, loc=visitor.loc, ip=InsertionPoint(visitor.block))
 
         if not emitResults:
-            func.ReturnOp([], loc=location, ip=InsertionPoint(qasm_main.entry_block))
+            qpu.ReturnOp([], ip=InsertionPoint(qpu_main.body.blocks[0]))
         else:
             # Create a new main function with the correct type and move the body to it
             m: list[Value] = [r for _, r in scope.cregs.items() if r is not None]
-            resType: RankedTensorType = RankedTensorType.get([len(m)], IntegerType.get_signless(1), loc=location)
-            qasm_main.attributes["function_type"] = TypeAttr.get(func.FunctionType.get([], [resType]))
+            resType: RankedTensorType = RankedTensorType.get([len(m)], IntegerType.get_signless(1))
+            qpu_main.attributes["function_type"] = TypeAttr.get(func.FunctionType.get([], [resType]))
             # Merge all measurements into a tensor and return it
-            res: Value = tensor.FromElementsOp(resType, m, loc=location, ip=InsertionPoint(qasm_main.entry_block)).result
-            func.ReturnOp([res], loc=location, ip=InsertionPoint(qasm_main.entry_block))
+            res: Value = tensor.FromElementsOp(resType, m, ip=InsertionPoint(qpu_main.body.blocks[0])).result
+            qpu.ReturnOp([res], ip=InsertionPoint(qpu_main.body.blocks[0]))
 
-    module.body.append(qasm_main)
-    return module
+        device.bodyRegion.blocks[0].append(qpu_main)
+
+        # Add main function
+        res_ty = qpu_main.function_type.value.results
+        qasm_main: func.FuncOp = func.FuncOp("qasm_main", ([], res_ty), visibility="public")
+        qasm_main.add_entry_block()
+        module.body.append(qasm_main)
+
+        # ExecuteOp requires the construction of a default return value
+        # Quantum code normally returns tensor<Nxi1> or i1
+        exec_res = []
+        for ty in res_ty:
+            if isinstance(ty, RankedTensorType):
+                empty = tensor.EmptyOp(ty.shape, ty.element_type, ip=InsertionPoint(qasm_main.entry_block))
+                exec_res.append(empty)
+            else:
+                raise ParseError("Expected circuit to return RankedTensorType, found %s", ty)
+        circuit_ref = SymbolRefAttr.get([device_name.value, circuit_name.value])
+        qpu.ExecuteOp(circuit_ref, [], exec_res, ip=InsertionPoint(qasm_main.entry_block))
+        func.ReturnOp(exec_res, ip=InsertionPoint(qasm_main.entry_block))
+
+        return module
 
 
 def bit_at(n: int, i: int) -> int:

@@ -1,7 +1,8 @@
 // RUN: %PYTHON qasm-import -i %s -r | FileCheck %s
 
 // CHECK: module {
-// CHECK-LABEL:  qasm_main
+// CHECK:   qpu.module @qpu {
+// CHECK:       "qpu.circuit"() <{function_type = () -> tensor<1xi1>, sym_name = "main"}> ({
 // CHECK-DAG:    %[[Q0:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
 // CHECK-DAG:    %[[M0:.+]], %[[Q1:.+]] = "quantum.measure_single"(%[[Q0]]) : (!quantum.qubit<1>) -> (i1, !quantum.qubit<1>)
 // CHECK:    %[[false:.+]] = arith.constant false
@@ -32,9 +33,14 @@
 // CHECK-DAG:    %[[Q8:.+]] = "quantum.reset"(%[[Q7]]) : (!quantum.qubit<1>) -> !quantum.qubit<1>
 // CHECK-DAG:    "quantum.deallocate"(%[[Q8]]) : (!quantum.qubit<1>) -> ()
 // CHECK-DAG:    %[[from_elements:.+]] = tensor.from_elements %[[M1]] : tensor<1xi1>
-// CHECK-NEXT:    return %[[from_elements]] : tensor<1xi1>
-// CHECK-NEXT:  }
-// CHECK-NEXT: }
+// CHECK-NEXT:    "qpu.return"(%[[from_elements]]) : (tensor<1xi1>) -> ()
+// CHECK:       }) : () -> ()
+// CHECK:   }
+// CHECK: func.func public @qasm_main() -> tensor<1xi1> { 
+// CHECK: %[[res:.+]] = tensor.empty() : tensor<1xi1>
+// CHECK: qpu.execute @qpu::@main outs(%[[res]] : tensor<1xi1>)
+// CHECK: return %[[res]] : tensor<1xi1>
+// CHECK: }
 
 OPENQASM 2.0;
 include "qelib1.inc";
