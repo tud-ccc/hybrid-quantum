@@ -1,4 +1,4 @@
-// RUN: quantum-opt %s --debug --mlir-print-ir-after-change --split-input-file -inline | FileCheck %s
+// RUN: quantum-opt %s --split-input-file -inline | FileCheck %s
 
 // CHECK-NOT: "qillr.gate"
 "qillr.gate"() <{function_type = (!qillr.qubit) -> (), sym_name = "test"}> ({

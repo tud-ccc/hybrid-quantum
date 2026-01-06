@@ -6,6 +6,7 @@
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.h"
 
 #include "mlir/Interfaces/FunctionImplementation.h"
+#include "mlir/Transforms/InliningUtils.h"
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumAttributes.h"
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumTypes.h"
 
@@ -42,6 +43,69 @@ using namespace mlir::quantum;
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.cpp.inc"
 
 //===----------------------------------------------------------------------===//
+
+//===----------------------------------------------------------------------===//
+// QPUDialect Interfaces
+//===----------------------------------------------------------------------===//
+
+namespace {
+/// This class defines the interface for handling inlining with gate operations.
+struct QuantumInlinerInterface : public DialectInlinerInterface {
+    using DialectInlinerInterface::DialectInlinerInterface;
+
+    //===--------------------------------------------------------------------===//
+    // Analysis Hooks
+    //===--------------------------------------------------------------------===//
+
+    /// Call operations can always be inlined
+    bool isLegalToInline(
+        Operation* call,
+        Operation* callable,
+        bool wouldBeCloned) const final
+    {
+        return true;
+    }
+
+    /// All operations can be inlined.
+    bool isLegalToInline(Operation*, Region*, bool, IRMapping &) const final
+    {
+        return true;
+    }
+
+    /// All gate bodies can be inlined.
+    bool isLegalToInline(Region*, Region*, bool, IRMapping &) const final
+    {
+        return true;
+    }
+
+    //===--------------------------------------------------------------------===//
+    // Transformation Hooks
+    //===--------------------------------------------------------------------===//
+
+    /// Handle the given inlined terminator by replacing it with a new operation
+    /// as necessary.
+    void handleTerminator(Operation* op, Block* newDest) const final
+    {
+        auto returnOp = llvm::dyn_cast<quantum::ReturnOp>(op);
+        if (!returnOp) return;
+
+        returnOp->erase();
+    };
+
+    /// Handle the given inlined terminator by replacing its operands
+    void handleTerminator(Operation* op, ValueRange valuesToRepl) const final
+    {
+        // Only "quantum.return" needs to be handled here.
+        auto returnOp = llvm::dyn_cast<quantum::ReturnOp>(op);
+        if (!returnOp) return;
+
+        // Replace the values directly with the return operands.
+        assert(returnOp.getNumOperands() == valuesToRepl.size());
+        for (const auto &it : llvm::enumerate(returnOp.getOperands()))
+            valuesToRepl[it.index()].replaceAllUsesWith(it.value());
+    };
+};
+} // namespace
 
 //===----------------------------------------------------------------------===//
 // Canonicalization
@@ -307,4 +371,5 @@ void QuantumDialect::registerOps()
 #define GET_OP_LIST
 #include "quantum-mlir/Dialect/Quantum/IR/QuantumOps.cpp.inc"
         >();
+    addInterfaces<QuantumInlinerInterface>();
 }
