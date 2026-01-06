@@ -1,4 +1,4 @@
-// RUN: quantum-opt %s -inline | FileCheck %s
+// RUN: quantum-opt %s --debug --mlir-print-ir-after-change --split-input-file -inline | FileCheck %s
 
 // CHECK-NOT: "qillr.gate"
 "qillr.gate"() <{function_type = (!qillr.qubit) -> (), sym_name = "test"}> ({
@@ -17,4 +17,29 @@ func.func @test_gate_inlining() {
   // CHECK-NEXT: "qillr.reset"(%[[Q]]) : (!qillr.qubit) -> ()
   "qillr.reset"(%q) : (!qillr.qubit) -> ()
   return
+}
+
+//-------
+
+module {
+  qpu.module @qpu {
+
+    // CHECK-NOT: "qillr.gate"
+    "qillr.gate"() <{function_type = (!qillr.qubit) -> (), sym_name = "test_gate"}> ({
+      ^bb0(%q0: !qillr.qubit):
+        "qillr.X" (%q0) : (!qillr.qubit) -> ()
+        "qillr.return"() : () -> ()
+    }) : () -> ()
+
+    // CHECK: "qpu.circuit"() {{.*}} sym_name = "test_circuit"}
+    "qpu.circuit"() <{function_type = () -> (), sym_name = "test_circuit"}>({
+      // CHECK-NEXT: %[[Q:.+]] = "qillr.alloc"() : () -> !qillr.qubit
+      %q = "qillr.alloc"() : () -> (!qillr.qubit)
+      // CHECK-NEXT: "qillr.X"(%[[Q]]) : (!qillr.qubit) -> ()
+      "qillr.call"(%q) <{callee = @test_gate}> : (!qillr.qubit) -> ()
+      // CHECK-NEXT: "qillr.reset"(%[[Q]]) : (!qillr.qubit) -> ()
+      "qillr.reset"(%q) : (!qillr.qubit) -> ()
+      "qpu.return"() : () -> ()
+    }) : () -> ()
+  }
 }

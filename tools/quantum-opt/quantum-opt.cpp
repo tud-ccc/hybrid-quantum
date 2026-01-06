@@ -9,7 +9,6 @@
 #include "mlir/InitAllPasses.h"
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
 #include "quantum-mlir/Conversion/Passes.h"
-#include "quantum-mlir/Dialect/QILLR/Extensions/InlinerExtension.h"
 #include "quantum-mlir/Dialect/QILLR/IR/QILLR.h"
 #include "quantum-mlir/Dialect/QPU/IR/QPU.h"
 #include "quantum-mlir/Dialect/QQT/IR/QQT.h"
@@ -33,7 +32,6 @@ int main(int argc, char* argv[])
     registry.insert<qqt::QQTDialect>();
 
     registerAllPasses();
-    // rvsdg::registerAllPasses();
     qpu::registerQPUPasses();
     quantum::registerQuantumPasses();
     quantum::registerConversionPasses();
@@ -42,7 +40,6 @@ int main(int argc, char* argv[])
     rvsdg::registerRVSDGPasses();
 
     registerAllExtensions(registry);
-    qillr::registerInlinerExtension(registry);
 
     return asMainReturnCode(
         MlirOptMain(argc, argv, "quantum-mlir optimizer driver\n", registry));

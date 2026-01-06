@@ -29,7 +29,64 @@ using namespace mlir::qillr;
 #include "quantum-mlir/Dialect/QILLR/IR/QILLROps.cpp.inc"
 
 //===----------------------------------------------------------------------===//
-// QILLRDialect
+// QILLRDialect Interfaces
+//===----------------------------------------------------------------------===//
+
+namespace {
+/// This class defines the interface for handling inlining with gate operations.
+struct QILLRInlinerInterface : public DialectInlinerInterface {
+    using DialectInlinerInterface::DialectInlinerInterface;
+
+    //===--------------------------------------------------------------------===//
+    // Analysis Hooks
+    //===--------------------------------------------------------------------===//
+
+    /// Call operations can always be inlined
+    bool isLegalToInline(
+        Operation* call,
+        Operation* callable,
+        bool wouldBeCloned) const final
+    {
+        return true;
+    }
+
+    /// All operations can be inlined.
+    bool isLegalToInline(Operation*, Region*, bool, IRMapping &) const final
+    {
+        return true;
+    }
+
+    /// All gate bodies can be inlined.
+    bool isLegalToInline(Region*, Region*, bool, IRMapping &) const final
+    {
+        return true;
+    }
+
+    //===--------------------------------------------------------------------===//
+    // Transformation Hooks
+    //===--------------------------------------------------------------------===//
+
+    /// Handle the given inlined terminator by replacing it with a new operation
+    /// as necessary.
+    void handleTerminator(Operation* op, Block* newDest) const final
+    {
+        auto returnOp = llvm::dyn_cast<qillr::ReturnOp>(op);
+        if (!returnOp) return;
+
+        op->erase();
+    };
+
+    /// Handle the given inlined terminator by replacing its operands
+    void handleTerminator(Operation* op, ValueRange valuesToRepl) const final
+    {
+        auto returnOp = llvm::dyn_cast<qillr::ReturnOp>(op);
+        if (!returnOp) return;
+    };
+};
+} // namespace
+
+//===----------------------------------------------------------------------===//
+// QILLRDialect Operations
 //===----------------------------------------------------------------------===//
 
 //=----------------------------------------------------------------------===//
@@ -111,5 +168,5 @@ void QILLRDialect::registerOps()
 #define GET_OP_LIST
 #include "quantum-mlir/Dialect/QILLR/IR/QILLROps.cpp.inc"
         >();
-    declarePromisedInterface<DialectInlinerInterface, QILLRDialect>();
+    addInterfaces<QILLRInlinerInterface>();
 }
