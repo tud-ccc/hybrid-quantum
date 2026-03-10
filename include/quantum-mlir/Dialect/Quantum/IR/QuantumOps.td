@@ -381,6 +381,7 @@ class PrimitiveGate_Op<string mnemonic, list<Trait> traits = []> :
 def Quantum_IdOp : PrimitiveGate_Op<
   "id",
   [
+    Hermitian,
     AllTypesMatch<["input", "result"]>,
     InferRegisterRangesInterface
   ]> {
@@ -764,6 +765,7 @@ def Quantum_CRzOp : PrimitiveGate_Op<
   }];
   let arguments = (ins Quantum_QubitType:$control, Quantum_QubitType:$target, F64:$angle);
   let results = (outs Quantum_QubitType:$control_out, Quantum_QubitType:$target_out);
+  let hasCanonicalizeMethod = 1;
 }
 
 def Quantum_CRyOp : PrimitiveGate_Op<
@@ -780,6 +782,7 @@ def Quantum_CRyOp : PrimitiveGate_Op<
   }];
   let arguments = (ins Quantum_QubitType:$control, Quantum_QubitType:$target, F64:$angle);
   let results = (outs Quantum_QubitType:$control_out, Quantum_QubitType:$target_out);
+  let hasCanonicalizeMethod = 1;
 }
 
 def Quantum_CU1Op : PrimitiveGate_Op<

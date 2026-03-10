@@ -170,7 +170,60 @@ void MeasureOp::inferResultRanges(
 //===----------------------------------------------------------------------===//
 // Canonicalization
 //===----------------------------------------------------------------------===//
+
 namespace {
+
+template<typename OpTy>
+LogicalResult
+controlledRotationOpCanonicalize(OpTy op, PatternRewriter &rewriter)
+{
+    // %ctrl1, %1 = CR_(%ctrl, %0, %theta1)
+    // %ctrl2, %2 = CR_(%ctrl1, %1, %theta2)
+    // --------------------
+    // %ctrl1, %1 = R_(%ctrl, %0, %theta1 + %theta2)
+
+    // Ctrl + Input from same op
+    if (op.getTarget().getDefiningOp() == op.getControl().getDefiningOp()) {
+        if (auto otherRotation =
+                op.getTarget().template getDefiningOp<OpTy>()) {
+            // addf either folds the constant folded values or the result of
+            // addf
+            llvm::SmallVector<Value, 2> addfv;
+            rewriter.createOrFold<arith::AddFOp>(
+                addfv,
+                op->getLoc(),
+                otherRotation.getAngle(),
+                op.getAngle());
+
+            auto addf = addfv.front();
+            if (auto fconst = llvm::dyn_cast<arith::ConstantFloatOp>(
+                    addf.getDefiningOp())) {
+                auto fattr = llvm::cast<FloatAttr>(fconst.getValueAttr());
+                auto apfloat = fattr.getValue();
+                // If op.theta + other.theta = -0.0 or +0.0
+                // Then we can remove both rotations
+                if (apfloat.isZero()) {
+                    rewriter.replaceAllUsesWith(
+                        op.getResults(),
+                        {otherRotation.getControl(),
+                         otherRotation.getTarget()});
+                    rewriter.eraseOp(op);
+                    return success();
+                }
+            }
+
+            rewriter.replaceOpWithNewOp<OpTy>(
+                op,
+                otherRotation.getControl(),
+                otherRotation.getTarget(),
+                addf);
+            rewriter.eraseOp(otherRotation);
+            return success();
+        }
+    }
+    return failure();
+}
+
 template<typename OpTy>
 LogicalResult rotationOpCanonicalize(OpTy op, PatternRewriter &rewriter)
 {
@@ -210,6 +263,16 @@ LogicalResult rotationOpCanonicalize(OpTy op, PatternRewriter &rewriter)
     return failure();
 }
 } // namespace
+
+LogicalResult CRzOp::canonicalize(CRzOp op, PatternRewriter &rewriter)
+{
+    return controlledRotationOpCanonicalize(op, rewriter);
+}
+
+LogicalResult CRyOp::canonicalize(CRyOp op, PatternRewriter &rewriter)
+{
+    return controlledRotationOpCanonicalize(op, rewriter);
+}
 
 LogicalResult RzOp::canonicalize(RzOp op, PatternRewriter &rewriter)
 {

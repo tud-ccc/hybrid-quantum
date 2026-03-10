@@ -68,3 +68,17 @@ func.func @rz_rz() -> (!quantum.qubit<1>) {
   // CHECK: return %[[Q1]]
   return %q3 : !quantum.qubit<1>
 }
+
+// -----
+
+// CHECK-LABEL: func.func @tdg_s(
+func.func @tdg_s() -> (!quantum.qubit<1>) {
+  // CHECK: %[[Q1:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
+  %q1 = "quantum.alloc"() : () -> (!quantum.qubit<1>)
+  // CHECK: %[[Q2:.+]] = "quantum.Tdg"(%[[Q1]]) : (!quantum.qubit<1>) -> !quantum.qubit<1>
+  %q2 = "quantum.Tdg" (%q1) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
+  // CHECK: %[[Q3:.+]] = "quantum.S"(%[[Q2]]) : (!quantum.qubit<1>) -> !quantum.qubit<1>
+  %q3 = "quantum.S" (%q2) : (!quantum.qubit<1>) -> (!quantum.qubit<1>)
+  // CHECK: return %[[Q3]]
+  return %q3 : !quantum.qubit<1>
+}
