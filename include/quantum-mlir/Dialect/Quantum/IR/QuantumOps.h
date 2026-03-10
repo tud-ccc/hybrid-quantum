@@ -57,6 +57,24 @@ public:
 template<typename ConcreteType>
 class Unitary : public OpTrait::TraitBase<ConcreteType, Unitary> {
 public:
+    /// Override the 'foldTrait' hook to support trait based folding on the
+    /// concrete operation.
+    static LogicalResult foldTrait(
+        Operation* op,
+        ArrayRef<Attribute> operands,
+        SmallVectorImpl<OpFoldResult> &results);
+};
+
+template<typename AdjointToType>
+class AdjointTo {
+public:
+    template<typename ConcreteType>
+    struct Impl : public OpTrait::TraitBase<ConcreteType, Impl> {
+        static constexpr ::llvm::StringLiteral getAdjointOperationName()
+        {
+            return ConcreteType::getOperationName();
+        }
+    };
 };
 
 } // namespace quantum

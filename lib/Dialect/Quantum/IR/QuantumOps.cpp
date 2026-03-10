@@ -26,6 +26,7 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/TableGen/Record.h>
 #include <mlir/Dialect/Arith/IR/Arith.h>
+#include <mlir/Dialect/CommonFolders.h>
 #include <mlir/IR/Diagnostics.h>
 #include <mlir/IR/Matchers.h>
 #include <mlir/IR/OpDefinition.h>
@@ -168,76 +169,54 @@ void MeasureOp::inferResultRanges(
 //===----------------------------------------------------------------------===//
 // Canonicalization
 //===----------------------------------------------------------------------===//
-LogicalResult RzOp::canonicalize(RzOp op, PatternRewriter &rewriter)
+
+template<typename OpTy>
+LogicalResult rotationOpCanonicalize(OpTy op, PatternRewriter &rewriter)
 {
-    // %1 = Rz(%0, %theta1)
-    // %2 = Rz(%1, %theta2)
+    // %1 = R_(%0, %theta1)
+    // %2 = R_(%1, %theta2)
     // --------------------
-    // %1 = Rz(%0, %theta1 + %theta2)
-    if (auto rz = op.getInput().getDefiningOp<RzOp>()) {
-        auto theta1 = rz.getTheta();
-        auto theta2 = op.getTheta();
+    // %1 = R_(%0, %theta1 + %theta2)
+    if (auto otherRotation = op.getInput().template getDefiningOp<OpTy>()) {
+        // addf either folds the constant folded values or the result of addf
+        llvm::SmallVector<Value, 2> addf;
+        rewriter.createOrFold<arith::AddFOp>(
+            addf,
+            op->getLoc(),
+            otherRotation.getTheta(),
+            op.getTheta());
 
-        auto loc = op.getLoc();
-        auto thetaPlus = rewriter.create<arith::AddFOp>(loc, theta1, theta2);
-
-        auto newRz = rewriter.replaceOpWithNewOp<RzOp>(
-            rz,
-            rz.getInput(),
-            thetaPlus.getResult());
-        op->replaceAllUsesWith(newRz->getResults());
-        rewriter.eraseOp(op);
-
+        rewriter.replaceOpWithNewOp<OpTy>(
+            op,
+            otherRotation.getInput(),
+            addf.front());
+        rewriter.eraseOp(otherRotation);
         return success();
     }
     return failure();
+}
+
+LogicalResult RzOp::canonicalize(RzOp op, PatternRewriter &rewriter)
+{
+    return rotationOpCanonicalize(op, rewriter);
 }
 
 LogicalResult RxOp::canonicalize(RxOp op, PatternRewriter &rewriter)
 {
-    // %1 = Rx(%0, %theta1) -> rx
-    // %2 = Rx(%1, %theta2) -> op
-    // --------------------
-    // %1 = Rx(%0, %theta1 + %theta2)
-    if (auto rx = op.getInput().getDefiningOp<RxOp>()) {
-        auto theta1 = rx.getTheta();
-        auto theta2 = op.getTheta();
-
-        auto loc = op.getLoc();
-        auto thetaPlus = rewriter.create<arith::AddFOp>(loc, theta1, theta2);
-
-        auto newRx = rewriter.replaceOpWithNewOp<RxOp>(
-            rx,
-            rx.getInput(),
-            thetaPlus.getResult());
-        op->replaceAllUsesWith(newRx->getResults());
-        rewriter.eraseOp(op);
-
-        return success();
-    }
-    return failure();
+    return rotationOpCanonicalize(op, rewriter);
 }
 
 LogicalResult RyOp::canonicalize(RyOp op, PatternRewriter &rewriter)
 {
-    // %1 = Ry(%0, %theta1)
-    // %2 = Ry(%1, %theta2)
-    // --------------------
-    // %1 = Ry(%0, %theta1 + %theta2)
-    if (auto ry = op.getInput().getDefiningOp<RyOp>()) {
-        auto theta1 = ry.getTheta();
-        auto theta2 = op.getTheta();
+    return rotationOpCanonicalize(op, rewriter);
+}
 
-        auto loc = op.getLoc();
-        auto thetaPlus = rewriter.create<arith::AddFOp>(loc, theta1, theta2);
-
-        auto newRy = rewriter.replaceOpWithNewOp<RyOp>(
-            ry,
-            ry.getInput(),
-            thetaPlus.getResult());
-        op->replaceAllUsesWith(newRy->getResults());
-        rewriter.eraseOp(op);
-
+LogicalResult SXOp::canonicalize(SXOp op, PatternRewriter &rewriter)
+{
+    // q1 = SX(q); q2 = SX(q1) =: q2 = X(q)
+    if (auto otherOp = llvm::dyn_cast<SXOp>(op.getInput().getDefiningOp())) {
+        rewriter.replaceOpWithNewOp<XOp>(op, otherOp.getInput());
+        rewriter.eraseOp(otherOp);
         return success();
     }
     return failure();
@@ -287,6 +266,37 @@ LogicalResult Hermitian<ConcreteType>::foldTrait(
     SmallVectorImpl<OpFoldResult> &results)
 {
     return foldHermitianTraitImpl<ConcreteType>(op, operands, results);
+}
+
+// Free function implementation of foldTrait
+template<typename ConcreteType>
+LogicalResult foldUnitaryTraitImpl(
+    Operation* op,
+    ArrayRef<Attribute> operands,
+    SmallVectorImpl<OpFoldResult> &results)
+{
+    if (op->getNumOperands() == 1) {
+        // q1 = adjoint(op)(q); q2 = op(q1)
+        // OR q1 = op; q2 = adjoint(op)(q1)
+        auto otherOp = op->getOperand(0).getDefiningOp();
+        if (otherOp->hasTrait<AdjointTo<ConcreteType>::template Impl>()) {
+            results.push_back(otherOp->getOperand(0));
+            return success();
+        }
+        return failure();
+    }
+    return failure();
+}
+
+/// Override the 'foldTrait' hook to support trait based folding on the
+/// concrete operation.
+template<typename ConcreteType>
+LogicalResult Unitary<ConcreteType>::foldTrait(
+    Operation* op,
+    ArrayRef<Attribute> operands,
+    SmallVectorImpl<OpFoldResult> &results)
+{
+    return foldUnitaryTraitImpl<ConcreteType>(op, operands, results);
 }
 
 //===----------------------------------------------------------------------===//

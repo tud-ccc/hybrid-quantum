@@ -40,7 +40,7 @@ module {
   // CHECK-LABEL: func.func @merge_phase_y_const(
   // CHECK: %[[Q:.+]]: {{.*}})
   func.func @merge_phase_y_const(%q : !quantum.qubit<1>) -> !quantum.qubit<1> {
-    // CHECK-DAG: %[[P:.+]] = arith.constant
+    // CHECK-DAG: %[[P:.+]] = arith.constant 0.30000000000000004 : f64
     %theta1 = arith.constant 0.1 : f64
     // CHECK-NOT: arith.constant
     %theta2 = arith.constant 0.2 : f64
