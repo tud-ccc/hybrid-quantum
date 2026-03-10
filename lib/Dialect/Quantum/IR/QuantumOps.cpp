@@ -27,6 +27,7 @@
 #include <llvm/TableGen/Record.h>
 #include <mlir/Dialect/Arith/IR/Arith.h>
 #include <mlir/Dialect/CommonFolders.h>
+#include <mlir/IR/BuiltinAttributes.h>
 #include <mlir/IR/Diagnostics.h>
 #include <mlir/IR/Matchers.h>
 #include <mlir/IR/OpDefinition.h>
@@ -169,7 +170,7 @@ void MeasureOp::inferResultRanges(
 //===----------------------------------------------------------------------===//
 // Canonicalization
 //===----------------------------------------------------------------------===//
-
+namespace {
 template<typename OpTy>
 LogicalResult rotationOpCanonicalize(OpTy op, PatternRewriter &rewriter)
 {
@@ -179,22 +180,36 @@ LogicalResult rotationOpCanonicalize(OpTy op, PatternRewriter &rewriter)
     // %1 = R_(%0, %theta1 + %theta2)
     if (auto otherRotation = op.getInput().template getDefiningOp<OpTy>()) {
         // addf either folds the constant folded values or the result of addf
-        llvm::SmallVector<Value, 2> addf;
+        llvm::SmallVector<Value, 2> addfv;
         rewriter.createOrFold<arith::AddFOp>(
-            addf,
+            addfv,
             op->getLoc(),
             otherRotation.getTheta(),
             op.getTheta());
 
-        rewriter.replaceOpWithNewOp<OpTy>(
-            op,
-            otherRotation.getInput(),
-            addf.front());
+        auto addf = addfv.front();
+        if (auto fconst =
+                llvm::dyn_cast<arith::ConstantFloatOp>(addf.getDefiningOp())) {
+            auto fattr = llvm::cast<FloatAttr>(fconst.getValueAttr());
+            auto apfloat = fattr.getValue();
+            // If op.theta + other.theta = -0.0 or +0.0
+            // Then we can remove both rotations
+            if (apfloat.isZero()) {
+                rewriter.replaceAllUsesWith(
+                    op.getResult(),
+                    otherRotation.getInput());
+                rewriter.eraseOp(op);
+                return success();
+            }
+        }
+
+        rewriter.replaceOpWithNewOp<OpTy>(op, otherRotation.getInput(), addf);
         rewriter.eraseOp(otherRotation);
         return success();
     }
     return failure();
 }
+} // namespace
 
 LogicalResult RzOp::canonicalize(RzOp op, PatternRewriter &rewriter)
 {

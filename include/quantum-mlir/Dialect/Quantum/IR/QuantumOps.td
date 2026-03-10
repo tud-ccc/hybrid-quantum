@@ -494,6 +494,7 @@ def Quantum_TOp : PrimitiveGate_Op<
   "T",
   [
     Unitary,
+    AdjointTo<"TdgOp">,
     NoMemoryEffect,
     AllTypesMatch<["input", "result"]>,
     InferRegisterRangesInterface
@@ -528,6 +529,8 @@ def Quantum_SdgOp : PrimitiveGate_Op<
 def Quantum_TdgOp : PrimitiveGate_Op<
   "Tdg",
   [
+    Unitary,
+    AdjointTo<"TOp">,
     NoMemoryEffect,
     AllTypesMatch<["input", "result"]>,
     InferRegisterRangesInterface
@@ -573,6 +576,7 @@ def Quantum_CNOTOp : PrimitiveGate_Op<
 def Quantum_CZOp : PrimitiveGate_Op<
   "CZ",
   [
+    Hermitian,
     NoMemoryEffect,
     AllTypesMatch<["control", "target", "control_out", "target_out"]>,
     InferRegisterRangesInterface
@@ -800,6 +804,7 @@ def Quantum_CU1Op : PrimitiveGate_Op<
 def Quantum_CCXOp : PrimitiveGate_Op<
   "CCX",
   [
+    Hermitian,
     NoMemoryEffect,
     AllTypesMatch<["control1", "control2", "target", "control1_out", "control2_out", "target_out"]>,
     InferRegisterRangesInterface

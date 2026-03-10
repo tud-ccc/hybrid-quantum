@@ -55,3 +55,16 @@ func.func @sx_sx_x() -> (!quantum.qubit<1>) {
 }
 
 // -----
+
+// CHECK-LABEL: func.func @rz_rz(
+func.func @rz_rz() -> (!quantum.qubit<1>) {
+  // CHECK: %[[Q1:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
+  %q1 = "quantum.alloc"() : () -> (!quantum.qubit<1>)
+  %theta = arith.constant 0.5 : f64
+  %theta_neg = arith.constant -0.5 : f64
+  // CHECK-NOT: "quantum.Rz"
+  %q2 = "quantum.Rz" (%q1, %theta) : (!quantum.qubit<1>, f64) -> (!quantum.qubit<1>)
+  %q3 = "quantum.Rz" (%q2, %theta_neg) : (!quantum.qubit<1>, f64) -> (!quantum.qubit<1>)
+  // CHECK: return %[[Q1]]
+  return %q3 : !quantum.qubit<1>
+}
