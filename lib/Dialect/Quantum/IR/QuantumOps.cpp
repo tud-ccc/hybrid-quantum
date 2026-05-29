@@ -311,26 +311,18 @@ LogicalResult foldHermitianTraitImpl(
     ArrayRef<Attribute> operands,
     SmallVectorImpl<OpFoldResult> &results)
 {
-    if (op->getNumOperands() == 1) {
-        // Check for H * H
-        if (matchPattern(op->getOperand(0), m_Op<ConcreteType>())) {
-            // Add the other's operand to the results vector
-            auto otherOp = op->getOperand(0).getDefiningOp();
-            results.push_back(otherOp->getOperand(0));
-            return success();
-        }
-    } else if (
-        // x, z = CNOT(a, b); CNOT(x, z); := a, b
-        matchPattern(op->getOperand(0), m_Op<ConcreteType>())
-        && matchPattern(op->getOperand(1), m_Op<ConcreteType>())) {
-        if (op->getOperand(0).getDefiningOp()
-            == op->getOperand(1).getDefiningOp()) {
-            // Add the other's operands to the results vector
-            auto otherOp = op->getOperand(0).getDefiningOp();
-            results.push_back(otherOp->getOperand(0));
-            results.push_back(otherOp->getOperand(1));
-            return success();
-        }
+    // OUT11, ... , OUT1n = OP(IN1, ..., INn)
+    // OUT21, ..., OUT2n = OP(OUT11, ..., OUT1n)
+    // ------------------------------------------
+    // IN1, ..., INn
+    const auto otherOp = op->getOperand(0).getDefiningOp();
+    bool sameTypeAndOrigin = llvm::all_of(op->getOperands(), [&](Value v) {
+        return matchPattern(v, m_Op<ConcreteType>())
+               && v.getDefiningOp() == otherOp;
+    });
+    if (sameTypeAndOrigin) {
+        llvm::append_range(results, otherOp->getOperands());
+        return success();
     }
     return failure();
 }

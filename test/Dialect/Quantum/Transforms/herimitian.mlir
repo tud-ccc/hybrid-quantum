@@ -133,3 +133,21 @@ func.func @cnot_cancel() -> (!quantum.qubit<1>, !quantum.qubit<1>) {
   // CHECK: return %[[Q1]], %[[Q2]]
   return %q5, %q6 : !quantum.qubit<1>, !quantum.qubit<1>
 }
+
+// -----
+
+// CHECK-LABEL: func.func @ccnot_cancel(
+func.func @ccnot_cancel() -> (!quantum.qubit<1>, !quantum.qubit<1>, !quantum.qubit<1>) {
+  // CHECK-DAG: %[[Q1:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
+  %q1 = "quantum.alloc"() : () -> (!quantum.qubit<1>)
+  // CHECK-DAG: %[[Q2:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
+  %q2 = "quantum.alloc"() : () -> (!quantum.qubit<1>)
+  // CHECK-DAG: %[[Q3:.+]] = "quantum.alloc"() : () -> !quantum.qubit<1>
+  %q3 = "quantum.alloc"() : () -> (!quantum.qubit<1>)
+  // CHECK-NOT: "quantum.CCX"
+  %q4, %q5, %q6 = "quantum.CCX" (%q1, %q2, %q3) : (!quantum.qubit<1>, !quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>, !quantum.qubit<1>)
+  // CHECK-NOT: "quantum.CCX"
+  %q7, %q8, %q9 = "quantum.CCX" (%q4, %q5, %q6) : (!quantum.qubit<1>, !quantum.qubit<1>, !quantum.qubit<1>) -> (!quantum.qubit<1>, !quantum.qubit<1>, !quantum.qubit<1>)
+  // CHECK: return %[[Q1]], %[[Q2]], %[[Q3]]
+  return %q7, %q8, %q9 : !quantum.qubit<1>, !quantum.qubit<1>, !quantum.qubit<1>
+}
