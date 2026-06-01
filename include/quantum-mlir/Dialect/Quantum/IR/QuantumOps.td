@@ -618,6 +618,7 @@ def Quantum_SWAPOp : PrimitiveGate_Op<
 def Quantum_RxOp : PrimitiveGate_Op<
   "Rx",
   [
+    Unitary,
     NoMemoryEffect,
     AllTypesMatch<["input", "result"]>,
     InferRegisterRangesInterface
@@ -640,6 +641,7 @@ def Quantum_RxOp : PrimitiveGate_Op<
 def Quantum_RyOp : PrimitiveGate_Op<
   "Ry",
   [
+    Unitary,
     NoMemoryEffect,
     AllTypesMatch<["input", "result"]>,
     InferRegisterRangesInterface
@@ -662,6 +664,7 @@ def Quantum_RyOp : PrimitiveGate_Op<
 def Quantum_RzOp : PrimitiveGate_Op<
   "Rz",
   [
+    Unitary,
     NoMemoryEffect,
     AllTypesMatch<["input", "result"]>,
     InferRegisterRangesInterface
@@ -684,6 +687,7 @@ def Quantum_RzOp : PrimitiveGate_Op<
 def Quantum_PhaseOp : PrimitiveGate_Op<
   "P",
   [
+    Hermitian,
     NoMemoryEffect,
     AllTypesMatch<["input", "result"]>,
     InferRegisterRangesInterface
@@ -703,6 +707,7 @@ def Quantum_PhaseOp : PrimitiveGate_Op<
 def Quantum_U3Op : PrimitiveGate_Op<
   "U3",
   [
+    Unitary,
     NoMemoryEffect,
     AllTypesMatch<["input", "result"]>,
     InferRegisterRangesInterface
@@ -719,6 +724,7 @@ def Quantum_U3Op : PrimitiveGate_Op<
 def Quantum_U2Op : PrimitiveGate_Op<
   "U2",
   [
+    Unitary,
     NoMemoryEffect,
     AllTypesMatch<["input", "result"]>,
     InferRegisterRangesInterface
@@ -735,6 +741,7 @@ def Quantum_U2Op : PrimitiveGate_Op<
 def Quantum_U1Op : PrimitiveGate_Op<
   "U1",
   [
+    Unitary,
     NoMemoryEffect,
     AllTypesMatch<["input", "result"]>,
     InferRegisterRangesInterface
@@ -754,6 +761,7 @@ def Quantum_U1Op : PrimitiveGate_Op<
 def Quantum_CRzOp : PrimitiveGate_Op<
   "CRz",
   [
+    Unitary,
     NoMemoryEffect,
     AllTypesMatch<["control", "target", "control_out", "target_out"]>,
     InferRegisterRangesInterface
@@ -771,6 +779,7 @@ def Quantum_CRzOp : PrimitiveGate_Op<
 def Quantum_CRyOp : PrimitiveGate_Op<
   "CRy",
   [
+    Unitary,
     NoMemoryEffect,
     AllTypesMatch<["control", "target", "control_out", "target_out"]>,
     InferRegisterRangesInterface
@@ -788,6 +797,7 @@ def Quantum_CRyOp : PrimitiveGate_Op<
 def Quantum_CU1Op : PrimitiveGate_Op<
   "CU1",
   [
+    Unitary,
     NoMemoryEffect,
     AllTypesMatch<["control", "target", "control_out", "target_out"]>,
     InferRegisterRangesInterface
