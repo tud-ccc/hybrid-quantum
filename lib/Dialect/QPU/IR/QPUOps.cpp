@@ -86,19 +86,24 @@ struct QPUInlinerInterface : public DialectInlinerInterface {
 } // namespace
 
 //===----------------------------------------------------------------------===//
-// ExecuteOp
+// ExecuteOp Parser / Printer
 //===----------------------------------------------------------------------===//
 
-static ParseResult parseExecuteOperands(
+static ParseResult parseExecuteOperandList(
     OpAsmParser &parser,
     SmallVectorImpl<OpAsmParser::UnresolvedOperand> &operandNames,
     SmallVectorImpl<Type> &operandTypes)
 {
-    if (parser.parseOptionalKeyword("args")) return success();
     auto parseElement = [&]() -> ParseResult {
-        return failure(
-            parser.parseOperand(operandNames.emplace_back())
-            || parser.parseColonType(operandTypes.emplace_back()));
+        OpAsmParser::UnresolvedOperand operand;
+        Type type;
+
+        if (parser.parseOperand(operand) || parser.parseColonType(type))
+            return failure();
+
+        operandNames.push_back(operand);
+        operandTypes.push_back(type);
+        return success();
     };
 
     return parser.parseCommaSeparatedList(
@@ -107,50 +112,13 @@ static ParseResult parseExecuteOperands(
         "in argument list");
 }
 
-static void printExecuteOperands(
+static void printExecuteOperandList(
     OpAsmPrinter &printer,
     Operation*,
     OperandRange operands,
     TypeRange types)
 {
-    if (operands.empty()) return;
-    printer << "args(";
-    llvm::interleaveComma(
-        llvm::zip_equal(operands, types),
-        printer,
-        [&](const auto &pair) {
-            auto [operand, type] = pair;
-            printer << operand << " : " << type;
-        });
-    printer << ")";
-}
-
-static ParseResult parseExecuteResults(
-    OpAsmParser &parser,
-    SmallVectorImpl<OpAsmParser::UnresolvedOperand> &operandNames,
-    SmallVectorImpl<Type> &operandTypes)
-{
-    if (parser.parseOptionalKeyword("outs")) return success();
-    auto parseElement = [&]() -> ParseResult {
-        return failure(
-            parser.parseOperand(operandNames.emplace_back())
-            || parser.parseColonType(operandTypes.emplace_back()));
-    };
-
-    return parser.parseCommaSeparatedList(
-        OpAsmParser::Delimiter::Paren,
-        parseElement,
-        "in outs list");
-}
-
-static void printExecuteResults(
-    OpAsmPrinter &printer,
-    Operation*,
-    OperandRange operands,
-    TypeRange types)
-{
-    if (operands.empty()) return;
-    printer << "outs(";
+    printer << "(";
     llvm::interleaveComma(
         llvm::zip_equal(operands, types),
         printer,

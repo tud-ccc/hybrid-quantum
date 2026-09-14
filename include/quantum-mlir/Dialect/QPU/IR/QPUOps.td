@@ -17,6 +17,7 @@ include "mlir/Interfaces/CallInterfaces.td"
 include "mlir/Interfaces/FunctionInterfaces.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
+include "mlir/Interfaces/DestinationStyleOpInterface.td"
 
 //===----------------------------------------------------------------------===//
 // QPU Op templates
@@ -100,7 +101,12 @@ def QPU_CircuitOp : QPU_Op<"circuit", [
 }
 
 def QPU_ExecuteOp : QPU_Op<"execute", [
-    AttrSizedOperandSegments
+    AttrSizedOperandSegments,
+    DestinationStyleOpInterface,
+    RangedTypesMatchWith<
+      "result types match output types",
+      "output", "result", "$_self"
+    >
   ]> {
   let summary = "Executed a quantum circuit.";
   let description = [{
@@ -109,14 +115,23 @@ def QPU_ExecuteOp : QPU_Op<"execute", [
   }];
   let arguments = (ins
     SymbolRefAttr:$circuit,
-    Variadic<AnyType>:$circuitOperands,
-    Variadic<AnyType>:$circuitResults
+    Variadic<AnyType>:$input,
+    Variadic<AnyTensor>:$output
   );
+  let results = (outs
+    Variadic<AnyTensor>:$result
+  );  
   let assemblyFormat = [{
     $circuit
-    custom<ExecuteOperands>($circuitOperands, type($circuitOperands))
-    custom<ExecuteResults>($circuitResults, type($circuitResults))
+    `ins` custom<ExecuteOperandList>($input, type($input))
+    `outs` custom<ExecuteOperandList>($output, type($output))
     attr-dict
+  }];
+
+  let extraClassDeclaration = [{
+    MutableOperandRange getDpsInitsMutable() {
+      return getOutputMutable();
+    }
   }];
 }
 

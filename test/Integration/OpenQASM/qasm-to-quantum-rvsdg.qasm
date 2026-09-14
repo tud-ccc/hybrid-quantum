@@ -46,8 +46,8 @@
 //CHECK:   }
 //CHECK:   func.func public @qasm_main() -> tensor<1xi1> {
 //CHECK:     %[[EMPTY:.+]] = tensor.empty() : tensor<1xi1>
-//CHECK:     qpu.execute @qpu::@main  outs(%[[EMPTY]] : tensor<1xi1>)
-//CHECK:     return %[[EMPTY]] : tensor<1xi1>
+//CHECK:     %[[RES:.+]] = qpu.execute @qpu::@main ins () outs (%[[EMPTY]] : tensor<1xi1>)
+//CHECK:     return %[[RES]] : tensor<1xi1>
 //CHECK:   }
 //CHECK: }
 

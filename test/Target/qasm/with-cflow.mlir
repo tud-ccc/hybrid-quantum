@@ -29,7 +29,7 @@ scf.if %b {
   }
   func.func public @qasm_main() -> tensor<1xi1> {
     %0 = tensor.empty() : tensor<1xi1>
-    qpu.execute @qpu::@main  outs(%0 : tensor<1xi1>)
-    return %0 : tensor<1xi1>
+    %1 = qpu.execute @qpu::@main ins() outs(%0 : tensor<1xi1>)
+    return %1 : tensor<1xi1>
   }
 }

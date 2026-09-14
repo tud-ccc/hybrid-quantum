@@ -69,7 +69,7 @@ module {
   }
   func.func public @qasm_main() -> tensor<2xi1> {
     %0 = tensor.empty() : tensor<2xi1>
-    qpu.execute @qpu::@main  outs(%0 : tensor<2xi1>)
-    return %0 : tensor<2xi1>
+    %1 = qpu.execute @qpu::@main ins() outs(%0 : tensor<2xi1>)
+    return %1 : tensor<2xi1>
   }
 }
