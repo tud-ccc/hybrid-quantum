@@ -962,15 +962,15 @@ def QASMToMLIR(code: str, emitResults: bool) -> Module:
 
         # ExecuteOp requires the construction of a default return value
         # Quantum code normally returns tensor<Nxi1> or i1
-        exec_res = []
+        exec_init = []
         for ty in res_ty:
             if isinstance(ty, RankedTensorType):
                 empty = tensor.EmptyOp(ty.shape, ty.element_type, ip=InsertionPoint(qasm_main.entry_block))
-                exec_res.append(empty)
+                exec_init.append(empty)
             else:
                 raise ParseError("Expected circuit to return RankedTensorType, found %s", ty)
         circuit_ref = SymbolRefAttr.get([device_name.value, circuit_name.value])
-        qpu.ExecuteOp(circuit_ref, [], exec_res, ip=InsertionPoint(qasm_main.entry_block))
+        exec_res: list[Value] = qpu.ExecuteOp([ty], circuit_ref, [], exec_init, ip=InsertionPoint(qasm_main.entry_block)).result
         func.ReturnOp(exec_res, ip=InsertionPoint(qasm_main.entry_block))
 
         return module

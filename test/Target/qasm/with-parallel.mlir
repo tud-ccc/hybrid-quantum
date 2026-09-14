@@ -95,7 +95,7 @@ module {
   }
   func.func public @qasm_main() -> tensor<32xi1> {
     %0 = tensor.empty() : tensor<32xi1>
-    qpu.execute @qpu::@main  outs(%0 : tensor<32xi1>)
-    return %0 : tensor<32xi1>
+    %1 = qpu.execute @qpu::@main ins() outs(%0 : tensor<32xi1>)
+    return %1 : tensor<32xi1>
   }
 }

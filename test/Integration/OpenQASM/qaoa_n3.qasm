@@ -24,9 +24,9 @@
 //     }) : () -> ()
 //   }
 //   func.func public @qasm_main() -> tensor<3xi1> {
-//     %0 = tensor.empty() : tensor<3xi1>
-//     qpu.execute @qpu::@main  outs(%0 : tensor<3xi1>)
-//     return %0 : tensor<3xi1>
+//     %[[EMPTY:.+]] = tensor.empty() : tensor<3xi1>
+//     %[[RES:.+]] = qpu.execute @qpu::@main ins() outs(%[[EMPTY]] : tensor<3xi1>)
+//     return %[[RES]] : tensor<3xi1>
 //   }
 // }
 

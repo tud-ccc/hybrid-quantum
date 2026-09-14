@@ -25,10 +25,10 @@ qpu.module @test {
     }) : () -> ()
 }
 
-func.func @main() -> tensor<1xi1> {
+func.func @main() -> (tensor<1xi1>, tensor<1xi1>) {
     %res = tensor.empty() : tensor<1xi1>
     // CHECK-SAME
-    qpu.execute @test::@test_circuit1 args() outs(%res : tensor<1xi1>)
-    qpu.execute @test::@test_circuit2 args() outs(%res : tensor<1xi1>)
-    func.return %res : tensor<1xi1>
+    %res2 = qpu.execute @test::@test_circuit1 ins() outs(%res : tensor<1xi1>)
+    %res3 = qpu.execute @test::@test_circuit2 ins() outs(%res : tensor<1xi1>)
+    func.return %res2, %res3 : tensor<1xi1>, tensor<1xi1>
 }

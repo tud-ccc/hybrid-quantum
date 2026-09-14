@@ -17,5 +17,5 @@ qpu.module @test
 }
 
 %theta = arith.constant 3.2 : f64
-%res = arith.constant false
-qpu.execute @test::@test_circuit args(%theta : f64) outs(%res : i1)
+%res = tensor.empty() : tensor<1xi1>
+%res2 = qpu.execute @test::@test_circuit ins(%theta : f64) outs(%res : tensor<1xi1>)
