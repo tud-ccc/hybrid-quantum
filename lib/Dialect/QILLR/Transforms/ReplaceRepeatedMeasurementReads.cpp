@@ -13,7 +13,9 @@
 #include <llvm/Support/Casting.h>
 #include <llvm/Support/LogicalResult.h>
 #include <mlir/Dialect/Arith/IR/Arith.h>
-#include <mlir/Dialect/SCF/IR/SCF.h>
+#include <mlir/Dialect/Tensor/IR/Tensor.h>
+#include <mlir/IR/BuiltinAttributes.h>
+#include <mlir/IR/BuiltinTypes.h>
 #include <mlir/IR/Dominance.h>
 #include <mlir/IR/MLIRContext.h>
 #include <mlir/Transforms/DialectConversion.h>
@@ -105,11 +107,15 @@ struct ReplaceRepeatedReads
 
         // There has been no measure(%q, %r) of %r
         if (dominatingMeasure == nullptr) {
-            auto zero = rewriter.create<arith::ConstantIntOp>(
-                op->getLoc(),
-                0,
-                rewriter.getI1Type());
-            rewriter.replaceAllUsesWith(op.getMeasurement(), zero);
+            auto dim = llvm::cast<AllocResultOp>(op.getInput().getDefiningOp())
+                           .getSize();
+            auto tensorTy = RankedTensorType::get(dim, rewriter.getI1Type());
+            auto zeroAttr = DenseIntElementsAttr::get(tensorTy, false);
+            auto zeroOp = rewriter.create<arith::ConstantOp>(
+                op.getLoc(),
+                tensorTy,
+                zeroAttr);
+            rewriter.replaceAllUsesWith(op.getMeasurement(), zeroOp);
             rewriter.eraseOp(op);
             return success();
         }
