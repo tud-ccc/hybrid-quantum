@@ -11,8 +11,6 @@
 #include "quantum-mlir/Conversion/Passes.h"
 #include "quantum-mlir/Dialect/QILLR/IR/QILLR.h"
 #include "quantum-mlir/Dialect/QPU/IR/QPU.h"
-#include "quantum-mlir/Dialect/QQT/IR/QQT.h"
-#include "quantum-mlir/Dialect/QQT/Transforms/Passes.h"
 #include "quantum-mlir/Dialect/Quantum/IR/Quantum.h"
 #include "quantum-mlir/Dialect/RVSDG/IR/RVSDG.h"
 
@@ -29,14 +27,12 @@ int main(int argc, char* argv[])
     registry.insert<quantum::QuantumDialect>();
     registry.insert<qpu::QPUDialect>();
     registry.insert<qillr::QILLRDialect>();
-    registry.insert<qqt::QQTDialect>();
 
     registerAllPasses();
     qpu::registerQPUPasses();
     quantum::registerQuantumPasses();
     quantum::registerConversionPasses();
     qillr::registerQILLRPasses();
-    qqt::registerQQTPasses();
     rvsdg::registerRVSDGPasses();
 
     registerAllExtensions(registry);
