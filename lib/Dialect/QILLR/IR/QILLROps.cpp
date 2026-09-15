@@ -157,7 +157,7 @@ void GateOp::build(
         builder,
         state,
         argAttrs,
-        /*resultAttrs=*/std::nullopt,
+        /*resultAttrs=*/{},
         getArgAttrsAttrName(state.name),
         getResAttrsAttrName(state.name));
 }

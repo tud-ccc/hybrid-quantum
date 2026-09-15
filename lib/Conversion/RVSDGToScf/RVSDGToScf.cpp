@@ -103,7 +103,8 @@ struct ConvertGamma : public OpConversionPattern<rvsdg::GammaNode> {
 
             //  We only return captured arguments and do not have an else branch
             //  Create a simple if without results
-            auto newIf = rewriter.create<scf::IfOp>(
+            auto newIf = scf::IfOp::create(
+                rewriter,
                 op->getLoc(),
                 adaptor.getPredicate(),
                 /* withElseRegion */ false);
@@ -118,7 +119,8 @@ struct ConvertGamma : public OpConversionPattern<rvsdg::GammaNode> {
 
             rewriter.replaceOp(op, adaptor.getInputs());
         } else {
-            auto newIf = rewriter.create<scf::IfOp>(
+            auto newIf = scf::IfOp::create(
+                rewriter,
                 op->getLoc(),
                 op->getResultTypes(),
                 adaptor.getPredicate(),

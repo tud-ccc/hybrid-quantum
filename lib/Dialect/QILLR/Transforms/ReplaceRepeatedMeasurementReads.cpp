@@ -111,7 +111,8 @@ struct ReplaceRepeatedReads
                            .getSize();
             auto tensorTy = RankedTensorType::get(dim, rewriter.getI1Type());
             auto zeroAttr = DenseIntElementsAttr::get(tensorTy, false);
-            auto zeroOp = rewriter.create<arith::ConstantOp>(
+            auto zeroOp = arith::ConstantOp::create(
+                rewriter,
                 op.getLoc(),
                 tensorTy,
                 zeroAttr);

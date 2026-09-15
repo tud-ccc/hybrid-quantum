@@ -107,7 +107,7 @@ LLVM::LLVMFuncOp ensureFunctionDeclaration(
         rewriter.setInsertionPointToStart(mod.getBody());
 
         fnDecl =
-            rewriter.create<LLVM::LLVMFuncOp>(op->getLoc(), fnSymbol, fnType);
+            LLVM::LLVMFuncOp::create(rewriter, op->getLoc(), fnSymbol, fnType);
     } else {
         assert(
             isa<LLVM::LLVMFuncOp>(fnDecl)
@@ -130,7 +130,7 @@ struct InitOpPattern : public ConvertOpToLLVMPattern<InitOp> {
 
         // Create null pointer for initialize call
         Type ptrType = LLVM::LLVMPointerType::get(ctx);
-        Value nullPtr = rewriter.create<LLVM::ZeroOp>(loc, ptrType);
+        Value nullPtr = LLVM::ZeroOp::create(rewriter, loc, ptrType);
 
         // Define QILLR initialization function
         StringRef fnName = "__quantum__rt__initialize";
@@ -143,7 +143,8 @@ struct InitOpPattern : public ConvertOpToLLVMPattern<InitOp> {
         LLVM::LLVMFuncOp fnDecl =
             ensureFunctionDeclaration(rewriter, op, fnName, fnType);
 
-        rewriter.create<LLVM::CallOp>(
+        LLVM::CallOp::create(
+            rewriter,
             loc,
             TypeRange{},
             fnDecl.getSymName(),
@@ -176,7 +177,8 @@ struct SeedOpPattern : public ConvertOpToLLVMPattern<SeedOp> {
         LLVM::LLVMFuncOp fnDecl =
             ensureFunctionDeclaration(rewriter, op, fnName, fnType);
 
-        rewriter.create<LLVM::CallOp>(
+        LLVM::CallOp::create(
+            rewriter,
             loc,
             TypeRange{},
             fnDecl.getSymName(),
@@ -210,7 +212,8 @@ struct AllocOpPattern : public ConvertOpToLLVMPattern<AllocOp> {
 
         // Create an LLVM constant integer to represent the unique ID.
         Type i64Type = rewriter.getI64Type();
-        Value intValue = rewriter.create<LLVM::ConstantOp>(
+        Value intValue = LLVM::ConstantOp::create(
+            rewriter,
             loc,
             i64Type,
             rewriter.getI64IntegerAttr(qubitId));
@@ -220,7 +223,7 @@ struct AllocOpPattern : public ConvertOpToLLVMPattern<AllocOp> {
 
         // Create the inttoptr operation.
         Value ptrValue =
-            rewriter.create<LLVM::IntToPtrOp>(loc, ptrType, intValue);
+            LLVM::IntToPtrOp::create(rewriter, loc, ptrType, intValue);
 
         // Replace the original op with the computed pointer.
         rewriter.replaceOp(op, ptrValue);
@@ -252,7 +255,8 @@ struct ReadMeasurementOpPattern
         Value inputResult = adaptor.getInput();
 
         // Create the call operation to apply the Hadamard gate
-        auto measureOp = rewriter.create<LLVM::CallOp>(
+        auto measureOp = LLVM::CallOp::create(
+            rewriter,
             op.getLoc(),
             i1Type,
             fnDecl.getSymName(),
@@ -287,7 +291,8 @@ struct AllocResultOpPattern : public ConvertOpToLLVMPattern<AllocResultOp> {
 
         // Create an LLVM constant integer to represent the unique ID.
         Type i64Type = rewriter.getI64Type();
-        Value intValue = rewriter.create<LLVM::ConstantOp>(
+        Value intValue = LLVM::ConstantOp::create(
+            rewriter,
             loc,
             i64Type,
             rewriter.getI64IntegerAttr(resultId));
@@ -297,7 +302,7 @@ struct AllocResultOpPattern : public ConvertOpToLLVMPattern<AllocResultOp> {
 
         // Create the inttoptr operation.
         Value ptrValue =
-            rewriter.create<LLVM::IntToPtrOp>(loc, ptrType, intValue);
+            LLVM::IntToPtrOp::create(rewriter, loc, ptrType, intValue);
 
         // Replace the original op with the computed pointer.
         rewriter.replaceOp(op, ptrValue);
@@ -337,7 +342,8 @@ struct HOpPattern : public ConvertOpToLLVMPattern<HOp> {
         Value inputQubit = adaptor.getInput();
 
         // Create the call operation to apply the Hadamard gate
-        rewriter.create<LLVM::CallOp>(
+        LLVM::CallOp::create(
+            rewriter,
             loc,
             TypeRange{},
             fnDecl.getSymName(),
@@ -409,7 +415,8 @@ struct YOpPattern : public ConvertOpToLLVMPattern<YOp> {
         LLVM::LLVMFuncOp fnDecl =
             ensureFunctionDeclaration(rewriter, op, qirName, qirSignature);
         Value inputQubit = adaptor.getInput();
-        rewriter.create<LLVM::CallOp>(
+        LLVM::CallOp::create(
+            rewriter,
             loc,
             TypeRange{},
             fnDecl.getSymName(),
@@ -443,7 +450,8 @@ struct ZOpPattern : public ConvertOpToLLVMPattern<ZOp> {
         LLVM::LLVMFuncOp fnDecl =
             ensureFunctionDeclaration(rewriter, op, qirName, qirSignature);
         Value inputQubit = adaptor.getInput();
-        rewriter.create<LLVM::CallOp>(
+        LLVM::CallOp::create(
+            rewriter,
             loc,
             TypeRange{},
             fnDecl.getSymName(),
@@ -523,7 +531,8 @@ struct RotationOpLowering : public ConvertOpToLLVMPattern<OpType> {
         LLVM::LLVMFuncOp fnDecl =
             ensureFunctionDeclaration(rewriter, op, qirFunctionName, fnType);
 
-        rewriter.create<LLVM::CallOp>(
+        LLVM::CallOp::create(
+            rewriter,
             loc,
             TypeRange{},
             fnDecl.getSymName(),
@@ -632,7 +641,8 @@ private:
         LLVM::LLVMFuncOp fnDecl =
             ensureFunctionDeclaration(rewriter, op, qirFnName, fnType);
 
-        rewriter.create<LLVM::CallOp>(
+        LLVM::CallOp::create(
+            rewriter,
             loc,
             TypeRange{},
             fnDecl.getSymName(),
@@ -696,7 +706,8 @@ struct U1OpLowering : public ConvertOpToLLVMPattern<U1Op> {
             false);
         auto fnDecl = ensureFunctionDeclaration(rewriter, op, fnName, fnType);
 
-        rewriter.create<LLVM::CallOp>(
+        LLVM::CallOp::create(
+            rewriter,
             loc,
             TypeRange{},
             fnDecl.getSymName(),
@@ -729,7 +740,8 @@ struct U2OpLowering : public ConvertOpToLLVMPattern<U2Op> {
             false);
         auto fnDecl = ensureFunctionDeclaration(rewriter, op, fnName, fnType);
 
-        rewriter.create<LLVM::CallOp>(
+        LLVM::CallOp::create(
+            rewriter,
             loc,
             TypeRange{},
             fnDecl.getSymName(),

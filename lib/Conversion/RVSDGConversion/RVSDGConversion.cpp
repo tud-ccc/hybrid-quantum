@@ -49,7 +49,8 @@ struct ConvertRVSDGGamma : public OpConversionPattern<rvsdg::GammaNode> {
                 convertedResultTypes)))
             return failure();
 
-        auto newGamma = rewriter.create<rvsdg::GammaNode>(
+        auto newGamma = rvsdg::GammaNode::create(
+            rewriter,
             op->getLoc(),
             convertedResultTypes,
             adaptor.getPredicate(),

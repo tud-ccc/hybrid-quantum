@@ -110,7 +110,8 @@ void copyIfRegion(
                                arg.getUses().end())
                                == 0))
                     newYields.insert(arg);
-            rewriter.create<rvsdg::YieldOp>(
+            rvsdg::YieldOp::create(
+                rewriter,
                 op->getLoc(),
                 newYields.takeVector());
         } else {
@@ -159,7 +160,8 @@ struct TransformScfIfOp : public OpConversionPattern<scf::IfOp> {
         // False 0 -> 1
         matches.emplace_back(rvsdg::MatchRuleAttr::get(getContext(), {0}, 1));
         auto mappings = ArrayAttr::get(getContext(), matches);
-        auto predicate = rewriter.create<rvsdg::MatchOp>(
+        auto predicate = rvsdg::MatchOp::create(
+            rewriter,
             op->getLoc(),
             rvsdg::ControlType::get(getContext(), 2),
             condition,
@@ -178,7 +180,8 @@ struct TransformScfIfOp : public OpConversionPattern<scf::IfOp> {
             }
         }
 
-        auto gammaOp = rewriter.create<rvsdg::GammaNode>(
+        auto gammaOp = rvsdg::GammaNode::create(
+            rewriter,
             op->getLoc(),
             outputTypes,
             predicate,
@@ -207,7 +210,7 @@ struct TransformScfIfOp : public OpConversionPattern<scf::IfOp> {
         if (op.getElseRegion().empty()) {
             rewriter.setInsertionPointToStart(&elseRegion.front());
             llvm::SmallVector<Value> newYields(elseRegion.getArguments());
-            rewriter.create<rvsdg::YieldOp>(op->getLoc(), newYields);
+            rvsdg::YieldOp::create(rewriter, op->getLoc(), newYields);
         } else {
             copyIfRegion(
                 elseRegion,
