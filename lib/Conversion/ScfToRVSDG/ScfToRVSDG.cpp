@@ -287,10 +287,14 @@ void ConvertScfToRVSDGPass::runOnOperation()
 
     populateConvertScfToRVSDGPatterns(converter, patterns, domInfo);
 
+    ConversionConfig config;
+    config.allowPatternRollback = false;
+
     if (failed(applyPartialConversion(
             getOperation(),
             target,
-            std::move(patterns))))
+            std::move(patterns),
+            config)))
         signalPassFailure();
 }
 

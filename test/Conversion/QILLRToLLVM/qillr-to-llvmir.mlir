@@ -150,8 +150,8 @@ func.func @main() -> (i1) {
 
   "qillr.measure"(%q0, %r0) : (!qillr.qubit, !qillr.result) -> ()
   // CHECK-DAG: llvm.call @__quantum__qis__mz__body(%[[Q0PTR]], %[[RPTR]]) : (!llvm.ptr, !llvm.ptr) -> ()
-  %mt = "qillr.read_measurement"(%r0) : (!qillr.result) -> i1
-  // CHECK-DAG: llvm.call @__quantum__qis__read_result__body(%[[RPTR]]) : (!llvm.ptr) -> i1
+  %mt = "qillr.read_measurement"(%r0) : (!qillr.result) -> tensor<1xi1>
+  // CHECK-DAG: llvm.call @__quantum__qis__read_result__body(%[[RPTR]]) : (!llvm.ptr) -> tensor<1xi1>
 
   "qillr.reset"(%q0) : (!qillr.qubit) -> ()
   // CHECK-DAG: llvm.call @__quantum__qis__reset__body(%[[Q0PTR]]) : (!llvm.ptr) -> ()

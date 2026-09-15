@@ -15,7 +15,7 @@ func.func @test_complex() {
       %3 = arith.cmpi eq, %2, %cst_0 : tensor<32xi1>
       %4 = scf.parallel (%arg0) = (%c0) to (%c32) step (%c1) init (%true) -> i1 {
         %extracted = tensor.extract %3[%arg0] : tensor<32xi1>
-        scf.reduce(%extracted, %true : i1, i1) {
+        scf.reduce(%extracted : i1) {
         ^bb0(%arg1: i1, %arg2: i1):
           %294 = arith.andi %arg1, %arg2 : i1
           scf.reduce.return %294 : i1

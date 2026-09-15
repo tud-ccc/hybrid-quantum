@@ -76,8 +76,7 @@ struct ConvertMatch : public OpConversionPattern<rvsdg::MatchOp> {
         if (adaptor.getInput().getType() != rewriter.getI1Type())
             return failure();
 
-        rewriter.replaceAllOpUsesWith(op, adaptor.getInput());
-        rewriter.eraseOp(op);
+        rewriter.replaceOp(op, adaptor.getInput());
         return success();
     }
 };
@@ -166,6 +165,12 @@ void ConvertRVSDGToScfPass::runOnOperation()
     ConversionTarget target(*context);
 
     converter.addConversion([](Type type) { return type; });
+
+    converter.addConversion([](rvsdg::ControlType type) -> std::optional<Type> {
+        if (type.getNumOptions() != 2) return std::nullopt;
+
+        return IntegerType::get(type.getContext(), 1);
+    });
 
     target.addIllegalDialect<rvsdg::RVSDGDialect>();
     target.addLegalDialect<scf::SCFDialect>();
