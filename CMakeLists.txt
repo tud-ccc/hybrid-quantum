@@ -48,6 +48,10 @@ list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 include(TableGen)
 include(AddLLVM)
 include(AddMLIR)
+
+if(POLICY CMP0219)
+  cmake_policy(SET CMP0219 NEW)
+endif()
 include(HandleLLVMOptions)
 
 # TableGen and project-wide include paths
@@ -64,8 +68,6 @@ add_definitions(${LLVM_DEFINITIONS})
 # ---------------------------------------------------------------------------
 
 add_compile_options(
-  -Wall
-  -Wextra
   -Wno-ambiguous-reversed-operator
   $<$<CXX_COMPILER_ID:Clang>:-fdebug-default-version=4>
 )
