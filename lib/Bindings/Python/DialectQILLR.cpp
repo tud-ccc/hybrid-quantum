@@ -1,4 +1,4 @@
-//===- DialectQILLR.cpp - Pybind module for QILLR dialect API support --===//
+//===- DialectQILLR.cpp - Nanobind module for QILLR dialect API support --===//
 //
 // @author  Lars Schütze (lars.schuetze@tu-dresden.de)
 //===----------------------------------------------------------------------===//
@@ -10,14 +10,8 @@
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "quantum-mlir-c/Dialect/QILLR.h"
 
-#include <string>
-
 namespace nb = nanobind;
 
-using namespace nanobind::literals;
-
-using namespace llvm;
-using namespace mlir;
 using namespace mlir::python;
 using namespace mlir::python::nanobind_adaptors;
 

@@ -1,4 +1,4 @@
-//===- DialectRVSDG.cpp - Pybind module for RVSDG dialect API support -----===//
+//===- DialectRVSDG.cpp - Nanobind module for RVSDG dialect API support ---===//
 //
 // @author  Lars Schütze (lars.schuetze@tu-dresden.de)
 //===----------------------------------------------------------------------===//
@@ -12,14 +12,9 @@
 
 #include <cstdint>
 #include <llvm/ADT/ArrayRef.h>
-#include <string>
 
 namespace nb = nanobind;
 
-using namespace nanobind::literals;
-
-using namespace llvm;
-using namespace mlir;
 using namespace mlir::python;
 using namespace mlir::python::nanobind_adaptors;
 

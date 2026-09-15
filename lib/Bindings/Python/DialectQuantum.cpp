@@ -1,4 +1,4 @@
-//===- DialectQuantum.cpp - Pybind module for Quantum dialect API support -===//
+//=== DialectQuantum.cpp - Nanobind module for Quantum dialect API support ===//
 //
 // @author  Lars Schütze (lars.schuetze@tu-dresden.de)
 //===----------------------------------------------------------------------===//
@@ -10,14 +10,8 @@
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "quantum-mlir-c/Dialect/Quantum.h"
 
-#include <string>
-
 namespace nb = nanobind;
 
-using namespace nanobind::literals;
-
-using namespace llvm;
-using namespace mlir;
 using namespace mlir::python;
 using namespace mlir::python::nanobind_adaptors;
 
