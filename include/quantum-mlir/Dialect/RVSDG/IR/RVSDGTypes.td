@@ -23,10 +23,6 @@ def RVSDG_Ctrl : RVSDG_Type<"Control"> {
         "uint64_t":$numOptions
     );
 
-    let builders = [
-        TypeBuilder<(ins "uint64_t":$numOptions)>
-    ];
-
     let assemblyFormat = "`<` $numOptions `>`";
 }
 
