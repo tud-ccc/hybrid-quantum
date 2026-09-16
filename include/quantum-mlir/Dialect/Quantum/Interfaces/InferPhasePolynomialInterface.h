@@ -113,9 +113,7 @@ public:
 
     /// Compare two phase polynomials.
     bool operator==(const PhasePolynomial &rhs) const
-    {
-        return values == rhs.values;
-    }
+    { return values == rhs.values; }
 
     /// Print the phase polynomial
     void print(llvm::raw_ostream &os) const
@@ -206,9 +204,7 @@ struct DenseMapInfo<llvm::SmallVector<mlir::quantum::ConstantPhasePolynomial>> {
     static bool isEqual(
         const llvm::SmallVector<mlir::quantum::ConstantPhasePolynomial> &lhs,
         const llvm::SmallVector<mlir::quantum::ConstantPhasePolynomial> &rhs)
-    {
-        return lhs == rhs;
-    }
+    { return lhs == rhs; }
 };
 
 } // namespace llvm

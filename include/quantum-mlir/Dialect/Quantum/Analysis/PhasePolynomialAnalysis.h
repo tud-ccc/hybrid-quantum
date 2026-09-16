@@ -38,9 +38,7 @@ public:
 
     /// At an entry point, we cannot reason about phase polynomials.
     void setToEntryState(PhasePolynomialLattice* lattice) override
-    {
-        propagateIfChanged(lattice, lattice->join(PhasePolynomial()));
-    }
+    { propagateIfChanged(lattice, lattice->join(PhasePolynomial())); }
 
     /// Visit an operation. Invoke the transfer function on each operation that
     /// implements `InferPhasePolynomialInterface`.

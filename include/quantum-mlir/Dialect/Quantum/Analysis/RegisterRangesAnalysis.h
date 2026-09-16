@@ -40,9 +40,7 @@ public:
 
     /// At an entry point, we cannot reason about integer value ranges.
     void setToEntryState(RegisterRangesLattice* lattice) override
-    {
-        propagateIfChanged(lattice, lattice->join(RegisterRanges()));
-    }
+    { propagateIfChanged(lattice, lattice->join(RegisterRanges())); }
 
     /// Visit an operation. Invoke the transfer function on each operation that
     /// implements `InferIntRangeInterface`.
