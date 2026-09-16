@@ -163,11 +163,7 @@ void ReplaceRepeatedMeasurementReadsPass::runOnOperation()
 void mlir::qillr::populateReplaceRepeatedMeasurementReadsPatterns(
     RewritePatternSet &patterns,
     DominanceInfo &domInfo)
-{
-    patterns.add<ReplaceRepeatedReads>(patterns.getContext(), domInfo);
-}
+{ patterns.add<ReplaceRepeatedReads>(patterns.getContext(), domInfo); }
 
 std::unique_ptr<Pass> mlir::qillr::createReplaceRepeatedMeasurementReadsPass()
-{
-    return std::make_unique<ReplaceRepeatedMeasurementReadsPass>();
-}
+{ return std::make_unique<ReplaceRepeatedMeasurementReadsPass>(); }

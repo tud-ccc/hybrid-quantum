@@ -71,21 +71,15 @@ struct QuantumInlinerInterface : public DialectInlinerInterface {
 
     /// Call operations can always be inlined
     bool isLegalToInline(Operation*, Operation*, bool) const final
-    {
-        return true;
-    }
+    { return true; }
 
     /// All operations can be inlined.
     bool isLegalToInline(Operation*, Region*, bool, IRMapping &) const final
-    {
-        return true;
-    }
+    { return true; }
 
     /// All gate bodies can be inlined.
     bool isLegalToInline(Region*, Region*, bool, IRMapping &) const final
-    {
-        return true;
-    }
+    { return true; }
 
     //===--------------------------------------------------------------------===//
     // Transformation Hooks
@@ -133,9 +127,7 @@ void AllocOp::inferResultRanges(
 }
 
 void DeallocateOp::inferResultRanges(ArrayRef<RegisterRanges>, SetRangeFn)
-{
-    return;
-}
+{ return; }
 
 void SplitOp::inferResultRanges(
     ArrayRef<RegisterRanges> argRanges,
@@ -168,9 +160,7 @@ void MergeOp::inferResultRanges(
 void MeasureOp::inferResultRanges(
     ArrayRef<RegisterRanges> argRanges,
     SetRangeFn setResultRanges)
-{
-    setResultRanges(getResult(), argRanges[0]);
-}
+{ setResultRanges(getResult(), argRanges[0]); }
 
 //===--------------------------------------------------------------------===//
 // InferPhasePolynomialInterface Hooks
@@ -388,29 +378,19 @@ LogicalResult rotationOpCanonicalize(OpTy op, PatternRewriter &rewriter)
 } // namespace
 
 LogicalResult CRzOp::canonicalize(CRzOp op, PatternRewriter &rewriter)
-{
-    return controlledRotationOpCanonicalize(op, rewriter);
-}
+{ return controlledRotationOpCanonicalize(op, rewriter); }
 
 LogicalResult CRyOp::canonicalize(CRyOp op, PatternRewriter &rewriter)
-{
-    return controlledRotationOpCanonicalize(op, rewriter);
-}
+{ return controlledRotationOpCanonicalize(op, rewriter); }
 
 LogicalResult RzOp::canonicalize(RzOp op, PatternRewriter &rewriter)
-{
-    return rotationOpCanonicalize(op, rewriter);
-}
+{ return rotationOpCanonicalize(op, rewriter); }
 
 LogicalResult RxOp::canonicalize(RxOp op, PatternRewriter &rewriter)
-{
-    return rotationOpCanonicalize(op, rewriter);
-}
+{ return rotationOpCanonicalize(op, rewriter); }
 
 LogicalResult RyOp::canonicalize(RyOp op, PatternRewriter &rewriter)
-{
-    return rotationOpCanonicalize(op, rewriter);
-}
+{ return rotationOpCanonicalize(op, rewriter); }
 
 LogicalResult SXOp::canonicalize(SXOp op, PatternRewriter &rewriter)
 {
@@ -457,9 +437,7 @@ LogicalResult Hermitian<ConcreteType>::foldTrait(
     Operation* op,
     ArrayRef<Attribute> operands,
     SmallVectorImpl<OpFoldResult> &results)
-{
-    return foldHermitianTraitImpl<ConcreteType>(op, operands, results);
-}
+{ return foldHermitianTraitImpl<ConcreteType>(op, operands, results); }
 
 // Free function implementation of foldTrait
 template<typename ConcreteType>
@@ -488,9 +466,7 @@ LogicalResult Unitary<ConcreteType>::foldTrait(
     Operation* op,
     ArrayRef<Attribute> operands,
     SmallVectorImpl<OpFoldResult> &results)
-{
-    return foldUnitaryTraitImpl<ConcreteType>(op, operands, results);
-}
+{ return foldUnitaryTraitImpl<ConcreteType>(op, operands, results); }
 
 //===----------------------------------------------------------------------===//
 // Verifier
@@ -638,9 +614,7 @@ LogicalResult GateCallOp::verifySymbolUses(SymbolTableCollection &symbolTable)
 }
 
 FunctionType GateCallOp::getCalleeType()
-{
-    return FunctionType::get(getContext(), getOperandTypes(), getResultTypes());
-}
+{ return FunctionType::get(getContext(), getOperandTypes(), getResultTypes()); }
 
 //===----------------------------------------------------------------------===//
 // GateOp

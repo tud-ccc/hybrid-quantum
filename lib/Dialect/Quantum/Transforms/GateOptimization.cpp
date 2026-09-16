@@ -72,6 +72,4 @@ void mlir::quantum::populateQuantumOptimisePatterns(RewritePatternSet &patterns)
 }
 
 std::unique_ptr<Pass> mlir::quantum::createQuantumOptimisePass()
-{
-    return std::make_unique<QuantumOptimisePass>();
-}
+{ return std::make_unique<QuantumOptimisePass>(); }

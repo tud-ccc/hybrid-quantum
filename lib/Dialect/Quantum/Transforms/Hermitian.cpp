@@ -72,11 +72,7 @@ void HermitianCancelPass::runOnOperation()
 }
 
 void mlir::quantum::populateHermitianCancelPatterns(RewritePatternSet &patterns)
-{
-    patterns.add<FoldDoubleHermitian>(patterns.getContext());
-}
+{ patterns.add<FoldDoubleHermitian>(patterns.getContext()); }
 
 std::unique_ptr<Pass> mlir::quantum::createHermitianCancelPass()
-{
-    return std::make_unique<HermitianCancelPass>();
-}
+{ return std::make_unique<HermitianCancelPass>(); }

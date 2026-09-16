@@ -43,6 +43,4 @@ void SabreSwapPass::runOnOperation()
 }
 
 std::unique_ptr<Pass> mlir::qpu::createSabreSwapPass()
-{
-    return std::make_unique<SabreSwapPass>();
-}
+{ return std::make_unique<SabreSwapPass>(); }

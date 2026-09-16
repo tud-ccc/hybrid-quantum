@@ -19,26 +19,18 @@ MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(RVSDG, rvsdg, RVSDGDialect)
 //===---------------------------------------------------------------------===//
 
 bool mlirTypeIsAControlType(MlirType type)
-{
-    return isa<ControlType>(unwrap(type));
-}
+{ return isa<ControlType>(unwrap(type)); }
 
 MlirType mlirControlTypeGet(MlirContext ctx, uint64_t numOptions)
-{
-    return wrap(ControlType::get(unwrap(ctx), numOptions));
-}
+{ return wrap(ControlType::get(unwrap(ctx), numOptions)); }
 
 //===---------------------------------------------------------------------===//
 // MatchRuleAttr
 //===---------------------------------------------------------------------===//
 
 bool mlirAttrIsAMatchRuleAttr(MlirAttribute attr)
-{
-    return isa<MatchRuleAttr>(unwrap(attr));
-}
+{ return isa<MatchRuleAttr>(unwrap(attr)); }
 
 MlirAttribute
 mlirMatchRuleAttrGet(MlirContext ctx, ArrayRef<int64_t> values, uint64_t index)
-{
-    return wrap(MatchRuleAttr::get(unwrap(ctx), values, index));
-}
+{ return wrap(MatchRuleAttr::get(unwrap(ctx), values, index)); }

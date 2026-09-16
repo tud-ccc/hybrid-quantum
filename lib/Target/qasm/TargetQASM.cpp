@@ -319,8 +319,8 @@ static LogicalResult printIfOp(QASMEmitter &emitter, scf::IfOp ifOp)
             cond.setBitVal(bitIndex++, value);
 
         cond.toString(str, 10, false);
-    } else if ((mt =
-                    llvm::dyn_cast<ReadMeasurementOp>(extractedFromTensorOp))) {
+    } else if (
+        (mt = llvm::dyn_cast<ReadMeasurementOp>(extractedFromTensorOp))) {
         APInt cond = APInt::getAllOnes(mt.getResult().getType().getDimSize(0));
         cond.toString(str, 10, false);
     }

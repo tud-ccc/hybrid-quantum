@@ -22,25 +22,17 @@ MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(Quantum, quantum, QuantumDialect)
 //===---------------------------------------------------------------------===//
 
 bool mlirTypeIsAQuantumQubitType(MlirType type)
-{
-    return isa<QubitType>(unwrap(type));
-}
+{ return isa<QubitType>(unwrap(type)); }
 
 MlirType mlirQuantumQubitTypeGet(MlirContext ctx, int64_t length)
-{
-    return wrap(QubitType::get(unwrap(ctx), length));
-}
+{ return wrap(QubitType::get(unwrap(ctx), length)); }
 
 //===---------------------------------------------------------------------===//
 // MeasurementType
 //===---------------------------------------------------------------------===//
 
 bool mlirTypeIsAQuantumMeasurementType(MlirType type)
-{
-    return isa<MeasurementType>(unwrap(type));
-}
+{ return isa<MeasurementType>(unwrap(type)); }
 
 MlirType mlirQuantumMeasurementTypeGet(MlirContext ctx, int64_t length)
-{
-    return wrap(MeasurementType::get(unwrap(ctx), length));
-}
+{ return wrap(MeasurementType::get(unwrap(ctx), length)); }

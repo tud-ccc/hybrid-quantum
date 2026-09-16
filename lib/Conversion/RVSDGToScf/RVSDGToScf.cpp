@@ -195,6 +195,4 @@ void mlir::rvsdg::populateConvertRVSDGToScfPatterns(
 }
 
 std::unique_ptr<Pass> mlir::createConvertRVSDGToScfPass()
-{
-    return std::make_unique<ConvertRVSDGToScfPass>();
-}
+{ return std::make_unique<ConvertRVSDGToScfPass>(); }
