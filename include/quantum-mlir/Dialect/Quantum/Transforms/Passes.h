@@ -10,7 +10,7 @@
 
 #include <memory>
 #include <mlir/Analysis/DataFlowFramework.h>
-#include <mlir/Transforms/OneToNTypeConversion.h>
+#include <mlir/Transforms/DialectConversion.h>
 
 namespace mlir {
 

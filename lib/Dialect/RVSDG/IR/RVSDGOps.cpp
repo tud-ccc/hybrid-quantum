@@ -178,12 +178,12 @@ void GammaNode::getSuccessorRegions(
 {
     // The regions branch back to the parent operation.
     if (!point.isParent()) {
-        regions.push_back(RegionSuccessor(getResults()));
+        regions.push_back(RegionSuccessor(getOperation()));
         return;
     }
 
     for (auto &region : getRegions())
-        regions.push_back(RegionSuccessor(&region, region.getArguments()));
+        regions.push_back(RegionSuccessor(&region));
 }
 
 void GammaNode::getEntrySuccessorRegions(
@@ -191,7 +191,14 @@ void GammaNode::getEntrySuccessorRegions(
     SmallVectorImpl<RegionSuccessor> &regions)
 {
     for (auto &region : getRegions())
-        regions.push_back(RegionSuccessor(&region, region.getArguments()));
+        regions.push_back(RegionSuccessor(&region));
+}
+
+ValueRange GammaNode::getSuccessorInputs(RegionSuccessor successor)
+{
+    if (successor.isOperation()) return getResults();
+
+    return successor.getSuccessor()->getArguments();
 }
 
 void GammaNode::getRegionInvocationBounds(
@@ -202,8 +209,10 @@ void GammaNode::getRegionInvocationBounds(
     invocationBounds.assign(getNumRegions(), {0, 1});
 }
 
-OperandRange GammaNode::getEntrySuccessorOperands(RegionBranchPoint point)
+OperandRange GammaNode::getEntrySuccessorOperands(RegionSuccessor successor)
 {
+    assert(
+        !successor.isOperation() && "GammaNode must enter one of its regions");
     return getOperands().drop_front();
 }
 

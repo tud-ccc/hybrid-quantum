@@ -4,87 +4,89 @@
 # MLIR dialect implementing hybrid quantum-classical representations.
 ################################################################################
 
-cmake_minimum_required(VERSION 3.22)
-
-# Add custom modules to the search path.
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+cmake_minimum_required(VERSION 3.23)
 
 project(quantum-mlir
     VERSION     0.1.0
     LANGUAGES   C CXX
 )
 
-# Set global language standard to C++20.
-set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to conform to")
+set(CMAKE_BUILD_WITH_INSTALL_NAME_DIR ON)
 
-# Set backend variables
+set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to conform to")
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Project options
 option(BACKEND_QIR "Use QIR runner backend" ON)
-# Set frontend variables
 option(FRONTEND_QASM "Use Qiskit OpenQASM frontend" ON)
 
-# Detect if this is a stand-alone build.
-if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
-    # Set shared output directories.
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-    set(LLVM_LIBRARY_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/lib)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-    set(LLVM_RUNTIME_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/bin)
+# Project-specific CMake modules
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
-    # Documentation will be output here.
-    set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
-endif()
+# ---------------------------------------------------------------------------
+# LLVM / MLIR
+# ---------------------------------------------------------------------------
 
-# Fix for MLIR:
-# CMP0116: Ninja generators transform `DEPFILE`s from `add_custom_command()`
-# New in CMake 3.20. https://cmake.org/cmake/help/latest/policy/CMP0116.html
-if(POLICY CMP0116)
-    cmake_policy(SET CMP0116 OLD)
-endif()
+find_package(MLIR 23.1.1 EXACT REQUIRED CONFIG)
 
-# Find LLVM
-find_package(LLVM 20.1.7 EXACT REQUIRED CONFIG)
-# Find MLIR.
-find_package(MLIR 20.1.7 EXACT REQUIRED CONFIG)
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
-# Load LLVM and MLIR CMake modules.
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+
+set(LLVM_LIBRARY_OUTPUT_INTDIR "${CMAKE_BINARY_DIR}/lib")
+set(LLVM_RUNTIME_OUTPUT_INTDIR "${CMAKE_BINARY_DIR}/bin")
+set(MLIR_BINARY_DIR "${CMAKE_BINARY_DIR}")
+
 list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+
 include(TableGen)
 include(AddLLVM)
 include(AddMLIR)
+
+if(POLICY CMP0219)
+  cmake_policy(SET CMP0219 NEW)
+endif()
 include(HandleLLVMOptions)
 
-# Apply target properties for LLVM/MLIR globally.
+# TableGen and project-wide include paths
 include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 include_directories(SYSTEM ${MLIR_INCLUDE_DIRS})
+include_directories("${PROJECT_BINARY_DIR}/include")
+include_directories("${PROJECT_SOURCE_DIR}/include")
+
 link_directories(${LLVM_BUILD_LIBRARY_DIR})
 add_definitions(${LLVM_DEFINITIONS})
 
-# Apply target properties for this project globally.
-include_directories(SYSTEM ${PROJECT_BINARY_DIR}/include)
-include_directories(${PROJECT_SOURCE_DIR}/include)
+# ---------------------------------------------------------------------------
+# Compiler options
+# ---------------------------------------------------------------------------
 
 add_compile_options(
-    # NOTE: C++20 warning adjustments for this project.
-    -Wall
-    -Wextra
-    -Wno-ambiguous-reversed-operator
-    # NOTE: GDB < 10.x can't handle DWARFv5 correctly.
-    $<$<CXX_COMPILER_ID:Clang>:-fdebug-default-version=4>
+  -Wno-ambiguous-reversed-operator
+  $<$<CXX_COMPILER_ID:Clang>:-fdebug-default-version=4>
 )
+
+# ---------------------------------------------------------------------------
+# Components
+# ---------------------------------------------------------------------------
 
 add_subdirectory(docs)
 add_subdirectory(include)
 add_subdirectory(lib)
 add_subdirectory(lib/CAPI)
+
 if(MLIR_ENABLE_BINDINGS_PYTHON)
   message(STATUS "Enabling Python API")
+
   include(MLIRDetectPythonEnv)
   mlir_configure_python_dev_packages()
-  # Note: for EXTERNAL_PROJECT_BUILD this must be set from the command line.
+
   if(NOT MLIR_PYTHON_PACKAGE_PREFIX)
     set(MLIR_PYTHON_PACKAGE_PREFIX "mlir_quantum" CACHE STRING "" FORCE)
   endif()
@@ -94,12 +96,20 @@ if(MLIR_ENABLE_BINDINGS_PYTHON)
   if(NOT MLIR_BINDINGS_PYTHON_INSTALL_PREFIX)
     set(MLIR_BINDINGS_PYTHON_INSTALL_PREFIX "python_packages/quantum/${MLIR_PYTHON_PACKAGE_PREFIX}" CACHE STRING "" FORCE)
   endif()
-    add_subdirectory(python)
+
+  add_subdirectory(python)
 endif()
+
 add_subdirectory(frontend)
-add_subdirectory(test)
 add_subdirectory(tools)
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+
+add_subdirectory(test)
+
+include(CTest)
 if(BUILD_TESTING)
-    enable_testing()
     add_subdirectory(unittest)
 endif()

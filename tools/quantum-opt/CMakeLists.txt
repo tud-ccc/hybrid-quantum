@@ -18,6 +18,9 @@ get_property(translation_libs GLOBAL PROPERTY MLIR_TRANSLATION_LIBS)
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         MLIROptLib
+        MLIRRegisterAllDialects
+        MLIRRegisterAllPasses
+        MLIRRegisterAllExtensions
         ${dialect_libs}
         ${conversion_libs}
         ${extension_libs}

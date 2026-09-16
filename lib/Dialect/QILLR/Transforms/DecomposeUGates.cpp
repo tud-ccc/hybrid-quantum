@@ -45,11 +45,20 @@ struct DecomposeU3Pattern : public OpConversionPattern<qillr::U3Op> {
         auto qubit = adaptor.getInput();
 
         // U3(theta, phi, lambda) = Rz(phi) -> Ry(theta) -> Rz(lambda)
-        rewriter
-            .create<qillr::RzOp>(loc, qubit, adaptor.getPhi(), op.getIndex());
-        rewriter
-            .create<qillr::RyOp>(loc, qubit, adaptor.getTheta(), op.getIndex());
-        rewriter.create<qillr::RzOp>(
+        qillr::RzOp::create(
+            rewriter,
+            loc,
+            qubit,
+            adaptor.getPhi(),
+            op.getIndex());
+        qillr::RyOp::create(
+            rewriter,
+            loc,
+            qubit,
+            adaptor.getTheta(),
+            op.getIndex());
+        qillr::RzOp::create(
+            rewriter,
             loc,
             qubit,
             adaptor.getLambda(),

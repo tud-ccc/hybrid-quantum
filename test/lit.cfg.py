@@ -12,7 +12,7 @@ from lit.llvm.subst import ToolSubst
 # name: The name of this test suite.
 config.name = "quantum-mlir"
 
-config.test_format = lit.formats.ShTest(not llvm_config.use_lit_shell)
+config.test_format = lit.formats.ShTest(llvm_config.use_lit_shell)
 
 # suffixes: A list of file extensions to treat as test files.
 config.suffixes = [

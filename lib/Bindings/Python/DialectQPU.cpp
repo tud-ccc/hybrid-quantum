@@ -1,4 +1,4 @@
-//===---- DialectQPU.cpp - Pybind module for QPU dialect API support ------===//
+//===---- DialectQPU.cpp - Nanobind module for QPU dialect API support ----===//
 //
 // @author  Lars Schütze (lars.schuetze@tu-dresden.de)
 //===----------------------------------------------------------------------===//
@@ -12,15 +12,9 @@
 #include <llvm/ADT/ArrayRef.h>
 #include <mlir-c/BuiltinAttributes.h>
 #include <mlir-c/BuiltinTypes.h>
-#include <string>
-#include <vector>
 
 namespace nb = nanobind;
 
-using namespace nanobind::literals;
-
-using namespace llvm;
-using namespace mlir;
 using namespace mlir::python;
 using namespace mlir::python::nanobind_adaptors;
 

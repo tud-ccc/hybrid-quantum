@@ -16,6 +16,9 @@ get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         MLIRLspServerLib
+        MLIRRegisterAllDialects
+        MLIRRegisterAllPasses
+        MLIRRegisterAllExtensions
         ${dialect_libs}
         ${conversion_libs}
 )

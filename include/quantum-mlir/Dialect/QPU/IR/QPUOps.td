@@ -153,7 +153,7 @@ def QPU_ReturnOp : QPU_Op<"return", [
   let arguments = (ins Variadic<AnyType>:$operands);
 
   let builders = [OpBuilder<(ins), [{
-    build($_builder, $_state, std::nullopt);
+    build($_builder, $_state, ::mlir::ValueRange{});
   }]>];
 
   //let hasVerifier = 1;

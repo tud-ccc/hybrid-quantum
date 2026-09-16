@@ -76,8 +76,7 @@ struct ConvertMatch : public OpConversionPattern<rvsdg::MatchOp> {
         if (adaptor.getInput().getType() != rewriter.getI1Type())
             return failure();
 
-        rewriter.replaceAllOpUsesWith(op, adaptor.getInput());
-        rewriter.eraseOp(op);
+        rewriter.replaceOp(op, adaptor.getInput());
         return success();
     }
 };
@@ -103,7 +102,8 @@ struct ConvertGamma : public OpConversionPattern<rvsdg::GammaNode> {
 
             //  We only return captured arguments and do not have an else branch
             //  Create a simple if without results
-            auto newIf = rewriter.create<scf::IfOp>(
+            auto newIf = scf::IfOp::create(
+                rewriter,
                 op->getLoc(),
                 adaptor.getPredicate(),
                 /* withElseRegion */ false);
@@ -118,7 +118,8 @@ struct ConvertGamma : public OpConversionPattern<rvsdg::GammaNode> {
 
             rewriter.replaceOp(op, adaptor.getInputs());
         } else {
-            auto newIf = rewriter.create<scf::IfOp>(
+            auto newIf = scf::IfOp::create(
+                rewriter,
                 op->getLoc(),
                 op->getResultTypes(),
                 adaptor.getPredicate(),
@@ -164,6 +165,12 @@ void ConvertRVSDGToScfPass::runOnOperation()
     ConversionTarget target(*context);
 
     converter.addConversion([](Type type) { return type; });
+
+    converter.addConversion([](rvsdg::ControlType type) -> std::optional<Type> {
+        if (type.getNumOptions() != 2) return std::nullopt;
+
+        return IntegerType::get(type.getContext(), 1);
+    });
 
     target.addIllegalDialect<rvsdg::RVSDGDialect>();
     target.addLegalDialect<scf::SCFDialect>();

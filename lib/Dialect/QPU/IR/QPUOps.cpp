@@ -171,11 +171,11 @@ void CircuitOp::build(
     if (argAttrs.empty()) return;
     assert(type.getNumInputs() == argAttrs.size());
     // call_interface_impl
-    function_interface_impl::addArgAndResultAttrs(
+    call_interface_impl::addArgAndResultAttrs(
         builder,
         state,
         argAttrs,
-        /*resultAttrs=*/std::nullopt,
+        /*resultAttrs=*/{},
         getArgAttrsAttrName(state.name),
         getResAttrsAttrName(state.name));
 }

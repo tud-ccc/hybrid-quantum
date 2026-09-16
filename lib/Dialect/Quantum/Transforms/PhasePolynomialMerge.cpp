@@ -131,7 +131,8 @@ void PhasePolynomialMergePass::runOnOperation()
 
         Value accumulatedTheta = buildSum(thetas, builder, ops[0]->getLoc());
 
-        RzOp mergedRz = builder.create<RzOp>(
+        RzOp mergedRz = RzOp::create(
+            builder,
             ops[0].getLoc(),
             ops[0].getInput(),
             accumulatedTheta);

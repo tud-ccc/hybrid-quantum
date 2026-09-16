@@ -84,7 +84,9 @@ def RVSDG_GammaNode: RVSDG_StructuralNode<"gamma", [
         "getNumRegionInvocations",
         "getRegionInvocationBounds",
         "getEntrySuccessorRegions",
-        "getEntrySuccessorOperands"]>
+        "getEntrySuccessorOperands",
+        "getSuccessorInputs"
+    ]>
     ]> {
     let summary = "RVSDG gamma node which models conditional execution";
     let description = [{

@@ -328,7 +328,9 @@ def QILLR_GateCallOp : Gate_Op<"call", [
 
   let arguments = (ins
     FlatSymbolRefAttr:$callee,
-    Variadic<AnyType>:$operands
+    Variadic<AnyType>:$operands,
+    OptionalAttr<DictArrayAttr>:$arg_attrs,
+    OptionalAttr<DictArrayAttr>:$res_attrs
   );
 
   let builders = [
