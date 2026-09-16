@@ -25,9 +25,7 @@ MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(QPU, qpu, QPUDialect)
 /// Returns `true` if the given attribute is a qpu::TargetAttr dialect
 /// attribute.
 bool mlirAttrIsATargetAttr(MlirAttribute attr)
-{
-    return isa<TargetAttr>(unwrap(attr));
-}
+{ return isa<TargetAttr>(unwrap(attr)); }
 
 /// Creates an qpu::TargetAttr attribute.
 MlirAttribute

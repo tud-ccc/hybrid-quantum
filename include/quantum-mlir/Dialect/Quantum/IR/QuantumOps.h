@@ -72,9 +72,7 @@ public:
     template<typename ConcreteType>
     struct Impl : public OpTrait::TraitBase<ConcreteType, Impl> {
         static constexpr ::llvm::StringLiteral getAdjointOperationName()
-        {
-            return ConcreteType::getOperationName();
-        }
+        { return ConcreteType::getOperationName(); }
     };
 };
 

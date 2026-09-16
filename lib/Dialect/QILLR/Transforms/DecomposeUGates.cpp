@@ -94,11 +94,7 @@ void DecomposeUGatesPass::runOnOperation()
 
 void mlir::qillr::populateUGatesDecompositionPatterns(
     RewritePatternSet &patterns)
-{
-    patterns.add<DecomposeU3Pattern>(patterns.getContext());
-}
+{ patterns.add<DecomposeU3Pattern>(patterns.getContext()); }
 
 std::unique_ptr<Pass> mlir::qillr::createDecomposeUGatesPass()
-{
-    return std::make_unique<DecomposeUGatesPass>();
-}
+{ return std::make_unique<DecomposeUGatesPass>(); }

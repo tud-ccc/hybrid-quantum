@@ -55,21 +55,15 @@ struct QPUInlinerInterface : public DialectInlinerInterface {
         Operation* call,
         Operation* callable,
         bool wouldBeCloned) const final
-    {
-        return true;
-    }
+    { return true; }
 
     /// All operations can be inlined.
     bool isLegalToInline(Operation*, Region*, bool, IRMapping &) const final
-    {
-        return true;
-    }
+    { return true; }
 
     /// All gate bodies can be inlined.
     bool isLegalToInline(Region*, Region*, bool, IRMapping &) const final
-    {
-        return true;
-    }
+    { return true; }
 
     //===--------------------------------------------------------------------===//
     // Transformation Hooks

@@ -32,14 +32,10 @@ void mlir::quantum::phasepolynomial::detail::defaultInferResultPolynomial(
 
 bool ConstantPhasePolynomial::operator==(
     const ConstantPhasePolynomial &other) const
-{
-    return getParity() == other.getParity() && getEpoch() == other.getEpoch();
-}
+{ return getParity() == other.getParity() && getEpoch() == other.getEpoch(); }
 
 const llvm::BitVector &ConstantPhasePolynomial::getParity() const
-{
-    return parityVal;
-}
+{ return parityVal; }
 
 unsigned ConstantPhasePolynomial::getEpoch() const { return epochVal; }
 

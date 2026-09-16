@@ -55,9 +55,7 @@ struct mlir::qillr::AllocationAnalysis {
 
     // ensure that the counts are non-zero if there are any allocations
     bool verify() const
-    {
-        return (getQubitCount() >= 0) && (getResultCount() >= 0);
-    }
+    { return (getQubitCount() >= 0) && (getResultCount() >= 0); }
 
     int64_t getQubitCount() const { return allocMapping.size(); }
     int64_t getResultCount() const { return resultMapping.size(); }
@@ -551,9 +549,7 @@ struct RzOpLowering : public RotationOpLowering<RzOp> {
 
 protected:
     StringRef getQILLRFunctionName() const override
-    {
-        return "__quantum__qis__rz__body";
-    }
+    { return "__quantum__qis__rz__body"; }
 };
 
 struct RyOpLowering : public RotationOpLowering<RyOp> {
@@ -561,9 +557,7 @@ struct RyOpLowering : public RotationOpLowering<RyOp> {
 
 protected:
     StringRef getQILLRFunctionName() const override
-    {
-        return "__quantum__qis__ry__body";
-    }
+    { return "__quantum__qis__ry__body"; }
 };
 
 struct RxOpLowering : public RotationOpLowering<RxOp> {
@@ -571,9 +565,7 @@ struct RxOpLowering : public RotationOpLowering<RxOp> {
 
 protected:
     StringRef getQILLRFunctionName() const override
-    {
-        return "__quantum__qis__rx__body";
-    }
+    { return "__quantum__qis__rx__body"; }
 };
 
 // Add to your existing patterns
@@ -1113,6 +1105,4 @@ void mlir::qillr::populateConvertQILLRToLLVMPatterns(
 }
 
 std::unique_ptr<Pass> mlir::createConvertQILLRToLLVMPass()
-{
-    return std::make_unique<ConvertQILLRToLLVMPass>();
-}
+{ return std::make_unique<ConvertQILLRToLLVMPass>(); }

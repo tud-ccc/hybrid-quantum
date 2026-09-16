@@ -118,6 +118,4 @@ void mlir::rvsdg::populateConvertRVSDGPatterns(
 }
 
 std::unique_ptr<Pass> mlir::createConvertRVSDGPass()
-{
-    return std::make_unique<ConvertRVSDGPass>();
-}
+{ return std::make_unique<ConvertRVSDGPass>(); }

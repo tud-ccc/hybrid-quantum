@@ -854,6 +854,4 @@ void mlir::quantum::populateConvertQuantumToQILLRPatterns(
 }
 
 std::unique_ptr<Pass> mlir::createConvertQuantumToQILLRPass()
-{
-    return std::make_unique<ConvertQuantumToQILLRPass>();
-}
+{ return std::make_unique<ConvertQuantumToQILLRPass>(); }

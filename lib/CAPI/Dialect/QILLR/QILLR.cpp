@@ -19,25 +19,17 @@ MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(QILLR, qillr, QILLRDialect)
 //===---------------------------------------------------------------------===//
 
 bool mlirTypeIsAQubitType(MlirType type)
-{
-    return isa<QubitType>(unwrap(type));
-}
+{ return isa<QubitType>(unwrap(type)); }
 
 MlirType mlirQubitTypeGet(MlirContext ctx)
-{
-    return wrap(QubitType::get(unwrap(ctx)));
-}
+{ return wrap(QubitType::get(unwrap(ctx))); }
 
 //===---------------------------------------------------------------------===//
 // ResultType
 //===---------------------------------------------------------------------===//
 
 bool mlirTypeIsAResultType(MlirType type)
-{
-    return isa<ResultType>(unwrap(type));
-}
+{ return isa<ResultType>(unwrap(type)); }
 
 MlirType mlirResultTypeGet(MlirContext ctx)
-{
-    return wrap(ResultType::get(unwrap(ctx)));
-}
+{ return wrap(ResultType::get(unwrap(ctx))); }

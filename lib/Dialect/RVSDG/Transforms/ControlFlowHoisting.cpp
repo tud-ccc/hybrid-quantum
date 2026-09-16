@@ -162,6 +162,4 @@ void ControlFlowHoistingPass::runOnOperation()
 }
 
 std::unique_ptr<Pass> mlir::rvsdg::createControlFlowHoistingPass()
-{
-    return std::make_unique<ControlFlowHoistingPass>();
-}
+{ return std::make_unique<ControlFlowHoistingPass>(); }

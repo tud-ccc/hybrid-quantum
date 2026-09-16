@@ -146,6 +146,4 @@ void PhasePolynomialMergePass::runOnOperation()
 }
 
 std::unique_ptr<Pass> mlir::quantum::createPhasePolynomialMergePass()
-{
-    return std::make_unique<PhasePolynomialMergePass>();
-}
+{ return std::make_unique<PhasePolynomialMergePass>(); }
