@@ -1,4 +1,4 @@
-// RUN: %PYTHON qasm-import -i %s -r | quantum-opt --convert-quantum-to-qillr | FileCheck %s
+// RUN: %PYTHON qasm-import -i %s -r | quantum-opt --convert-quantum-to-qillr --canonicalize | FileCheck %s
 
 
 // CHECK: module {

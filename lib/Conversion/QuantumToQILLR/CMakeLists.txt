@@ -1,20 +1,18 @@
 add_mlir_conversion_library(QuantumToQILLR
-        QuantumToQILLR.cpp
+    QuantumToQILLR.cpp
 
     DEPENDS
         ConversionIncGen
 
-    LINK_COMPONENTS
-        Core
-
     LINK_LIBS PUBLIC
-        MLIRDialectUtils
-        MLIRTransforms
+        MLIRFuncTransforms
+        MLIRSCFTransforms
+        MLIRTensorDialect
         MLIRTransformUtils
+
         QuantumIR
         QILLRIR
         RVSDGIR
-        MLIRIR
         QuantumAnalysis
         QuantumInterfaces
 )
