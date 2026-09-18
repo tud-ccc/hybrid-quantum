@@ -41,6 +41,8 @@ std::unique_ptr<Pass> createScfToRVSDGPass();
 
 std::unique_ptr<Pass> createPhasePolynomialMergePass();
 
+std::unique_ptr<Pass> createVerifyLinearityPass();
+
 //===----------------------------------------------------------------------===//
 // Registration
 //===----------------------------------------------------------------------===//

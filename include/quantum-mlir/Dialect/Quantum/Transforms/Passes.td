@@ -36,4 +36,13 @@ def PhasePolynomialMerge : Pass<"phase-poly-merge", "ModuleOp"> {
   let constructor = "mlir::quantum::createPhasePolynomialMergePass()";
 }
 
+def VerifyLinearity : Pass<"verify-linearity", "ModuleOp"> {
+  let summary = "Check linearity of qubit-consuming operations.";
+
+  let description = [{
+  }];
+
+  let constructor = "mlir::quantum::createVerifyLinearityPass()";
+}
+
 #endif // QUANTUM_PASSES

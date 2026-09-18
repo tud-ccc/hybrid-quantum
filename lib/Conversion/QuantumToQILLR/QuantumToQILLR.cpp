@@ -27,6 +27,8 @@
 #include <mlir/Analysis/DataFlow/SparseAnalysis.h>
 #include <mlir/Dialect/Func/IR/FuncOps.h>
 #include <mlir/Dialect/Func/Transforms/FuncConversions.h>
+#include <mlir/Dialect/SCF/IR/SCF.h>
+#include <mlir/Dialect/SCF/Transforms/Patterns.h>
 #include <mlir/Dialect/Tensor/IR/Tensor.h>
 #include <mlir/IR/BuiltinAttributeInterfaces.h>
 #include <mlir/IR/BuiltinAttributes.h>
@@ -787,17 +789,15 @@ void ConvertQuantumToQILLRPass::runOnOperation()
     populateReturnOpTypeConversionPattern(patterns, typeConverter);
     // Populate conversions from `rvsdg` dialect
     rvsdg::populateConvertRVSDGPatterns(typeConverter, patterns);
+    scf::populateSCFStructuralTypeConversionsAndLegality(
+        typeConverter,
+        patterns,
+        target);
 
-    target.addIllegalDialect<quantum::QuantumDialect>();
-    target.addLegalDialect<tensor::TensorDialect>();
     target.addLegalDialect<qillr::QILLRDialect>();
+    target.addIllegalDialect<quantum::QuantumDialect>();
     target.addDynamicallyLegalOp<func::FuncOp>([&](func::FuncOp op) {
         return typeConverter.isSignatureLegal(op.getFunctionType());
-    });
-    target.addDynamicallyLegalOp<rvsdg::GammaNode>(
-        [&](rvsdg::GammaNode op) { return typeConverter.isLegal(op); });
-    target.addDynamicallyLegalOp<rvsdg::YieldOp>([&](rvsdg::YieldOp op) {
-        return typeConverter.isLegal(op->getOperandTypes());
     });
 
     if (failed(applyPartialConversion(

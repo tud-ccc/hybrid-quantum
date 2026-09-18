@@ -49,7 +49,7 @@ class Measurement_Op<string mnemonic, list<Trait> traits = []>
 // Inject no clone theorem verifier into operations
 // that produce qubits
 def NoClone : NativeOpTrait<"NoClone"> {
-    let cppNamespace = "::mlir::quantum";
+  let cppNamespace = "::mlir::quantum";
 }
 
 def Hermitian : NativeOpTrait<"Hermitian"> {
@@ -78,7 +78,8 @@ def Quantum_GateOp : Quantum_Op<
   "gate",
   [
     IsolatedFromAbove,
-    FunctionOpInterface
+    FunctionOpInterface,
+    NoClone
   ]> {
   let summary = "A quantum gate operation";
   let description = [{ A quantum gate operation. }];
@@ -128,7 +129,8 @@ def Quantum_GateCallOp : Gate_Op<
   "call",
   [
     CallOpInterface,
-    DeclareOpInterfaceMethods<SymbolUserOpInterface>
+    DeclareOpInterfaceMethods<SymbolUserOpInterface>,
+    NoClone
   ]> {
   let summary = "Gate call operation";
   let description = [{ Gate call operation. }];
@@ -198,7 +200,8 @@ def Quantum_ReturnOp : Quantum_Op<
     Pure,
     HasParent<"GateOp">,
     ReturnLike,
-    Terminator
+    Terminator,
+    NoClone
   ]> {
   let summary = "Quantum gate return operation";
   let description = [{
@@ -229,13 +232,13 @@ def Quantum_AllocOp : Memory_Op<
     MemoryEffects<[
       MemRead
     ]>,
-    NoClone,
     DeclareOpInterfaceMethods<
       InferRegisterRangesInterface, ["inferResultRanges"]
     >,
     DeclareOpInterfaceMethods<
       InferPhasePolynomialInterface, ["inferResultPolynomial"]
-    >
+    >,
+    NoClone
   ]> {
   let summary = "Allocate n qubits into a quantum register.";
   let description = [{
@@ -264,7 +267,8 @@ def Quantum_DeallocateOp : Memory_Op<
     ]>,
     DeclareOpInterfaceMethods<
       InferRegisterRangesInterface, ["inferResultRanges"]
-    >
+    >,
+    NoClone
   ]> {
     let summary = "Deallocate a quantum register.";
     let description = [{
@@ -292,7 +296,8 @@ def Quantum_ResetOp : Memory_Op<
       MemWrite
     ]>,
     InferRegisterRangesInterface,
-    InferPhasePolynomialInterface
+    InferPhasePolynomialInterface,
+    NoClone
   ]> {
     let summary = "Reset a quantum register.";
     let description = [{
@@ -322,13 +327,13 @@ def Quantum_SplitOp : Memory_Op<
       MemRead,
       MemWrite
     ]>,
-    NoClone,
     DeclareOpInterfaceMethods<
       InferRegisterRangesInterface, ["inferResultRanges"]
     >,
     DeclareOpInterfaceMethods<
       InferPhasePolynomialInterface, ["inferResultPolynomial"]
-    >
+    >,
+    NoClone
   ]> {
     let summary = "Split a qubit register into two sub-registers.";
     let description = [{
@@ -354,10 +359,10 @@ def Quantum_MergeOp : Memory_Op<
       MemRead,
       MemWrite
     ]>,
-    NoClone,
     DeclareOpInterfaceMethods<
       InferRegisterRangesInterface, ["inferResultRanges"]
-    >
+    >,
+    NoClone
   ]> {
     let summary = "Combine qubit registers into a single one.";
     let description = [{
@@ -905,10 +910,10 @@ def Quantum_MeasureOp : Memory_Op<
   [
     MemoryEffects<[MemRead]>,
     AllTypesMatch<["input", "result"]>,
-    NoClone,
     DeclareOpInterfaceMethods<
       InferRegisterRangesInterface, ["inferResultRanges"]
-    >
+    >,
+    NoClone
   ]> {
     let summary = "Measure a qubit register of size N.";
     let description = [{
