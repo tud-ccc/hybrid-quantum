@@ -39,10 +39,7 @@ void buildTerminatedBody(
     ValueRange capturedArgs);
 
 template<typename ConcreteType>
-class NoClone : public OpTrait::TraitBase<ConcreteType, NoClone> {
-public:
-    static LogicalResult verifyTrait(Operation* op);
-};
+class NoClone : public OpTrait::TraitBase<ConcreteType, NoClone> {};
 
 template<typename ConcreteType>
 class Hermitian : public OpTrait::TraitBase<ConcreteType, Hermitian> {
